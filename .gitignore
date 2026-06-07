@@ -1,0 +1,27 @@
+# dependencias
+/node_modules
+.pnpm-store/
+
+# build de Next.js
+/.next/
+/out/
+/build/
+next-env.d.ts
+*.tsbuildinfo
+
+# entorno (secretos)
+.env
+.env.*
+!.env.example
+
+# vercel
+.vercel
+
+# sistema
+.DS_Store
+*.pem
+
+# tooling de agentes
+.agents/
+skills-lock.json
+.claude/

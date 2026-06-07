@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@theme {
+  /* Superficies cálidas tipo tinta/espresso (no negro puro) */
+  --color-canvas: #15120d;
+  --color-surface: #1d1813;
+  --color-surface-2: #271f16;
+  --color-ink: #f4ece0;
+  --color-muted: #a99c86;
+  --color-faint: #6f6555;
+  --color-line: #342b1f;
+
+  /* Acento lima ácida + semántica de datos */
+  --color-accent: #cdf24a;
+  --color-accent-ink: #15120d;
+  --color-present: #b6e84a;
+  --color-partial: #f3ab2e;
+  --color-missing: #ef6b45;
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Atmósfera: resplandor cálido en las esquinas */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 560px at 78% -12%, rgba(205, 242, 74, 0.08), transparent 60%),
+    radial-gradient(820px 480px at -8% 108%, rgba(239, 107, 69, 0.06), transparent 55%);
+}
+
+/* Grano sutil para textura de papel */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.04;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+/* Revelados escalonados */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes grow-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.grow-bar {
+  transform-origin: left;
+  animation: grow-bar 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
