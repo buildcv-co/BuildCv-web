@@ -1,6 +1,8 @@
-# Feature 002-web — UI del analizador (M0 — UI del score)
+# Feature 002-web-score-ui — UI del analizador (M0 — UI del score)
 
 > **Status:** ✅ SHIPPED · **Cerrada:** 2026-06-08
+> **Backend counterpart:** [../../BuildCv-api/specs/002-score-engine/](../../BuildCv-api/specs/002-score-engine/) (✅ SHIPPED)
+> **INDEX global:** [../000-INDEX.md](../000-INDEX.md)
 
 ## Resumen
 
