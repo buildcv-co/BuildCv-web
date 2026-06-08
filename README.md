@@ -1,6 +1,6 @@
 # BuildCv · Web (Next.js)
 
-Frontend del asistente de CV **BuildCv**: pega tu hoja de vida + una vacante y obtén un **puntaje de coincidencia y legibilidad** explicable, las palabras clave que faltan y qué arreglar. API en repo aparte: **[BuildCv-api](https://github.com/buildcv-co/BuildCv-api)**.
+Frontend del asistente de CV **BuildCv**: pega tu hoja de vida + una vacante y obtén un **puntaje de coincidencia y legibilidad** explicable, las palabras clave que faltan y qué arreglar. API en directorio hermano: **[`../BuildCv-api/`](../BuildCv-api/)** (repositorio independiente).
 
 [![CI](https://github.com/buildcv-co/BuildCv-web/actions/workflows/ci.yml/badge.svg)](https://github.com/buildcv-co/BuildCv-web/actions/workflows/ci.yml) [![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-2ea44f)](LICENSE.md)
 
