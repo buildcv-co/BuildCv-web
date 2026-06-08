@@ -22,9 +22,14 @@ pnpm install                          # instala dependencias
 pnpm dev                              # http://localhost:3000
 pnpm lint                             # ESLint (eslint-config-next + TS)
 pnpm build                            # next build (verifica compilación)
+pnpm test                             # vitest run (unit + integración con jsdom)
+pnpm test:watch                       # vitest en modo watch
+pnpm test:cov                         # vitest run --coverage (reporte v8 + html)
+pnpm test:e2e                         # playwright test (E2E chromium)
+pnpm test:e2e:ui                      # playwright test --ui (modo interactivo)
 ```
 
-**CI ground truth** (`.github/workflows/ci.yml`): `pnpm install --frozen-lockfile` → `pnpm run lint` → `pnpm run build`.
+**CI ground truth** (`.github/workflows/ci.yml`): `pnpm install --frozen-lockfile` → `pnpm run lint` → `pnpm run build` → `pnpm test` → `pnpm test:e2e`.
 
 ## Arquitectura
 
@@ -74,7 +79,33 @@ lib/
 - **`@/` path alias** apunta a `./` (`tsconfig.json paths: { "@/*": ["./*"] }`).
 - **ESLint flat config** (`eslint.config.mjs`) — `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript`.
 - **TypeScript strict** — `strict: true` en `tsconfig.json`, `noEmit: true`.
-- **Sin testing framework instalado aún** — package.json no tiene script `test`. Los tests llegarán en hitos futuros.
+
+## Testing framework
+
+- **Vitest 2** para unit + integración con `jsdom`. Cobertura con `@vitest/coverage-v8` (provider `v8`).
+- **React Testing Library 16** + `@testing-library/user-event` + `@testing-library/jest-dom` para componentes.
+- **Playwright 1** para E2E — solo **chromium** en v0.5 (firefox/webkit diferidos para ahorrar tiempo de CI).
+- TDD activo vía Constitución Art. VIII. Escribe el test antes del código en cada user story.
+
+### Dónde vive cada cosa
+
+```
+vitest.config.ts          # resolve.alias `@/*` → ./*, jsdom, setupFiles
+vitest.setup.ts           # importa jest-dom + cleanup automático
+playwright.config.ts      # testDir e2e, baseURL :3000, webServer pnpm dev
+e2e/
+  smoke.spec.ts           # smoke E2E (landing) — verifica el setup
+lib/utils/cn.test.ts      # smoke unit (cn) — verifica el setup
+```
+
+- Tests unit co-localizados con el código (`foo.ts` + `foo.test.ts`) en `lib/`, `components/`, `app/`.
+- Specs E2E en `e2e/`, independientes de los unit (Playwright los excluye de Vitest vía `exclude`).
+- Reportes de cobertura: `coverage/` (html) — ya está en `.gitignore`.
+- Reportes Playwright: `playwright-report/`, `test-results/` — ya están en `.gitignore`.
+
+### Regla v0.5 — checklist E2E manual sigue vigente
+
+Hasta que las suites E2E por feature crezcan, **mantén el checklist E2E manual** dentro de cada `tasks.md` (006a, 006b). Es el gate de ship además de los tests automatizados. El checklist manual cubre flujos críticos que la suite aún no cubre (subida de archivos, diff grande, mobile, etc.).
 
 ## Encuadre honesto (Constitución Art. IV)
 

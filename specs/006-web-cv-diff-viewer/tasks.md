@@ -190,7 +190,7 @@ Con 1 dev full-time: ~1.5 semanas hasta ship.
 - **[P] tasks** = archivos distintos, no dependencias. Pueden correr en paralelo.
 - US-3 (edición inline) NO es bloqueante para el ship; se puede hacer post-MVP.
 - Phase 7 (Polish) NO es opcional: WCAG AA es gate de Constitución.
-- Vitest + RTL llegan en M3+ (no en v0.5).
+- **Testing framework ya instalado en sprint 0** (Vitest 2 + RTL 16 + Playwright 1 chromium). TDD activo por Constitución Art. VIII: escribir el test antes del código. El checklist E2E manual sigue siendo **complementario** a la suite automatizada.
 
 ---
 

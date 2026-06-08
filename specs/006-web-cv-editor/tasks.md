@@ -228,7 +228,7 @@ Con 1 dev full-time: ~2 semanas (5 días/semana) hasta ship.
 - **[P] tasks** = archivos distintos, no dependencias. Pueden correr en paralelo si hay equipo.
 - Cada user story (US-1 a US-5) es testeable independientemente. Plan: implementar y demo de cada una antes de pasar a la siguiente.
 - Phase 9 (Polish) NO es opcional: el checklist E2E + WCAG AA son gates de Constitución (Art. III, Art. IV) y de ship.
-- Vitest + RTL llegan en M3+ (no en v0.5). El checklist E2E manual es el sustituto formal.
+- **Testing framework ya instalado en sprint 0** (Vitest 2 + RTL 16 + Playwright 1 chromium). TDD activo por Constitución Art. VIII: escribir el test de cada componente antes de la implementación. El checklist E2E manual sigue siendo **complementario** a la suite automatizada — cubre flujos que la suite aún no automatiza.
 
 ---
 

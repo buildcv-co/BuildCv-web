@@ -1,4 +1,5 @@
 # Aprobación explícita de scripts de build de dependencias (pnpm 10+, por seguridad).
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true

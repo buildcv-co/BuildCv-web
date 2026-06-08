@@ -9,6 +9,11 @@
 next-env.d.ts
 *.tsbuildinfo
 
+# tests
+/coverage
+/playwright-report
+/test-results
+
 # entorno (secretos)
 .env
 .env.*
