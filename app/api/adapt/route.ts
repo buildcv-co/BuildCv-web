@@ -1,15 +1,15 @@
 import { BACKEND_URL } from "@/lib/api/backend";
 
-// Passthrough de Server-Sent Events: runtime Node y SIN bufferizar, para que el
-// streaming de la adaptación llegue token a token al navegador (M1).
-export const runtime = "nodejs";
+// BFF: proxyea al endpoint /api/v1/adapt del backend .NET.
+// El browser NUNCA habla directo con el backend (Constitution Art. VI — Clean Arch).
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const body = await request.text();
-  const upstream = await fetch(`${BACKEND_URL}/api/v1/adapt/stream`, {
+  const upstream = await fetch(`${BACKEND_URL}/api/v1/adapt`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "text/event-stream" },
+    headers: { "content-type": "application/json" },
     body,
     cache: "no-store",
   });
@@ -17,10 +17,7 @@ export async function POST(request: Request) {
   return new Response(upstream.body, {
     status: upstream.status,
     headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      "x-accel-buffering": "no",
-      connection: "keep-alive",
+      "content-type": upstream.headers.get("content-type") ?? "application/json",
     },
   });
 }
