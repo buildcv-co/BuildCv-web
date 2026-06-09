@@ -57,6 +57,12 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 ### 002-web-score-ui (v0 / M0.0)
 
 - **Spec:** [specs/002-web-score-ui/spec.md](./002-web-score-ui/spec.md)
+- **Plan:** [specs/002-web-score-ui/plan.md](./002-web-score-ui/plan.md)
+- **Research:** [specs/002-web-score-ui/research.md](./002-web-score-ui/research.md)
+- **Data model:** [specs/002-web-score-ui/data-model.md](./002-web-score-ui/data-model.md)
+- **Quickstart:** [specs/002-web-score-ui/quickstart.md](./002-web-score-ui/quickstart.md)
+- **Tasks:** [specs/002-web-score-ui/tasks.md](./002-web-score-ui/tasks.md)
+- **Contracts:** [specs/002-web-score-ui/contracts/frontend-consumes-api.md](./002-web-score-ui/contracts/frontend-consumes-api.md)
 - **Backend:** [../BuildCv-api/specs/002-score-engine/](../BuildCv-api/specs/002-score-engine/) (✅ SHIPPED)
 - **Estado:** Score gauge animado + component bars + keyword cloud + fix list + honesty note.
 - **Path frontend:** `app/analizar/page.tsx` + `components/analyzer/`
