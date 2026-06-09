@@ -64,10 +64,11 @@ export const copy = {
   },
   adapt: {
     panel: {
-      title: "Adaptar tu CV con IA",
+      title: "Adaptar tu CV",
       description: "Reorganiza, reescribe y prioriza tu CV sin inventar contenido.",
-      button: "Adaptar con IA",
+      button: "Adaptar mi CV",
       buttonLoading: "Adaptando…",
+      buttonHint: "versión determinista · v0",
     },
     severity: {
       none: "Sin invenciones. CV lista para descargar.",
@@ -92,6 +93,12 @@ export const copy = {
     },
     cta: {
       regenerate: "Regenerar con prompt estricto",
+    },
+    exportGate: {
+      title: "No podemos exportar este CV todavía",
+      detail:
+        "El validador detectó {count} invención(es) Hard (entidades que no estaban en tu CV original). El export a PDF está bloqueado por Constitution Art. I hasta que regeneres la adaptación.",
+      regenerate: "Regenerar adaptación",
     },
   },
   export: {

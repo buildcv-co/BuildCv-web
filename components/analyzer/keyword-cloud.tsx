@@ -20,9 +20,9 @@ export function KeywordCloud({ analysis }: { analysis: KeywordAnalysis }) {
     <div className="grid gap-5 sm:grid-cols-3">
       {groups.map((group) => (
         <div key={group.tone}>
-          <h4 className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-faint">
+          <h3 className="mb-2 font-mono text-xs uppercase tracking-[0.18em] text-faint">
             {group.title} · {group.items.length}
-          </h4>
+          </h3>
           {group.items.length === 0 ? (
             <p className="text-sm text-muted">
               {group.tone === "missing" ? copy.result.noMissing : "—"}

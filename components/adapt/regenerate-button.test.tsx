@@ -40,4 +40,19 @@ describe("RegenerateButton", () => {
       "false",
     );
   });
+
+  it("label opcional: si se pasa, ese label; si no, el default", () => {
+    const { rerender } = render(<RegenerateButton onClick={vi.fn()} loading={false} />);
+    expect(screen.getByRole("button", { name: /regenerar/i })).toHaveTextContent(
+      /regenerar con prompt estricto/i,
+    );
+    rerender(
+      <RegenerateButton
+        onClick={vi.fn()}
+        loading={false}
+        label="Regenerar adaptación"
+      />,
+    );
+    expect(screen.getByRole("button", { name: /regenerar adaptación/i })).toBeInTheDocument();
+  });
 });

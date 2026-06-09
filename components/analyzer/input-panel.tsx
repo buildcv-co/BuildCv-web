@@ -89,26 +89,28 @@ export function InputPanel({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className={cn(
-            "rounded-full px-7 py-3 font-medium transition",
-            canSubmit
-              ? "bg-accent text-accent-ink hover:brightness-110"
-              : "cursor-not-allowed bg-surface-2 text-faint",
-          )}
-        >
-          {loading ? copy.analyze.analyzing : copy.analyze.submit}
-        </button>
-        <button type="button" onClick={onExample} className={ghostButton}>
-          {copy.analyze.tryExample}
-        </button>
-        <button type="button" onClick={onClear} className={ghostButton}>
-          {copy.analyze.clear}
-        </button>
-        <span className="ml-auto hidden text-xs text-faint sm:block">{copy.analyze.privacy}</span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className={cn(
+              "rounded-full px-7 py-3 font-medium transition",
+              canSubmit
+                ? "bg-accent text-accent-ink hover:brightness-110"
+                : "cursor-not-allowed bg-surface-2 text-faint",
+            )}
+          >
+            {loading ? copy.analyze.analyzing : copy.analyze.submit}
+          </button>
+          <button type="button" onClick={onExample} className={ghostButton}>
+            {copy.analyze.tryExample}
+          </button>
+          <button type="button" onClick={onClear} className={ghostButton}>
+            {copy.analyze.clear}
+          </button>
+        </div>
+        <p className="text-xs text-faint sm:ml-auto">{copy.analyze.privacy}</p>
       </div>
     </form>
   );

@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AdaptPanel } from "./adapt-panel";
 import type { AdaptationResult, EntityInvention, ValidationReport } from "@/lib/api/types";
@@ -74,11 +74,20 @@ afterEach(() => {
 });
 
 describe("AdaptPanel — estado inicial", () => {
-  it("muestra el panel con botón 'Adaptar con IA'", () => {
+  it("muestra el panel con botón honesto (no claims de IA que el stub no cumple)", () => {
     render(<AdaptPanel cvText={CV} jobText={JOB} />);
     expect(
       screen.getByRole("button", { name: copy.adapt.panel.button }),
     ).toBeInTheDocument();
+    // El hint 'versión determinista · v0' debe ser visible (Constitution Art. IV honest copy)
+    expect(screen.getByText(copy.adapt.panel.buttonHint)).toBeInTheDocument();
+  });
+
+  it("el botón NO dice 'con IA' (en v0 el stub es determinista, no LLM)", () => {
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    expect(
+      screen.queryByRole("button", { name: /adaptar con ia/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("muestra el título y la descripción del panel", () => {
@@ -124,7 +133,9 @@ describe("AdaptPanel — happy path", () => {
     await waitFor(() => {
       expect(screen.getByText(/sin invenciones/i)).toBeInTheDocument();
     });
-    expect(screen.getByText(/# CV adaptado/)).toBeInTheDocument();
+    // El adaptedCvViewer ahora usa markup semántico: el "# CV adaptado" se renderiza como
+    // <h2>CV adaptado</h2> (el "#" se elimina porque es el markdown del heading).
+    expect(screen.getByRole("heading", { level: 2, name: "CV adaptado" })).toBeInTheDocument();
     expect(screen.getByText(/cambios aplicados/i)).toBeInTheDocument();
   });
 
@@ -364,5 +375,66 @@ describe("AdaptPanel — integración con ExportButton (sprint 2)", () => {
     expect(
       screen.queryByRole("button", { name: copy.export.button }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("AdaptPanel — gate de export por Hard inventions (Constitution Art. I)", () => {
+  it("success con severity=Critical + Hard inventions: NO renderiza Descargar PDF, SÍ muestra Regenerar", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("Critical"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    // Espera al severity badge de Critical
+    await waitFor(() => {
+      expect(screen.getByText(/Cr[ií]tica|Atenci[oó]n/i)).toBeInTheDocument();
+    });
+    // El botón de export NO debe estar presente
+    expect(
+      screen.queryByRole("button", { name: copy.export.button }),
+    ).not.toBeInTheDocument();
+    // El panel explicativo con Regenerar SÍ debe estar
+    expect(
+      screen.getByRole("button", { name: copy.adapt.exportGate.regenerate }),
+    ).toBeInTheDocument();
+  });
+
+  it("success con severity=Critical: muestra mensaje claro de por qué no se puede exportar", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("Critical"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByText(/Cr[ií]tica|Atenci[oó]n/i)).toBeInTheDocument();
+    });
+    // Mensaje: no se puede exportar porque hay Hard inventions
+    expect(
+      screen.getByText(/no se puede exportar|invenciones|no est[áa] en el original|regenera/i),
+    ).toBeInTheDocument();
+  });
+
+  it("success con severity=Warning (solo Soft inventions): SÍ renderiza Descargar PDF (gate permite)", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("Warning"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByText(/advertencia/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: copy.export.button }),
+    ).toBeInTheDocument();
+  });
+
+  it("success con severity=None: SÍ renderiza Descargar PDF", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("None"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByText(/sin invenciones/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: copy.export.button }),
+    ).toBeInTheDocument();
   });
 });

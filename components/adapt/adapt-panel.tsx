@@ -21,6 +21,13 @@ interface ErrorState {
 
 const REGENERATE_STATUSES = new Set<number>([422]);
 
+/** Constitution Art. I: el export está bloqueado si hay invenciones Hard. */
+function hasHardInvention(
+  inventions: ReadonlyArray<{ severity: "Soft" | "Hard" }>,
+): boolean {
+  return inventions.some((i) => i.severity === "Hard");
+}
+
 export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<AdaptationResult | null>(null);
@@ -76,15 +83,36 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
           </div>
           <AdaptedCvViewer adaptedCv={result.adaptedCv} />
           <DeltaImprovements inventions={result.validation.inventions} />
-          <ExportButton
-            request={{
-              adaptedCv: result.adaptedCv,
-              validation: result.validation,
-              candidateName: "Candidato",
-            }}
-    
-            onRegenerate={run}
-          />
+          {hasHardInvention(result.validation.inventions) ? (
+            <div
+              role="alert"
+              className="space-y-3 rounded-xl border border-missing/40 bg-missing/10 p-4 text-sm text-missing"
+            >
+              <p className="font-medium">{copy.adapt.exportGate.title}</p>
+              <p className="text-missing/90">
+                {copy.adapt.exportGate.detail.replace(
+                  "{count}",
+                  String(
+                    result.validation.inventions.filter((i) => i.severity === "Hard").length,
+                  ),
+                )}
+              </p>
+              <RegenerateButton
+                onClick={run}
+                loading={isLoading}
+                label={copy.adapt.exportGate.regenerate}
+              />
+            </div>
+          ) : (
+            <ExportButton
+              request={{
+                adaptedCv: result.adaptedCv,
+                validation: result.validation,
+                candidateName: "Candidato",
+              }}
+              onRegenerate={run}
+            />
+          )}
         </div>
       )}
 
@@ -101,21 +129,26 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
       )}
 
       {status !== "success" && (
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={run}
-            disabled={!canRun || isLoading}
-            aria-busy={isLoading}
-            className={cn(
-              "rounded-full px-6 py-2.5 text-sm font-medium transition",
-              canRun && !isLoading
-                ? "bg-accent text-accent-ink hover:brightness-110"
-                : "cursor-not-allowed bg-surface-2 text-faint",
-            )}
-          >
-            {isLoading ? copy.adapt.panel.buttonLoading : copy.adapt.panel.button}
-          </button>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={run}
+              disabled={!canRun || isLoading}
+              aria-busy={isLoading}
+              className={cn(
+                "rounded-full px-6 py-2.5 text-sm font-medium transition",
+                canRun && !isLoading
+                  ? "bg-accent text-accent-ink hover:brightness-110"
+                  : "cursor-not-allowed bg-surface-2 text-faint",
+              )}
+            >
+              {isLoading ? copy.adapt.panel.buttonLoading : copy.adapt.panel.button}
+            </button>
+            <span className="font-mono text-xs text-faint">
+              {copy.adapt.panel.buttonHint}
+            </span>
+          </div>
         </div>
       )}
     </section>

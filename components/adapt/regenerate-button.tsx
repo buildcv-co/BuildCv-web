@@ -4,9 +4,11 @@ import { cn } from "@/lib/utils/cn";
 export function RegenerateButton({
   onClick,
   loading,
+  label,
 }: {
   onClick: () => void;
   loading: boolean;
+  label?: string;
 }) {
   return (
     <button
@@ -21,7 +23,7 @@ export function RegenerateButton({
           : "border border-partial/40 bg-partial/10 text-partial hover:border-partial/60 hover:bg-partial/15",
       )}
     >
-      {copy.adapt.cta.regenerate}
+      {label ?? copy.adapt.cta.regenerate}
     </button>
   );
 }

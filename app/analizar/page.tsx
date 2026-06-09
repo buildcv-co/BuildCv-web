@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function AnalizarPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
-      <header className="mb-10 flex items-center justify-between">
+      <header className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/" className="font-display text-xl">
           {copy.appName}
         </Link>
