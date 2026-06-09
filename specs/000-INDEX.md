@@ -40,8 +40,8 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 | 006b | `web-cv-diff-viewer` | v0.5 / M4 | ✅ SHIPPED | (re-usa 003) |
 | 007 | `landing-ui` | v0.5.1 | ✅ SHIPPED | (n/a) |
 | 008 | `observability-web` | v0.5.1 | ✅ SHIPPED | (n/a) |
-| 009 | `auth-web` | v1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
-| 010 | `payments-web` | v1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
+| 009 | `auth-web` | v1 | 📋 PLANEADO | (n/a) |
+| 010 | `payments-web` | v1 | 📋 PLANEADO | (n/a) |
 
 ## Leyenda de status
 
@@ -49,6 +49,8 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - 🚧 **EN CURSO** — implementación activa
 - 📋 **PLANEADO** — los 7 artifacts están escritos; esperando ventana de implementación
 - 🗄️ **ARCHIVADO** — feature antigua, conservada solo para historia
+
+> **Convención de numeración cross-repo:** Los números 002–005 son correlativos (tienen contraparte frontend+backend = mismo producto). A partir de 006, cada repo (`BuildCv-api` / `BuildCv-web`) tiene su propia secuencia para features independientes. Ver también `BuildCv-api/specs/000-INDEX.md`.
 
 ## Features SHIPPED (detalle)
 

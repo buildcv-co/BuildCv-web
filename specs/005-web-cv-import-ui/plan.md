@@ -1,6 +1,6 @@
 # Plan: 005-web-cv-import-ui
 
-**Status:** 📋 PLANEADO | **Backend counterpart:** [../../BuildCv-api/specs/005-cv-pdf-docx-import/](../../BuildCv-api/specs/005-cv-pdf-docx-import/) (specs escritos, implementación TDD-ordenada)
+**Status:** ✅ SHIPPED (commit `318a1c0`) | **Backend counterpart:** [../../BuildCv-api/specs/005-cv-pdf-docx-import/](../../BuildCv-api/specs/005-cv-pdf-docx-import/) (✅ SHIPPED, commit `c61bdf4`)
 
 ## Summary
 

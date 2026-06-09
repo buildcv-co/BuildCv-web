@@ -1,6 +1,6 @@
 # Plan: 003-web-adapt-ui
 
-**Status:** 📋 PLANEADO | **Backend counterpart:** [../../../BuildCv-api/specs/003-adapt-ia/](../../../BuildCv-api/specs/003-adapt-ia/) (✅ SHIPPED)
+**Status:** ✅ SHIPPED (commit `19577ab`) | **Backend counterpart:** [../../../BuildCv-api/specs/003-adapt-ia/](../../../BuildCv-api/specs/003-adapt-ia/) (✅ SHIPPED)
 
 ## Summary
 

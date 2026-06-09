@@ -130,8 +130,8 @@ Esta versión tiene cambios de API respecto a versiones anteriores. Antes de esc
 | Reglas del producto (constitución) | `../BuildCv-api/.specify/memory/constitution.md` |
 | Comandos API, specs, hitos | `../BuildCv-api/AGENTS.md` |
 | Root monorepo navegación | `../AGENTS.md` |
-| Endpoint contracts | `specs/001-mvp-cv-ats/contracts/api-contract.md` |
-| Specs del producto | `specs/001-mvp-cv-ats/spec.md` |
+| Endpoint contracts | `specs/000-INDEX.md` (ver detalle por feature) |
+| Specs del producto | `specs/000-INDEX.md` |
 
 ## Proceso
 

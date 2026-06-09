@@ -1,6 +1,6 @@
 # Quickstart: 003-web-adapt-ui
 
-**Status:** 📋 PLANEADO
+**Status:** ✅ SHIPPED (commit `19577ab`)
 
 ## Pre-requisitos
 

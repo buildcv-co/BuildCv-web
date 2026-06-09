@@ -1,6 +1,6 @@
 # Plan: 004-web-export-ui
 
-**Status:** 📋 PLANEADO | **Backend counterpart:** [../../BuildCv-api/specs/004-export-pdf/](../../BuildCv-api/specs/004-export-pdf/) (✅ SHIPPED)
+**Status:** ✅ SHIPPED (commit `45ec05d`) | **Backend counterpart:** [../../BuildCv-api/specs/004-export-pdf/](../../BuildCv-api/specs/004-export-pdf/) (✅ SHIPPED)
 
 ## Summary
 

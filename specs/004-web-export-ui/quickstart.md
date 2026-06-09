@@ -1,6 +1,6 @@
 # Quickstart: 004-web-export-ui
 
-**Status:** 📋 PLANEADO
+**Status:** ✅ SHIPPED (commit `45ec05d`)
 
 ## Pre-requisitos
 
