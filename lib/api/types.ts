@@ -205,3 +205,100 @@ export interface ExportErrorShape {
   message: string;
   fields?: Record<string, string[]>;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// 005-web-cv-import-ui — contrato JSON de POST /api/v1/import (BFF /api/import)
+// ─────────────────────────────────────────────────────────────────────
+
+export type ImportConfidence = "High" | "Low";
+export type ImportWarningSeverity = "Info" | "Warning" | "Error";
+
+export interface DetectedSection {
+  heading: string;
+  start: number;
+  end: number;
+  confidence: ImportConfidence;
+}
+
+export interface ImportWarning {
+  code: string;
+  message: string;
+  severity: ImportWarningSeverity;
+}
+
+export interface ImportResult {
+  text: string;
+  sections: DetectedSection[];
+  warnings: ImportWarning[];
+  engineVersion: string;
+  traceId: string;
+}
+
+export type ImportErrorKind =
+  | "network"
+  | "client_validation"
+  | "too_large"
+  | "unsupported_mime"
+  | "validation"
+  | "engine"
+  | "rate_limit"
+  | "unknown";
+
+export type ImportErrorCode = string;
+
+export interface ImportErrorShape {
+  status: number;
+  code: ImportErrorCode;
+  kind: ImportErrorKind;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+const SEMVER_RE = /^\d+\.\d+\.\d+$/;
+const IMPORT_CONFIDENCES: ReadonlySet<ImportConfidence> = new Set(["High", "Low"]);
+const IMPORT_WARNING_SEVERITIES: ReadonlySet<ImportWarningSeverity> = new Set([
+  "Info",
+  "Warning",
+  "Error",
+]);
+
+export function isDetectedSection(value: unknown): value is DetectedSection {
+  if (!isRecord(value)) return false;
+  if (typeof value.heading !== "string" || value.heading.length === 0) return false;
+  if (value.heading.length > 100) return false;
+  if (typeof value.start !== "number" || !Number.isInteger(value.start) || value.start < 0) {
+    return false;
+  }
+  if (typeof value.end !== "number" || !Number.isInteger(value.end) || value.end < 0) {
+    return false;
+  }
+  if (!IMPORT_CONFIDENCES.has(value.confidence as ImportConfidence)) return false;
+  return true;
+}
+
+export function isImportWarning(value: unknown): value is ImportWarning {
+  if (!isRecord(value)) return false;
+  if (typeof value.code !== "string" || value.code.length === 0) return false;
+  if (value.code.length > 50) return false;
+  if (typeof value.message !== "string" || value.message.length === 0) return false;
+  if (value.message.length > 500) return false;
+  if (!IMPORT_WARNING_SEVERITIES.has(value.severity as ImportWarningSeverity)) return false;
+  return true;
+}
+
+export function isImportResult(value: unknown): value is ImportResult {
+  if (!isRecord(value)) return false;
+  if (typeof value.text !== "string") return false;
+  if (value.text.length > 50_000) return false;
+  if (!Array.isArray(value.sections)) return false;
+  if (value.sections.length > 50) return false;
+  if (!value.sections.every(isDetectedSection)) return false;
+  if (!Array.isArray(value.warnings)) return false;
+  if (value.warnings.length > 20) return false;
+  if (!value.warnings.every(isImportWarning)) return false;
+  if (typeof value.engineVersion !== "string") return false;
+  if (!SEMVER_RE.test(value.engineVersion)) return false;
+  if (typeof value.traceId !== "string" || value.traceId.length === 0) return false;
+  if (value.traceId.length > 100) return false;
+  return true;
+}

@@ -1,0 +1,35 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ImportButton } from "@/components/import/import-button";
+import { copy } from "@/lib/copy/es";
+
+export const metadata: Metadata = {
+  title: `Cargar CV — ${copy.appName}`,
+  description:
+    "Sube tu CV en PDF o DOCX y extraemos el texto para que no tengas que copiar a mano. Tamaño máximo: 5 MB.",
+};
+
+export default function ImportarPage() {
+  return (
+    <div className="mx-auto w-full max-w-3xl px-6 py-8">
+      <header className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Link href="/" className="font-display text-xl">
+          {copy.appName}
+        </Link>
+        <span className="font-mono text-xs text-faint">
+          procesamiento en memoria · sin guardado
+        </span>
+      </header>
+
+      <main id="contenido">
+        <h1 className="font-display text-3xl sm:text-4xl">
+          {copy.import.page.title}
+        </h1>
+        <p className="mb-8 mt-2 max-w-2xl text-sm text-muted">
+          {copy.import.page.subtitle}
+        </p>
+        <ImportButton editorAvailable={false} />
+      </main>
+    </div>
+  );
+}

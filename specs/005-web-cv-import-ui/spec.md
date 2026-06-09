@@ -96,7 +96,7 @@ components/import/
 import { BACKEND_URL } from "@/lib/api/backend";
 
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs";   // Necesario para manejar multipart >4 MB
+export const runtime = "nodejs";   // Necesario para manejar multipart >4 MB (Edge runtime cap)
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -110,8 +110,6 @@ export async function POST(request: Request) {
     status: upstream.status,
     headers: {
       "content-type": upstream.headers.get("content-type") ?? "application/json",
-      "x-ratelimit-limit": upstream.headers.get("x-ratelimit-limit") ?? "30",
-      "x-ratelimit-remaining": upstream.headers.get("x-ratelimit-remaining") ?? "29",
     },
   });
 }
@@ -152,45 +150,68 @@ export type ImportResult = z.infer<typeof ImportResultSchema>;
 ## API client (en `lib/api/import.ts`)
 
 ```typescript
-import { BACKEND_URL } from "./backend";
 import { ImportResultSchema, type ImportResult } from "./types";
 
 export class ImportError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-    public details?: Record<string, unknown>,
-  ) {
-    super(message);
+  readonly status: number;
+  readonly code: string;
+  readonly kind: ImportErrorKind;
+  readonly details?: Record<string, unknown>;
+
+  constructor(params: {
+    status: number;
+    code: string;
+    kind: ImportErrorKind;
+    message: string;
+    details?: Record<string, unknown>;
+  }) {
+    super(params.message);
+    this.name = "ImportError";
+    this.status = params.status;
+    this.code = params.code;
+    this.kind = params.kind;
+    this.details = params.details;
   }
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIMES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ] as const;
 
+export type ImportErrorKind =
+  | "network"
+  | "client_validation"
+  | "too_large"
+  | "unsupported_mime"
+  | "validation"
+  | "engine"
+  | "rate_limit"
+  | "unknown";
+
 /** Validación client-side ANTES de subir (defensa temprana, ahorra CPU del backend). */
-export function validateFile(file: File): { ok: true } | { ok: false; reason: string } {
-  if (file.size === 0) {
-    return { ok: false, reason: "El archivo está vacío." };
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return { ok: false, reason: "El archivo supera el límite de 5 MB." };
-  }
+export function validateFile(file: File):
+  | { ok: true }
+  | { ok: false; reason: string } {
+  if (file.size === 0) return { ok: false, reason: "El archivo está vacío." };
+  if (file.size > MAX_FILE_SIZE) return { ok: false, reason: "El archivo supera el límite de 5 MB." };
   if (!ALLOWED_MIMES.includes(file.type as (typeof ALLOWED_MIMES)[number])) {
     return { ok: false, reason: "Tipo de archivo no soportado. Sube un PDF o DOCX." };
   }
   return { ok: true };
 }
 
-/** Llama al BFF (/api/import), que proxyea al backend. Lanza ImportError si falla. */
+/** Llama al BFF same-origin (/api/import). Lanza ImportError si falla. */
 export async function requestImport(file: File): Promise<ImportResult> {
   const validation = validateFile(file);
   if (!validation.ok) {
-    throw new ImportError(0, "CLIENT_VALIDATION", validation.reason);
+    throw new ImportError({
+      status: 0,
+      code: "CLIENT_VALIDATION",
+      kind: "client_validation",
+      message: validation.reason,
+    });
   }
 
   const formData = new FormData();
@@ -204,7 +225,12 @@ export async function requestImport(file: File): Promise<ImportResult> {
       cache: "no-store",
     });
   } catch {
-    throw new ImportError(0, "NETWORK_ERROR", "No pudimos conectar con el servidor. Revisa tu conexión.");
+    throw new ImportError({
+      status: 0,
+      code: "NETWORK_ERROR",
+      kind: "network",
+      message: "No pudimos conectar con el servidor. Revisa tu conexión.",
+    });
   }
 
   if (!response.ok) {
@@ -217,18 +243,33 @@ export async function requestImport(file: File): Promise<ImportResult> {
     try {
       problem = await response.json();
     } catch {
-      // respuesta sin cuerpo JSON
+      // sin cuerpo JSON
     }
-    throw new ImportError(
-      response.status,
-      problem.code ?? "IMPORT_FAILED",
-      problem.detail ?? problem.title ?? "Ocurrió un error al procesar el archivo.",
-      problem,
-    );
+
+    const { status } = response;
+    const code = problem.code ?? "IMPORT_FAILED";
+    const detail = problem.detail ?? problem.title ?? "Ocurrió un error al procesar el archivo.";
+
+    if (status === 413) {
+      throw new ImportError({ status, code, kind: "too_large", message: "El archivo supera el límite de 5 MB.", details: problem });
+    }
+    if (status === 415) {
+      throw new ImportError({ status, code, kind: "unsupported_mime", message: "Tipo de archivo no soportado. Sube un PDF o DOCX.", details: problem });
+    }
+    if (status === 429) {
+      throw new ImportError({ status, code, kind: "rate_limit", message: "Has alcanzado el tope de importaciones (30/hora).", details: problem });
+    }
+    if (status === 422 || status === 400) {
+      throw new ImportError({ status, code, kind: "validation", message: detail, details: problem });
+    }
+    if (status === 503) {
+      throw new ImportError({ status, code, kind: "engine", message: "El servicio de import no está disponible temporalmente. Intenta de nuevo en unos minutos.", details: problem });
+    }
+    throw new ImportError({ status, code, kind: "unknown", message: detail, details: problem });
   }
 
   const raw = await response.json();
-  return ImportResultSchema.parse(raw);   // Zod valida (defense in depth)
+  return ImportResultSchema.parse(raw);
 }
 ```
 

@@ -118,6 +118,49 @@ export const copy = {
     },
     retry: "Reintentar",
   },
+  import: {
+    page: {
+      title: "Carga tu CV",
+      subtitle:
+        "Sube un PDF o DOCX y extraemos el texto para que no tengas que copiar a mano.",
+      maxSize: "Tamaño máximo: 5 MB.",
+      dragHere: "Arrastra tu CV aquí",
+      dragHereHint: "Arrastra o selecciona un archivo PDF o DOCX. Tamaño máximo: 5 MB.",
+      or: "o",
+      clickToSelect: "haz click para seleccionar un archivo",
+    },
+    states: {
+      idle: "Selecciona un archivo",
+      loading: "Extrayendo texto…",
+      success: "Texto extraído",
+      error: "No pudimos procesar el archivo",
+    },
+    buttonUseInEditor: "Usar este texto en el editor",
+    handoffHint: "Próximamente — el editor 006-cv-editor está en construcción.",
+    sections: {
+      title: "Secciones detectadas",
+      confidenceHigh: "Alta confianza",
+      confidenceLow: "Baja confianza (revisar)",
+      empty: "No se detectaron secciones. Podrás marcarlas manualmente en el editor.",
+    },
+    warnings: {
+      title: "Avisos del parseo",
+      close: "Cerrar",
+      empty: "Sin avisos.",
+    },
+    errors: {
+      network: "No pudimos conectar con el servidor. Revisa tu conexión.",
+      clientValidation: "El archivo no es válido. Revisa el tipo y el tamaño.",
+      tooLarge: "El archivo supera el límite de 5 MB.",
+      unsupportedMime: "Tipo de archivo no soportado. Sube un PDF o DOCX.",
+      validation: "El backend rechazó el archivo. Revisa el detalle del error.",
+      engine:
+        "El servicio de import no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+      rateLimit:
+        "Has alcanzado el tope de importaciones (30/hora). El análisis determinista y la adaptación siguen disponibles.",
+      unknown: "Ocurrió un error al procesar el archivo. Intenta de nuevo.",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;

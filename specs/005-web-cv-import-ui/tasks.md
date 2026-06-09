@@ -1,149 +1,164 @@
 # Tasks: 005-web-cv-import-ui
 
-**Date**: 2026-06-09 | **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
+**Status:** 🚧 EN CURSO · **Backend counterpart:** [../../../BuildCv-api/specs/005-cv-pdf-docx-import/](../../../BuildCv-api/specs/005-cv-pdf-docx-import/) (✅ SHIPPED, commit `c61bdf4`) · **Hito:** v0.5 (P0.5)
 
-> **Sin framework de testing instalado aún** (Vitest llega en M3+). Mientras tanto, **checklist E2E manual** (ver [quickstart.md](./quickstart.md#tests-e2e-manuales)).
-> **Hito v0.5** · **0 supresiones** (no `// @ts-ignore`, no `// eslint-disable`).
+> **TDD estricto (Constitution Art. VIII).** Test → rojo → impl → verde → refactor. Sin supresiones, sin mocks falsos, sin `any` inseguros.
+>
+> **Marco de tests:** Vitest 2 + RTL 16 + jsdom (sprint 0) + Playwright 1 chromium (E2E).
+>
+> **Spec ya corregida:** requestImport usa BFF `/api/import` (no BACKEND_URL). ImportError es class con `status + code + kind + message + details?`. Misma convención que adapt/export.
 
-## Phase 1 — BFF Setup
+## Phase 0 — Pre-flight
 
-- [ ] **T1.1** Crear `BuildCv-web/app/api/import/route.ts` con `export const runtime = "nodejs"` y `export const dynamic = "force-dynamic"`.
-- [ ] **T1.2** Implementar el handler: leer `formData`, hacer `fetch` a `BACKEND_URL/api/v1/import`, propagar status + body + `content-type` headers.
-- [ ] **T1.3** Verificar manualmente con `curl -F file=@sample.pdf http://localhost:3000/api/import` que el BFF proxyea correctamente.
+- [x] **T0.1** Backend 005 está shipped (`c61bdf4`).
+- [x] **T0.2** Spec corregida: BFF same-origin, ImportError class con kind enum.
+- [x] **T0.3** Backend tiene `runtime = "nodejs"` en BFF existente (adapt, export) — usar el mismo patrón.
+- [x] **T0.4** Curl real: backend retorna 422 con code `IMPORT_SCANNED_PDF` para PDFs sin texto. Validado.
 
-## Phase 2 — Tipos y validación
+## Phase 1 — Types + Zod schemas (TDD)
 
-- [ ] **T2.1** Agregar `zod` a `package.json` (si no está).
-- [ ] **T2.2** En `lib/api/types.ts`, agregar los Zod schemas `DetectedSectionSchema`, `ImportWarningSchema`, `ImportResultSchema` y sus tipos inferidos.
-- [ ] **T2.3** Crear `lib/api/import.ts` con:
-  - `class ImportError` (status, code, message, details).
-  - `const MAX_FILE_SIZE = 5 * 1024 * 1024`.
-  - `const ALLOWED_MIMES = [...]`.
-  - `function validateFile(file) → { ok, reason? }`.
-  - `async function requestImport(file) → ImportResult` (POST a `/api/import`, Zod parsea el response).
-- [ ] **T2.4** En `lib/api/import.ts`, agregar `setEditorHandoff`, `getEditorHandoff`, `clearEditorHandoff` (sessionStorage).
-- [ ] **T2.5** Verificar que `pnpm build` pasa (TypeScript strict).
+- [ ] **T1.1** [TEST] `lib/api/types.test.ts`: agregar shape checks para `ImportResult`, `DetectedSection`, `ImportWarning` (engineVersion regex `^\d+\.\d+\.\d+$`, text max 50_000, sections max 50, warnings max 20).
+- [ ] **T1.2** [IMPL] Agregar a `lib/api/types.ts`:
+  - Zod schemas: `DetectedSectionSchema`, `ImportWarningSchema`, `ImportResultSchema`
+  - Tipos inferidos
+  - ImportErrorKind union
+  - Nota: Zod ya está usado en el proyecto (006 specs), pero NO instalado en el web todavía. **Decisión:** instalo `zod` como dep nueva o uso un type-guard simple. Recomendación: instalar zod (1 dep, ~12KB) para mantener consistencia con Constitution Art. I FR-029a. Si no querés nueva dep, usar type-guard simple con `unknown` narrowing.
 
-## Phase 3 — Copy
+## Phase 2 — API client (TDD)
 
-- [ ] **T3.1** En `lib/copy/es.ts`, agregar `IMPORT_COPY` con strings en español neutro (NO Rioplatense):
-  - `page`: title, subtitle, maxSize, dragHere, or, clickToSelect.
-  - `states`: idle, loading, success, error.
-  - `button`: "Usar este texto en el editor" / "Próximamente".
-  - `sections`: title, confidence labels.
-  - `warnings`: title, close.
-  - `errors`: CLIENT_VALIDATION, NETWORK_ERROR, IMPORT_TOO_LARGE, IMPORT_UNSUPPORTED_MEDIA, IMPORT_PDF_ENCRYPTED, IMPORT_SCANNED_PDF, IMPORT_DOCX_PROTECTED, IMPORT_DOCX_NO_TEXT, IMPORT_TOO_MANY_PAGES, IMPORT_EMPTY_FILE, IMPORT_RATE_LIMIT_EXCEEDED, IMPORT_ENGINE_ERROR, UNKNOWN.
+- [ ] **T2.1** [TEST] `lib/api/import.test.ts`:
+  - `validateFile`: empty file → `{ok:false, reason: 'vacío'}`; >5MB → `{ok:false, reason: '5MB'}`; wrong mime (.txt) → `{ok:false, reason: 'PDF o DOCX'}`; valid PDF/DOCX → `{ok:true}`
+  - `requestImport` happy path: mock fetch a 200 con JSON válido → devuelve `ImportResult` validado por Zod
+  - 413 → `ImportError` con `kind: "too_large"`
+  - 415 → `kind: "unsupported_mime"`
+  - 422 → `kind: "validation"` con message del backend
+  - 429 → `kind: "rate_limit"`
+  - 503 → `kind: "engine"`
+  - 500/otro → `kind: "unknown"`
+  - network failure → `kind: "network"`, `status: 0`
+  - response sin JSON → fallback message
+  - **Test de URL**: `expect(fetch).toHaveBeenCalledWith("/api/import", ...)` — NUNCA BACKEND_URL
+  - **Test de client validation**: validateFile falla → throw sin hacer fetch
+- [ ] **T2.2** [IMPL] `lib/api/import.ts` con `validateFile`, `requestImport`, class `ImportError`.
+- [ ] **T2.3** [VERIFY] `pnpm test lib/api/import.test.ts` verde.
 
-## Phase 4 — Componente FileUpload
+## Phase 3 — Copy (es-CO neutral, Constitution Art. IV)
 
-- [ ] **T4.1** Crear `components/import/file-upload.tsx` con:
-  - `<div role="button" tabindex={0}>` con handlers de click, keydown (Enter/Space), dragover, dragleave, drop.
-  - `<input type="file" hidden ref={fileInputRef}>` activado programáticamente.
-  - `aria-label="Cargar CV en PDF o DOCX"`.
-  - `aria-describedby="upload-instructions"` con párrafo de instrucciones.
-  - Focus ring visible (Tailwind: `focus-visible:ring-2 focus-visible:ring-amber-500`).
-  - Validación client-side antes de llamar `onFileSelected`.
-- [ ] **T4.2** [CHECKLIST] Tab navega al componente. Enter/Space abre el selector. Drag/drop funciona. Validación rechaza >5 MB y MIMEs inválidos.
-- [ ] **T4.3** [CHECKLIST] Screen reader anuncia correctamente el `aria-label` y `aria-describedby`.
+- [ ] **T3.1** [TEST] `lib/copy/es.test.ts` — agregar tests para `copy.import` (shape check + Art. IV: no "ATS oficial", no "garantiza empleo").
+- [ ] **T3.2** [IMPL] Agregar bloque `import` a `lib/copy/es.ts`:
+  - `import.page.{title, subtitle, maxSize, dragHere, or, clickToSelect}`
+  - `import.states.{idle, loading, success, error}`
+  - `import.sections.{title, confidenceHigh, confidenceLow}`
+  - `import.warnings.{title, close}`
+  - `import.buttonUseInEditor` (label del handoff al 006)
+  - `import.errors.{...}` con mensajes en español para cada kind
+  - `import.handoffHint` (cuando 006 no está: "Próximamente")
+- [ ] **T3.3** [VERIFY] `pnpm test lib/copy/es.test.ts` verde.
 
-## Phase 5 — Componente ImportButton
+## Phase 4 — Componentes (TDD, uno a la vez)
 
-- [ ] **T5.1** Crear `components/import/import-button.tsx` con:
-  - State machine `idle | loading | success | error`.
-  - Llama a `requestImport(file)` cuando recibe un archivo nuevo.
-  - Muestra spinner durante `loading`.
-  - Muestra toast de éxito al completar.
-  - Muestra toast de error si falla.
-  - Accesibilidad: `aria-busy={state === "loading"}`.
-- [ ] **T5.2** [CHECKLIST] Click "Import" → spinner → resultado en <3s para PDF de 2 páginas.
+- [ ] **T4.1** [TEST] `components/import/file-upload.test.tsx`:
+  - Renderiza con `role="button"`, `aria-label`, `aria-describedby`
+  - Click → abre file picker (mock `input.click()`)
+  - Keyboard: Enter o Space abre el picker
+  - onFile callback con el File seleccionado
+  - Estado: estado vacío vs archivo seleccionado (muestra nombre + tamaño)
+  - Validación client-side: archivo >5MB → muestra error, NO llama onFile
+  - Validación client-side: tipo no soportado → muestra error
+  - Drop event: handle drop con File → llama onFile
+  - Visual: el "drop zone" se resalta al hacer dragover (`aria-pressed` o class state)
+- [ ] **T4.2** [IMPL] `components/import/file-upload.tsx` con `"use client"` (necesita state de drag-over).
+- [ ] **T4.3** [TEST] `components/import/import-error-panel.test.tsx`:
+  - Por cada `ImportErrorKind` (network, too_large, unsupported_mime, validation, rate_limit, engine, unknown), renderiza el mensaje correcto
+  - `role="alert"` para screen readers
+- [ ] **T4.4** [IMPL] `components/import/import-error-panel.tsx` (stateless).
+- [ ] **T4.5** [TEST] `components/import/import-result-panel.test.tsx`:
+  - Renderiza el text extraído en `<pre>` con escape HTML (Constitution Art. V)
+  - Lista las sections con su confidence (High = verde, Low = amarillo)
+  - Empty sections array → "No se detectaron secciones"
+  - Warnings como `<ul>` con `aria-label="Avisos del parseo"`
+  - Botón "Usar en editor" con callback `onUseInEditor`
+  - `aria-live="polite"` para cambios de estado
+- [ ] **T4.6** [IMPL] `components/import/import-result-panel.tsx` (stateless).
+- [ ] **T4.7** [TEST] `components/import/import-button.test.tsx`:
+  - State machine: idle | loading | success | error
+  - Click → loading, llama `requestImport` con el File
+  - Success → muestra `ImportResultPanel` con el resultado
+  - 422/415/429/503 → muestra `ImportErrorPanel` con mensaje
+  - Network error → mensaje honesto
+  - Disabled mientras loading
+  - `aria-busy` durante loading
+- [ ] **T4.8** [IMPL] `components/import/import-button.tsx` con `"use client"`, `useState`, `useCallback`.
 
-## Phase 6 — Componente ImportResultPanel
+## Phase 5 — Page + BFF
 
-- [ ] **T6.1** Crear `components/import/import-result-panel.tsx` con:
-  - Renderiza `text` en un `<pre>` con scroll y font-mono.
-  - Renderiza `sections` como lista con badges de confianza (`High` verde, `Low` amarillo).
-  - Renderiza `warnings` como toasts amarillos no bloqueantes.
-  - Botón "Usar este texto en el editor" prominente.
-  - Si `editorAvailable === false`, botón deshabilitado con texto "Próximamente".
-  - `aria-live="polite"` para anunciar el estado de éxito.
-  - `aria-label` descriptivo en el botón.
-- [ ] **T6.2** [CHECKLIST] Renderiza correctamente text, sections, warnings. Botón navega a `/editor` con el handoff en sessionStorage.
+- [ ] **T5.1** [IMPL] `app/api/import/route.ts` (BFF, ya en la spec):
+  - `runtime = "nodejs"` (necesario para multipart >4MB)
+  - `dynamic = "force-dynamic"`
+  - POST: lee `request.formData()`, forward a `${BACKEND_URL}/api/v1/import` con `body: formData`
+  - Propaga status + content-type
+- [ ] **T5.2** [IMPL] `app/importar/page.tsx` (server component):
+  - metadata
+  - Header consistente con `/analizar`
+  - `<ImportButton />` (client component)
+- [ ] **T5.3** [TEST E2E] `e2e/importar.spec.ts`:
+  - Mock BFF con 200 + JSON válido (text + sections + warnings) → verifica ImportResultPanel visible
+  - Mock BFF con 422 → verifica ImportErrorPanel con "Parece un escaneo"
+  - Mock BFF con 429 → verifica mensaje rate-limit
+  - Mock BFF con 415 → verifica "Tipo no soportado"
+  - Test: el archivo NO se guarda en localStorage (verifica via `page.evaluate(() => localStorage.length === 0)` después del import)
+- [ ] **T5.4** [VERIFY] `pnpm test:e2e` verde.
 
-## Phase 7 — Componente ImportErrorPanel
+## Phase 6 — Pre-merge verification (todo en verde)
 
-- [ ] **T7.1** Crear `components/import/import-error-panel.tsx` con:
-  - Recibe `error: ImportError`.
-  - Mapea `error.code` a mensaje en español usando `IMPORT_COPY.errors`.
-  - Panel rojo con `role="alert"` (anuncio inmediato a screen readers).
-  - Botón "Reintentar" (opcional) que llama a `onRetry`.
-  - Botón "Cerrar" que llama a `onDismiss`.
-  - Focus se mueve al título del panel al abrir.
-- [ ] **T7.2** [CHECKLIST] Cada código de error (CLIENT_VALIDATION, NETWORK_ERROR, IMPORT_*) muestra el mensaje correcto.
+- [ ] **T6.1** `pnpm lint` → 0 errores, 0 warnings
+- [ ] **T6.2** `pnpm typecheck` → 0 errores
+- [ ] **T6.3** `pnpm test` → todos verdes; coverage ≥80% en `lib/api/import.ts` y components/import/
+- [ ] **T6.4** `pnpm test:e2e` → verde
+- [ ] **T6.5** `pnpm build` → 0 errores
+- [ ] **T6.6** `bash scripts/constitution-check.sh` → 0 critical (19/19 passes)
+- [ ] **T6.7** `rg "@ts-ignore|@ts-expect-error|eslint-disable|@ts-nocheck" BuildCv-web/` → 0 matches en código nuevo
+- [ ] **T6.8** Smoke real: levantar stack (web + API), navegar a `/importar`, subir un PDF real, ver respuesta.
 
-## Phase 8 — Página /importar
+## Phase 7 — Commit + push + documentación
 
-- [ ] **T8.1** Crear `app/importar/page.tsx` que orquesta:
-  - `useState<ImportState>` (idle | loading | success | error).
-  - `FileUpload` recibe el archivo y llama a `requestImport`.
-  - `ImportButton` muestra el estado actual.
-  - `ImportResultPanel` muestra el resultado exitoso.
-  - `ImportErrorPanel` muestra el error.
-  - `metadata.title = "Cargar tu CV | BuildCv"` (encuadre honesto, NO "ATS").
-- [ ] **T8.2** Conectar al layout: la página hereda `app/layout.tsx` (tema oscuro cálido, Fraunces + Geist).
-- [ ] **T8.3** Agregar `<Link href="/importar">` en la landing (`app/page.tsx`) como CTA secundario.
-- [ ] **T8.4** [CHECKLIST] Navegación a `/importar` carga la página sin errores en console.
-- [ ] **T8.5** [CHECKLIST] Lighthouse Accessibility ≥95.
-- [ ] **T8.6** [CHECKLIST] axe DevTools: 0 violations críticas.
-
-## Phase 9 — Privacidad y persistencia
-
-- [ ] **T9.1** Verificar que el archivo NO se guarda en `localStorage` (DevTools → Application).
-- [ ] **T9.2** Verificar que el archivo NO se guarda en cookies.
-- [ ] **T9.3** El handoff al editor se guarda en `sessionStorage` con la key `buildcv:import:handoff` y se limpia al cerrar la pestaña.
-- [ ] **T9.4** [CHECKLIST] Botón "Limpiar borrador" (si existe en landing) limpia también el handoff de import.
-
-## Phase 10 — Validación con Zod del response
-
-- [ ] **T10.1** En `requestImport`, hacer `ImportResultSchema.parse(await response.json())` antes de retornar.
-- [ ] **T10.2** [CHECKLIST] Si el backend envía un payload inválido (e.g., `engineVersion: "not-semver"`), el frontend lanza `ImportError` con code `INVALID_RESPONSE` y muestra mensaje "Respuesta inválida del servidor."
-
-## Phase 11 — Pre-merge verification
-
-- [ ] **T11.1** `pnpm install --frozen-lockfile` → exit 0
-- [ ] **T11.2** `pnpm lint` → 0 errors, 0 warnings
-- [ ] **T11.3** `pnpm build` → success
-- [ ] **T11.4** [CHECKLIST] Todos los 14 tests E2E manuales del [quickstart.md](./quickstart.md#tests-e2e-manuales) pasan.
-- [ ] **T11.5** Code review adversarial (`judgment-day` skill).
-- [ ] **T11.6** PR con cita explícita de Constitution Art. III, IV, V, VI, VII.
+- [ ] **T7.1** Conventional commit: `feat(005-web-cv-import-ui): UI de import PDF/DOCX con drag/drop y validación client-side`.
+- [ ] **T7.2** Push a `origin/main`.
+- [ ] **T7.3** Engram: `mem_save` con sprint 3b close-out, topic_key `sdd/005-web-cv-import-ui/state`.
+- [ ] **T7.4** Resumen técnico al user.
 
 ## Critical Path
 
 ```
-T1 (BFF) → T2 (Tipos) → T3 (Copy) → T4-T7 (Componentes) → T8 (Página) → T9 (Privacidad) → T10 (Zod) → T11 (Pre-merge)
+T0 → T1 → T2 → T3 → T4 → T5 → T6 → T7
 ```
 
-## Risks Per Phase
+## Out of Scope (este sprint)
 
-| Phase | Risk | Mitigation |
-|---|---|---|
-| T1 | BFF no transmite archivos >4 MB | `runtime = "nodejs"` (no `edge`) |
-| T2 | Zod schema desincronizado del backend | regenerar Zod desde OpenAPI o desde `BuildCv-api/specs/005-cv-pdf-docx-import/contracts/import-api.md` |
-| T4 | Drag/drop no funciona en Safari | `e.preventDefault()` en `onDragOver`; probar en Safari antes de mergear |
-| T6 | El handoff al editor (006) no existe | botón deshabilitado con "Próximamente" si `editorAvailable === false` |
-| T8 | Lighthouse <95 | checklist de accesibilidad; iterar hasta cumplir |
-| T9 | sessionStorage acumula handoffs | `useEffect` cleanup en `app/importar/page.tsx` que llama `clearEditorHandoff` al desmontar |
+- Tests automatizados: **incluidos** (Vitest + RTL + E2E con page.route)
+- Drag/drop de múltiples archivos simultáneos: 1 a la vez
+- Previsualización del PDF en la UI: no en v0.5
+- Soporte para .rtf, .odt, .pages, .txt: v1
+- Historial de imports: v1
+- Integración real con 006 editor: el botón "Usar en editor" navega a `/editor` pero el editor 006 todavía no existe. Por eso: cuando 006 no esté, el botón está disabled con label "Próximamente". Cuando 006 esté (sprint 4a), wire el onUseInEditor para que setee el localStorage/draft.
 
-## Out of Scope
+## Risks / Gotchas
 
-- Tests automatizados (Vitest en M3+).
-- Drag/drop de múltiples archivos.
-- Previsualización del PDF antes de subir.
-- Soporte para `.rtf`, `.odt`, `.pages`, `.txt` (v1).
-- Historial de imports (v1 con cuentas).
-- Integración con almacenamiento en la nube (v1).
+1. **JSX attribute strings y `\n`**: en JSX, `<Component prop="texto\ncon\nsaltos">` NO procesa `\n`. Usar siempre variable JS: `const x = "..."; <Component prop={x} />`. Ya documentado en tests previos.
+2. **Zod no instalado**: necesito decidir. Recomendación: instalar. Si no, type-guard simple.
+3. **multipart >4MB en Edge**: el BFF DEBE ser `runtime = "nodejs"`. Edge tiene cap de 4MB.
+4. **FormData + fetch**: el navegador lo soporta nativamente. El BFF usa `request.formData()` (Next.js lo expone).
+5. **A11y del FileUpload**: drag/drop + click + keyboard. Importante: usar `aria-describedby` para el hint de 5MB.
 
-## Handoff a features downstream
+## Definition of Done
 
-- **006-cv-editor**: el editor consume `EditorHandoff` desde `sessionStorage` y usa `importedText` como valor inicial del textarea.
-- **002-score-engine**: el score opera sobre el texto que el editor le pase (sin cambios).
-- **003-adapt-ia**: la adaptación opera sobre el texto del editor (sin cambios).
+- Spec leída, corregida, tasks claras
+- Tests escritos ANTES de la impl (TDD real)
+- Todos los tests verdes
+- Lint + typecheck + build + e2e verdes
+- Constitution check 0 critical
+- 0 supresiones, 0 mocks falsos
+- Smoke E2E real con PDF y DOCX funciona
+- Commit con mensaje profesional
+- Engram actualizado
+- User informado
