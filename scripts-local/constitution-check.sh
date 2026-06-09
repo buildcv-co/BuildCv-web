@@ -3,7 +3,12 @@
 # Returns: JSON-ish report of compliance per article (I-IX)
 # Exits: 0 if all pass, 1 if any CRITICAL violation
 
-cd "$(git rev-parse --show-toplevel 2>/dev/null || echo "$(dirname "$0")/..")"
+# Resolver el monorepo root: subir hasta encontrar AGENTS.md o scripts/constitution-check.sh
+# (el script vive en <monorepo-root>/scripts/, no podemos usar git rev-parse porque
+# el monorepo root no es un git repo, solo los sub-proyectos lo son).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MONOREPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$MONOREPO_ROOT"
 
 CONSTITUTION="BuildCv-api/.specify/memory/constitution.md"
 
@@ -105,12 +110,29 @@ else
   ok "No CV/job content in logs"
 fi
 
-# Check for localStorage with CV
-if grep -rE 'localStorage.*cv|localStorage\.setItem.*cvText|localStorage.*jobText' \
-  BuildCv-web --include="*.ts" --include="*.tsx" 2>/dev/null | grep -q .; then
-  fail "Art. III: CV/job found in localStorage"
+# Check for localStorage with CV content. Excluir tests y comentarios/documentación
+# (regex busca uso real de localStorage con contenido de CV/job, no menciones).
+# Constitution v1.1.0 Art. III FR-040a SÍ permite persistencia local en dispositivo
+# del usuario via ICvStore. El check es que el código use ICvStore y NO setItem directo
+# con cvText/jobText. Verificamos solo el patrón problemático.
+if grep -rE 'localStorage\.setItem\s*\([^)]*(cvText|jobText|adaptedCv|adapted_c|adapted)' \
+  BuildCv-web --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v '\.test\.\|\.spec\.' 2>/dev/null | grep -q .; then
+  fail "Art. III: localStorage.setItem con contenido de CV (debe usar ICvStore)"
+  grep -rE 'localStorage\.setItem\s*\([^)]*(cvText|jobText|adaptedCv|adapted_c|adapted)' \
+    BuildCv-web --include="*.ts" --include="*.tsx" 2>/dev/null \
+    | grep -v '\.test\.\|\.spec\.' 2>/dev/null | head -5
 else
-  ok "No CV/job in localStorage"
+  ok "No localStorage.setItem con contenido de CV (usa ICvStore)"
+fi
+
+# Check para localStorage.getItem (lectura directa de CV en código de prod, no tests)
+if grep -rE 'localStorage\.getItem\s*\(\s*["'\''](cv|job|cvText|jobText|adaptedCv)' \
+  BuildCv-web --include="*.ts" --include="*.tsx" 2>/dev/null \
+  | grep -v '\.test\.\|\.spec\.' 2>/dev/null | grep -q .; then
+  fail "Art. III: localStorage.getItem con key de CV en código de prod"
+else
+  ok "No localStorage.getItem de CV/job en código de prod"
 fi
 
 # =============================================================
