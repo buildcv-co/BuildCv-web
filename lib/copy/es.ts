@@ -62,6 +62,38 @@ export const copy = {
     medium: "confianza media",
     high: "confianza alta",
   },
+  adapt: {
+    panel: {
+      title: "Adaptar tu CV con IA",
+      description: "Reorganiza, reescribe y prioriza tu CV sin inventar contenido.",
+      button: "Adaptar con IA",
+      buttonLoading: "Adaptando…",
+    },
+    severity: {
+      none: "Sin invenciones. CV lista para descargar.",
+      warning: "Advertencia: hay mejoras menores que puedes revisar.",
+      critical: "Atención: se detectaron posibles invenciones. Regenera antes de exportar.",
+    },
+    errors: {
+      rateLimit:
+        "Has alcanzado el tope de adaptaciones (5/hora). El análisis determinista sigue disponible.",
+      blocked:
+        "El CV adaptado tiene invenciones que no estaban en el original. Regenera la adaptación.",
+      unavailable:
+        "La adaptación con IA no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+      generic: "Ocurrió un error inesperado. Intenta de nuevo.",
+      network: "No pudimos conectar con el servidor. Revisa tu conexión.",
+    },
+    delta: {
+      title: "Cambios aplicados",
+      empty: "No se detectaron cambios.",
+      hardLabel: "Hard",
+      softLabel: "Soft",
+    },
+    cta: {
+      regenerate: "Regenerar con prompt estricto",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;

@@ -5,6 +5,7 @@ import { requestScore, type ScoreError } from "@/lib/api/score";
 import type { ScoreResponse } from "@/lib/api/types";
 import { copy } from "@/lib/copy/es";
 import { demoCv, demoJob } from "@/lib/utils/demo-data";
+import { AdaptPanel } from "@/components/adapt/adapt-panel";
 import { ComponentBars } from "./component-bars";
 import { FixList } from "./fix-list";
 import { HonestyNote } from "./honesty-note";
@@ -37,43 +38,46 @@ export function Analyzer() {
   return (
     <div aria-live="polite">
       {result ? (
-        <div className="rise grid gap-10 lg:grid-cols-[300px_1fr]">
-          <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
-            <ScoreGauge
-              score={result.overallScore}
-              band={result.band}
-              label={copy.result.scoreLabel}
-            />
-            <HonestyNote
-              notice={result.honestyNotice}
-              gates={result.gatesApplied}
-              engineVersion={result.engineVersion}
-              lexiconVersion={result.lexiconVersion}
-            />
-            <button type="button" onClick={() => setResult(null)} className={ghostButton}>
-              {copy.analyze.reset}
-            </button>
-          </aside>
+        <div className="space-y-12">
+          <div className="rise grid gap-10 lg:grid-cols-[300px_1fr]">
+            <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
+              <ScoreGauge
+                score={result.overallScore}
+                band={result.band}
+                label={copy.result.scoreLabel}
+              />
+              <HonestyNote
+                notice={result.honestyNotice}
+                gates={result.gatesApplied}
+                engineVersion={result.engineVersion}
+                lexiconVersion={result.lexiconVersion}
+              />
+              <button type="button" onClick={() => setResult(null)} className={ghostButton}>
+                {copy.analyze.reset}
+              </button>
+            </aside>
 
-          <div className="space-y-12">
-            <section>
-              <h2 className="mb-5 font-display text-2xl">{copy.result.componentsTitle}</h2>
-              <ComponentBars components={result.components} />
-            </section>
-
-            <section>
-              <h2 className="mb-5 font-display text-2xl">{copy.result.keywordsTitle}</h2>
-              <KeywordCloud analysis={result.keywordAnalysis} />
-            </section>
-
-            {result.recommendations.length > 0 && (
+            <div className="space-y-12">
               <section>
-                <h2 className="font-display text-2xl">{copy.result.fixesTitle}</h2>
-                <p className="mb-5 mt-1 text-sm text-muted">{copy.result.fixesSubtitle}</p>
-                <FixList items={result.recommendations} />
+                <h2 className="mb-5 font-display text-2xl">{copy.result.componentsTitle}</h2>
+                <ComponentBars components={result.components} />
               </section>
-            )}
+
+              <section>
+                <h2 className="mb-5 font-display text-2xl">{copy.result.keywordsTitle}</h2>
+                <KeywordCloud analysis={result.keywordAnalysis} />
+              </section>
+
+              {result.recommendations.length > 0 && (
+                <section>
+                  <h2 className="font-display text-2xl">{copy.result.fixesTitle}</h2>
+                  <p className="mb-5 mt-1 text-sm text-muted">{copy.result.fixesSubtitle}</p>
+                  <FixList items={result.recommendations} />
+                </section>
+              )}
+            </div>
           </div>
+          <AdaptPanel cvText={cvText} jobText={jobText} />
         </div>
       ) : (
         <InputPanel

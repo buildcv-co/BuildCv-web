@@ -1,97 +1,149 @@
 # Tasks: 003-web-adapt-ui
 
-**Status:** 📋 PLANEADO (frontend de 003-adapt-ia del API)
+**Status:** 🚧 EN CURSO · **Backend counterpart:** [../../../BuildCv-api/specs/003-adapt-ia/](../../../BuildCv-api/specs/003-adapt-ia/) (✅ SHIPPED) · **Hito:** v0/M1.1
 
-## Phase 0 — Setup
+> **TDD estricto (Constitution Art. VIII).** Test → rojo → impl → verde → refactor. No se commitea código de producción sin su test. No hay supresiones, no hay mocks falsos, no hay `any`.
+>
+> **Marco de tests:** Vitest 2 + RTL 16 + jsdom (sprint 0). Playwright 1 chromium para E2E. Co-locados: `foo.ts` + `foo.test.ts`.
 
-- [ ] **T0.1** Verificar que `BuildCv-web/components/` ya tiene el patrón de 002-web-score-ui (organizer + components).
-- [ ] **T0.2** Verificar que `BuildCv-web/lib/api/types.ts` ya tiene tipos de Score (M0).
-- [ ] **T0.3** Verificar que `BuildCv-web/app/api/adapt/route.ts` ya está implementado (BFF, ✅ done en M1).
+## Phase 0 — Pre-flight
 
-## Phase 1 — Types + API client
+- [x] **T0.1** Spec leída y verificada contra código real.
+- [x] **T0.2** Spec corregida: `requestAdapt` usa BFF `/api/adapt` (no `BACKEND_URL` directo). `AdaptError` es `class extends Error` con `status + code + kind + message + fields?`.
+- [x] **T0.3** BFF `app/api/adapt/route.ts` verificado: proxyea `POST ${BACKEND_URL}/api/v1/adapt` con `runtime = "nodejs"` y `dynamic = "force-dynamic"`.
+- [x] **T0.4** `package.json` scripts verificados: `pnpm test`, `pnpm test:e2e`, `pnpm lint`, `pnpm build`, `pnpm typecheck` (a agregar si no existe).
 
-- [ ] **T1.1** [IMPL] Agregar tipos a `lib/api/types.ts`:
-  - `Severity`, `InventionSeverity`, `InventionType` (enums)
-  - `EntityInvention`, `ValidationReport`, `AdaptationResult` (interfaces)
-  - `AdaptRequest` (input)
-  - `AdaptError` (output)
-- [ ] **T1.2** [IMPL] Crear `lib/api/adapt.ts`:
-  - `class AdaptError extends Error` con `status` + `code` + `message`
-  - `requestAdapt(req: AdaptRequest): Promise<AdaptationResult>` que llama al BFF `/api/adapt`
-  - Mapeo de 4xx/5xx a `AdaptError` con mensaje honesto (Constitution Art. IV)
+## Phase 1 — Types (TDD: contrato primero)
 
-## Phase 2 — Copy
+- [ ] **T1.1** [TEST] `lib/api/types.test.ts` — `AdaptationResult` shape: parsing JSON del backend, narrowing de `severity` y `inventionSeverity`, rechazo de shape inválido.
+- [ ] **T1.2** [IMPL] Agregar tipos a `lib/api/types.ts`:
+  - `Severity`, `InventionSeverity`, `InventionType` (union string-literal, no `enum` — más tree-shakable, mejor con `verbatimModuleSyntax`)
+  - `EntityInvention`, `ValidationReport`, `AdaptationResult`, `AdaptRequest`, `AdaptErrorShape`
+  - `AdaptErrorKind`, `AdaptErrorCode`
 
-- [ ] **T2.1** [IMPL] Agregar `ADAPT_COPY` a `lib/copy/es.ts`:
-  - `panel.title`, `panel.description`, `panel.button`, `panel.loading`
-  - `severity.None`, `severity.Warning`, `severity.Critical`
-  - `errors.rateLimit`, `errors.blocked`, `errors.unavailable`, `errors.generic`
-  - `delta.title`, `delta.empty`
-- [ ] **T2.2** [VERIFY] Sin "ATS oficial" ni "garantiza empleo" en el copy (Constitution Art. IV).
+## Phase 2 — API client (TDD: `requestAdapt` + `AdaptError`)
 
-## Phase 3 — Componentes
+- [ ] **T2.1** [TEST] `lib/api/adapt.test.ts`:
+  - Happy path: `fetch('/api/adapt', ...)` → 200 + JSON → devuelve `AdaptationResult` tipado
+  - Network error: `fetch` rechaza → `AdaptError` con `status=0`, `kind="network"`
+  - 400: → `kind="validation"`, `fields` poblado
+  - 422: → `kind="invention"`, `message = problem.detail`
+  - 429: → `kind="rate_limit"`, mensaje honesto pre-traducido
+  - 503: → `kind="unavailable"`, mensaje honesto
+  - 500/otro: → `kind="unknown"`, `message = problem.detail ?? fallback`
+  - Body no-JSON: → no throw, usa fallback
+- [ ] **T2.2** [IMPL] Crear `lib/api/adapt.ts` con `class AdaptError extends Error` y `requestAdapt` (ver spec §"API client").
+- [ ] **T2.3** [TEST] Mocking strategy: usar `vi.spyOn(globalThis, "fetch")` o `vi.stubGlobal("fetch", vi.fn())`. Sin MSW (no instalado). Sin `nock` (Node-only).
+- [ ] **T2.4** [VERIFY] `pnpm test lib/api/adapt.test.ts` verde.
 
-- [ ] **T3.1** [IMPL] `components/adapt/severity-badge.tsx`:
-  - Verde/Amarillo/Rojo según `Severity`
-  - Muestra conteo de invenciones
-  - `"use client"` (necesita `useState`? no, stateless)
-- [ ] **T3.2** [IMPL] `components/adapt/adapted-cv-viewer.tsx`:
-  - Recibe `markdown: string`
-  - Renderiza en `<pre>` con `whitespace-pre-wrap`
-  - Estado: stateless
-- [ ] **T3.3** [IMPL] `components/adapt/delta-improvements.tsx`:
-  - Recibe `report: ValidationReport`
-  - Lista invenciones Hard primero (rojo), luego Soft (amarillo)
+## Phase 3 — Copy
+
+- [ ] **T3.1** [TEST] `lib/copy/es.test.ts` — los bloques nuevos existen y todas las keys esperadas están presentes (shape check). Sin duplicar el test existente.
+- [ ] **T3.2** [IMPL] Agregar `adapt` block a `lib/copy/es.ts`:
+  - `adapt.panel.{title, description, button, buttonLoading}`
+  - `adapt.severity.{none, warning, critical}`
+  - `adapt.errors.{rateLimit, blocked, unavailable, generic, network}`
+  - `adapt.delta.{title, empty, hardLabel, softLabel}`
+  - `adapt.cta.regenerate` ("Regenerar con prompt estricto")
+- [ ] **T3.3** [VERIFY] No contiene "ATS oficial" ni "garantiza empleo" (Constitution Art. IV) — agregar a test si no está.
+
+## Phase 4 — Componentes (TDD stateless primero, stateful después)
+
+- [ ] **T4.1** [TEST] `components/adapt/severity-badge.test.tsx`:
+  - `severity="None"` → clase verde (`bg-emerald-500/10` o similar — leer de analyzer para consistencia)
+  - `severity="Warning"` → clase amarilla
+  - `severity="Critical"` → clase roja
+  - Muestra el conteo de invenciones
+  - Accesibilidad: `role="status"` + `aria-label` que incluya la severidad en español
+- [ ] **T4.2** [IMPL] `components/adapt/severity-badge.tsx` (stateless, sin `"use client"`).
+- [ ] **T4.3** [TEST] `components/adapt/adapted-cv-viewer.test.tsx`:
+  - Renderiza el `markdown` con `whitespace-pre-wrap` en `<pre>`
+  - Caracteres especiales del CV se renderizan tal cual (no `dangerouslySetInnerHTML` — Constitution Art. V)
+- [ ] **T4.4** [IMPL] `components/adapt/adapted-cv-viewer.tsx`.
+- [ ] **T4.5** [TEST] `components/adapt/delta-improvements.test.tsx`:
+  - Hard inventions aparecen primero y con label "Hard"
+  - Soft inventions después con label "Soft"
   - Empty state si no hay invenciones
-  - Stateless
-- [ ] **T3.4** [IMPL] `components/adapt/regenerate-button.tsx`:
-  - Recibe `onClick`, `loading`
-  - Botón rojo "Regenerar con prompt estricto"
-  - Disabled mientras `loading`
-- [ ] **T3.5** [IMPL] `components/adapt/adapt-panel.tsx`:
-  - `"use client"` (state machine)
-  - Props: `cvText: string`, `jobText: string`, `onExportClick?: () => void`
-  - State machine: `idle | loading | success | error`
-  - Render condicional según state
-  - Llama `requestAdapt` y maneja 4 casos de error
+- [ ] **T4.6** [IMPL] `components/adapt/delta-improvements.tsx`.
+- [ ] **T4.7** [TEST] `components/adapt/regenerate-button.test.tsx`:
+  - Click llama `onClick`
+  - `loading=true` → `disabled`, no llama `onClick`
+  - `loading=true` → `aria-busy="true"`
+- [ ] **T4.8** [IMPL] `components/adapt/regenerate-button.tsx`.
 
-## Phase 4 — Integración
+## Phase 5 — Orquestador (TDD: state machine)
 
-- [ ] **T4.1** [IMPL] Integrar `<AdaptPanel />` en `app/analizar/page.tsx` (donde está el analyzer M0).
-- [ ] **T4.2** [VERIFY] Click "Adaptar" → spinner → render del resultado → sin demoras perceptibles.
-- [ ] **T4.3** [VERIFY] Si `severity=Critical`, el botón "Regenerar" aparece y funciona.
-- [ ] **T4.4** [VERIFY] Si 429, mensaje honesto (no retry agresivo).
+- [ ] **T5.1** [TEST] `components/adapt/adapt-panel.test.tsx`:
+  - Estado inicial `idle`: muestra botón "Adaptar con IA"
+  - Click "Adaptar" → loading: spinner + `aria-busy`
+  - 200: → `success`: muestra `<SeverityBadge>`, `<AdaptedCvViewer>`, `<DeltaImprovements>`
+  - 422: → `error` con `<RegenerateButton>` que reintenta
+  - 429: → `error` con mensaje honesto SIN botón de reintento
+  - 503: → `error` con mensaje "no disponible temporalmente"
+  - network: → `error` con mensaje "revisá tu conexión"
+  - Props vacías (cvText/jobText sin tipear) → botón disabled
+- [ ] **T5.2** [IMPL] `components/adapt/adapt-panel.tsx` con `"use client"`:
+  - State: `idle | loading | success | error`
+  - `useCallback` para `run()` que llama `requestAdapt`
+  - Render condicional limpio
+  - **`onExportClick?` prop**: lo dejo fuera del scope (004 lo agregará cuando exista el export). No inventar API.
 
-## Phase 5 — Pre-merge verification
+## Phase 6 — Integración en `/analizar`
 
-- [ ] **T5.1** `pnpm lint` → 0 errores.
-- [ ] **T5.2** `pnpm build` → 0 errores.
-- [ ] **T5.3** `./scripts/preflight.sh` → exit 0.
-- [ ] **T5.4** `./scripts/constitution-check.sh` → 0 critical.
-- [ ] **T5.5** Verificar manualmente: 6 requests → req 6 → 429 con mensaje honesto.
-- [ ] **T5.6** Verificar manualmente: severity=Critical con "FakeCorp" → botón Regenerar funciona.
+- [ ] **T6.1** [TEST E2E] `e2e/analizar-adapt.spec.ts`:
+  - Pegar CV + job → click "Analizar" → ver score
+  - Click "Adaptar con IA" → ver resultado (mock BFF con `vi`-style o `page.route` de Playwright)
+  - Si 422 → ver botón Regenerar
+- [ ] **T6.2** [IMPL] Integrar `<AdaptPanel />` en `app/analizar/page.tsx` o como sección visible cuando hay score. Decisión: **mostrar `<AdaptPanel />` debajo de `<Analyzer />`** solo cuando hay `result` (mantiene el layout actual intacto).
+- [ ] **T6.3** [VERIFY] `pnpm test:e2e` verde (con BFF mockeado — el E2E no depende del backend real).
 
-## Phase 6 — Commit + push
+## Phase 7 — Pre-merge verification (todo en verde)
 
-- [ ] **T6.1** Git commit con conventional message: `feat(003-web-adapt-ui): UI de adaptación con delta y severity`.
-- [ ] **T6.2** Push a `git@github.com:buildcv-co/BuildCv-web.git`.
+- [ ] **T7.1** `pnpm lint` → 0 errores, 0 warnings
+- [ ] **T7.2** `pnpm typecheck` → 0 errores (script a agregar si no existe, usa `tsc --noEmit`)
+- [ ] **T7.3** `pnpm test` → todos verdes, coverage ≥80% en `lib/api/adapt.ts` y componentes nuevos
+- [ ] **T7.4** `pnpm test:e2e` → verde (1 smoke + 1 new spec)
+- [ ] **T7.5** `pnpm build` → 0 errores, 0 type errors
+- [ ] **T7.6** `bash scripts/constitution-check.sh` → 0 critical
+- [ ] **T7.7** Revisar `git diff` completo, detectar regresiones
+- [ ] **T7.8** Buscar supresiones: `rg "@ts-ignore|@ts-expect-error|eslint-disable" BuildCv-web/` → 0 matches en código nuevo
+
+## Phase 8 — Commit + documentación
+
+- [ ] **T8.1** Git commit con conventional message: `feat(003-web-adapt-ui): UI de adaptación con delta, severity y regenerate`.
+- [ ] **T8.2** Mensaje del commit incluye: qué cambió, evidencia (counts de tests, results de pnpm), Constitution refs (Art. I/III/IV/V/VI).
+- [ ] **T8.3** Push a `git@github.com:buildcv-co/BuildCv-web.git` (branch main, no PR formal por ahora — user instruyó merge directo).
+- [ ] **T8.4** Engram: `mem_save` con sprint 1 close-out, topic_key `sdd/003-web-adapt-ui/state`.
+- [ ] **T8.5** Resumen técnico al user: qué se hizo, evidencia, riesgos, próximos pasos.
 
 ## Critical Path
 
 ```
-T0 → T1 (types + client) → T2 (copy) → T3 (componentes) → T4 (integración) → T5 (verify) → T6 (commit)
+T0 → T1 (types+test) → T2 (client+test) → T3 (copy+test) → T4 (componentes+tests) → T5 (orquestador+test) → T6 (integración+E2E) → T7 (verify) → T8 (commit+docs)
 ```
 
-## Out of Scope (este spec)
+## Out of Scope (este sprint)
 
 - Streaming SSE (M1.5)
-- Tests automatizados con Vitest (M3+)
-- Editor inline del CV adaptado (v1)
-- Side-by-side diff (v1)
+- Editor inline del CV adaptado (006)
+- Comparación side-by-side (006)
+- Export PDF (004)
+- Botón "Exportar PDF" en el panel de adapt (lo agrega 004 con prop `onExportClick`)
 
-## Notes
+## Riesgos identificados
 
-- No hay tests automatizados aún en el web (v0). Los componentes se prueban manualmente con `pnpm dev` + browser.
-- El BFF (`app/api/adapt/route.ts`) ya está implementado y validado en e2e tests previos.
-- Todos los componentes deben pasar `pnpm lint` (ESLint flat config).
-- 0 supresiones: no `// @ts-ignore`, no `// eslint-disable-next-line`.
+1. **BFF no mockeado en E2E** — Playwright `page.route` mockea el response, así que el E2E no depende del backend real. Si el user corre `pnpm dev` y abre `/analizar` con el backend apagado, el botón 422 del backend se propaga al cliente. Esto es comportamiento correcto.
+2. **Rate limit 5/h real** — el spec es honesto: si se acaban los 5, no se reintenta. El test verifica el mensaje, no el rate limit real (eso es e2e del backend).
+3. **`as` cast en el cliente** — la spec original tenía `as ScoreError` en el catch. Voy a evitarlo con `instanceof AdaptError` en el orquestador.
+
+## Definition of Done
+
+- Spec leída, corregida, tasks claras
+- Tests escritos ANTES de la impl (TDD real)
+- Todos los tests verdes
+- Lint + typecheck + build + e2e verdes
+- Constitution check 0 critical
+- 0 supresiones, 0 mocks falsos
+- Commit con mensaje profesional
+- Engram actualizado
+- User informado con resumen

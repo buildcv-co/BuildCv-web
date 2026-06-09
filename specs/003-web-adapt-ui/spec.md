@@ -74,19 +74,23 @@ components/adapt/
 ## Tipos TypeScript (en `lib/api/types.ts`)
 
 ```typescript
-export interface ValidationReport {
-  isValid: boolean;
-  severity: "None" | "Warning" | "Critical";
-  inventions: EntityInvention[];
-  warnings: string[];
-}
+export type Severity = "None" | "Warning" | "Critical";
+export type InventionSeverity = "Soft" | "Hard";
+export type InventionType = "Skill" | "Certification" | "Company" | "Date" | "Metric" | "Title" | "Other";
 
 export interface EntityInvention {
-  type: "Skill" | "Certification" | "Company" | "Date" | "Metric" | "Title" | "Other";
+  type: InventionType;
   claimed: string;
   original: string | null;
-  severity: "Soft" | "Hard";
+  severity: InventionSeverity;
   position: number;
+}
+
+export interface ValidationReport {
+  isValid: boolean;
+  severity: Severity;
+  inventions: EntityInvention[];
+  warnings: string[];
 }
 
 export interface AdaptationResult {
@@ -101,38 +105,117 @@ export interface AdaptRequest {
   jobText: string;
 }
 
-export interface AdaptError {
-  status: number;        // 422, 429, 503
-  code: string;          // EXPORT_BLOCKED_INVENTION, RATE_LIMIT, etc.
+export type AdaptErrorKind = "network" | "validation" | "invention" | "rate_limit" | "unavailable" | "unknown";
+export type AdaptErrorCode = string;
+
+export interface AdaptErrorShape {
+  status: number;
+  code: AdaptErrorCode;
+  kind: AdaptErrorKind;
   message: string;
+  fields?: Record<string, string[]>;
 }
 ```
 
 ## API client (en `lib/api/adapt.ts`)
 
+> **Corrección 2026-06-09:** el browser **NUNCA** habla directo con `BACKEND_URL` (Constitution Art. VI — Clean Arch, BFF same-origin). La spec original tenía un fetch directo al backend que fue descartado al implementar el BFF (`f94999f`). El cliente va contra `/api/adapt` (mismo origen), que es el Route Handler ya implementado en `app/api/adapt/route.ts`.
+
 ```typescript
-import { BACKEND_URL } from "./backend";
-import type { AdaptRequest, AdaptationResult, AdaptError } from "./types";
+import type { AdaptRequest, AdaptationResult, AdaptErrorCode, AdaptErrorKind } from "./types";
 
 export class AdaptError extends Error {
-  constructor(public status: number, public code: string, message: string) {
-    super(message);
+  readonly status: number;
+  readonly code: AdaptErrorCode;
+  readonly kind: AdaptErrorKind;
+  readonly fields?: Record<string, string[]>;
+
+  constructor(params: {
+    status: number;
+    code: AdaptErrorCode;
+    kind: AdaptErrorKind;
+    message: string;
+    fields?: Record<string, string[]>;
+  }) {
+    super(params.message);
+    this.name = "AdaptError";
+    this.status = params.status;
+    this.code = params.code;
+    this.kind = params.kind;
+    this.fields = params.fields;
   }
 }
 
-export async function requestAdapt(req: AdaptRequest): Promise<AdaptationResult> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/adapt`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(req),
-  });
+const BFF_PATH = "/api/adapt";
 
-  if (!res.ok) {
-    const problem = await res.json().catch(() => ({}));
-    throw new AdaptError(res.status, problem.title || "ADAPT_FAILED", problem.detail || res.statusText);
+export async function requestAdapt(req: AdaptRequest): Promise<AdaptationResult> {
+  let response: Response;
+  try {
+    response = await fetch(BFF_PATH, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(req),
+      cache: "no-store",
+    });
+  } catch {
+    throw new AdaptError({
+      status: 0,
+      code: "ADAPT_NETWORK",
+      kind: "network",
+      message: "No pudimos conectar con el servidor. Revisa tu conexión.",
+    });
   }
 
-  return res.json();
+  if (response.ok) {
+    return (await response.json()) as AdaptationResult;
+  }
+
+  let problem: { errors?: Record<string, string[]>; detail?: string; title?: string } = {};
+  try {
+    problem = (await response.json()) as typeof problem;
+  } catch {
+    // respuesta sin cuerpo JSON
+  }
+
+  const { status } = response;
+  const code = problem.title ?? "ADAPT_FAILED";
+  const detail = problem.detail ?? "No pudimos adaptar tu CV. Intenta de nuevo.";
+
+  if (status === 400) {
+    throw new AdaptError({
+      status,
+      code,
+      kind: "validation",
+      message: "Revisa los textos: hay campos demasiado cortos o demasiado largos.",
+      fields: problem.errors,
+    });
+  }
+  if (status === 422) {
+    throw new AdaptError({
+      status,
+      code,
+      kind: "invention",
+      message: detail,
+    });
+  }
+  if (status === 429) {
+    throw new AdaptError({
+      status,
+      code,
+      kind: "rate_limit",
+      message: "Has alcanzado el tope de adaptaciones (5/hora). El análisis determinista sigue disponible.",
+    });
+  }
+  if (status === 503) {
+    throw new AdaptError({
+      status,
+      code,
+      kind: "unavailable",
+      message: "La adaptación con IA no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+    });
+  }
+
+  throw new AdaptError({ status, code, kind: "unknown", message: detail });
 }
 ```
 
