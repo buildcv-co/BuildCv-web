@@ -309,3 +309,93 @@ describe("copy.editor", () => {
     }
   });
 });
+
+// =====================================================================
+// 006-web-cv-diff-viewer — copy.diff
+// =====================================================================
+
+describe("copy.diff", () => {
+  it("es un objeto con bloques page/modes/invention/actions/errors", () => {
+    expect(typeof copy.diff).toBe("object");
+    expect(copy.diff).not.toBeNull();
+  });
+
+  it("page: title + subtitle + noInventions + expired + emptyAdapted existen", () => {
+    const p = copy.diff.page;
+    expect(typeof p.title).toBe("string");
+    expect(typeof p.subtitle).toBe("string");
+    expect(typeof p.noInventions).toBe("string");
+    expect(typeof p.expired).toBe("string");
+    expect(typeof p.emptyAdapted).toBe("string");
+  });
+
+  it("page.title menciona 'Revisa la adaptación' (Constitution Art. IV — encuadre honesto)", () => {
+    expect(copy.diff.page.title.toLowerCase()).toContain("revis");
+    expect(copy.diff.page.title.toLowerCase()).toContain("adaptaci");
+  });
+
+  it("modes: unified + sideBySide + toggle existen", () => {
+    const m = copy.diff.modes;
+    expect(typeof m.unified).toBe("string");
+    expect(typeof m.sideBySide).toBe("string");
+    expect(typeof m.toggle).toBe("string");
+  });
+
+  it("invention: soft + hard + badgeLabel + softTooltip + hardTooltip existen", () => {
+    const i = copy.diff.invention;
+    expect(typeof i.soft).toBe("string");
+    expect(typeof i.hard).toBe("string");
+    expect(typeof i.badgeLabel).toBe("string");
+    expect(typeof i.softTooltip).toBe("string");
+    expect(typeof i.hardTooltip).toBe("string");
+  });
+
+  it("invention.hardTooltip menciona 'invención' (Constitution Art. I)", () => {
+    expect(copy.diff.invention.hardTooltip.toLowerCase()).toContain("invenci");
+  });
+
+  it("actions: accept + edit + reject + rescore + acceptAnyway + reviewFirst existen", () => {
+    const a = copy.diff.actions;
+    expect(typeof a.accept).toBe("string");
+    expect(typeof a.edit).toBe("string");
+    expect(typeof a.reject).toBe("string");
+    expect(typeof a.rescore).toBe("string");
+    expect(typeof a.acceptAnyway).toBe("string");
+    expect(typeof a.reviewFirst).toBe("string");
+  });
+
+  it("actions.accept y acceptAnyway existen (FR-070 modal con 2 opciones)", () => {
+    expect(copy.diff.actions.accept.length).toBeGreaterThan(0);
+    expect(copy.diff.actions.acceptAnyway.length).toBeGreaterThan(0);
+    expect(copy.diff.actions.reviewFirst.length).toBeGreaterThan(0);
+  });
+
+  it("errors: network + rateLimit + validationFailed + storage existen", () => {
+    const e = copy.diff.errors;
+    expect(typeof e.network).toBe("string");
+    expect(typeof e.rateLimit).toBe("string");
+    expect(typeof e.validationFailed).toBe("string");
+    expect(typeof e.storage).toBe("string");
+  });
+
+  it("NO contiene 'confirma el cambio automático' (prohibido por Art. IV)", () => {
+    const flat = JSON.stringify(copy.diff).toLowerCase();
+    expect(flat).not.toContain("confirma el cambio autom");
+    expect(flat).not.toContain("auto-acepta");
+  });
+
+  it("NO contiene 'ATS oficial' ni 'garantiza empleo' (Constitution Art. IV)", () => {
+    const flat = JSON.stringify(copy.diff).toLowerCase();
+    const forbidden: RegExp[] = [
+      /ats\s+oficial/,
+      /empleo\s+garantizado/,
+      /garantiza\s+empleo/,
+      /puntaje\s+oficial/,
+      /cv\s+optimizado/,
+    ];
+    for (const pattern of forbidden) {
+      expect(flat).not.toMatch(pattern);
+    }
+  });
+});
+

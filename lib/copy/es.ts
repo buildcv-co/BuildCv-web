@@ -250,6 +250,65 @@ export const copy = {
       jobTextRequired: "Necesitamos la vacante para re-puntuar.",
     },
   },
+  diff: {
+    page: {
+      title: "Revisa la adaptación",
+      subtitle:
+        "Compara tu CV original con el adaptado. Los términos marcados en rojo pueden ser invenciones de la IA — revísalos uno por uno antes de aceptar.",
+      noInventions: "Sin invenciones detectadas. CV lista para revisar.",
+      expired: "La adaptación expiró. Vuelve a solicitarla en /analizar.",
+      noHandoff: "No hay una adaptación reciente. Empieza en /analizar y selecciona 'Adaptar con IA'.",
+      emptyAdapted: "La adaptación no produjo texto. Intenta de nuevo.",
+      loadError: "No pudimos cargar la adaptación. Vuelve a intentarlo.",
+    },
+    modes: {
+      unified: "Unificado",
+      sideBySide: "Lado a lado",
+      toggle: "Cambiar modo de visualización",
+    },
+    invention: {
+      soft: "Advertencia: métrica o detalle que puede no estar en tu CV original.",
+      hard: "Invención: este término no aparece en tu CV original.",
+      badgeLabel: "Advertencia: invención detectada",
+      softTooltip: "Revisa este término — puede no estar en tu CV original.",
+      hardTooltip: "Esto puede ser una invención de la IA. Confírmalo o edítalo antes de aceptar.",
+      edit: "Editar",
+      keep: "Mantener",
+      cancel: "Cancelar",
+      confirm: "Confirmar",
+    },
+    actions: {
+      accept: "Aceptar y exportar",
+      edit: "Editar en el editor",
+      reject: "Rechazar y re-prompt",
+      rescore: "Re-puntuar",
+      rescoreLoading: "Re-puntuando…",
+      acceptAnyway: "Aceptar de todos modos",
+      reviewFirst: "Revisarlas primero",
+      rejectToast: "Adaptación rechazada. Vuelve a solicitar con nuevas instrucciones.",
+    },
+    modal: {
+      hardTitle: "Tienes invenciones Hard sin revisar",
+      hardDetail:
+        "Hay {count} término(s) marcados como posible invención que no has confirmado. ¿Aceptar la adaptación de todos modos o revisarlos primero?",
+    },
+    score: {
+      lastScore: "Último puntaje",
+      before: "Antes",
+      after: "Después",
+    },
+    regions: {
+      view: "Visor de diff entre tu CV original y el adaptado",
+      original: "Columna CV original",
+      adapted: "Columna CV adaptado",
+    },
+    errors: {
+      network: "No pudimos conectar con el servidor. Revisa tu conexión.",
+      rateLimit: "Has alcanzado el tope de re-puntuaciones. Espera un momento.",
+      validationFailed: "El servidor rechazó la adaptación. Regenera el CV.",
+      storage: "No pudimos leer la adaptación de este navegador. Vuelve a solicitarla.",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;
