@@ -1,9 +1,16 @@
-# Feature Specification: 006-web-cv-diff-viewer — Visor de diff entre CV original y CV adaptado (con IA)
+# Feature Specification: 006-web-cv-diff-viewer — Visor de diff entre CV original y CV adaptado (jsdiff + renderer custom)
 
-> **Status:** 📋 PLANEADO · **Hito:** v0.5 (P0.5) · **Sub-feature:** 006b de las dos que componen 006-cv-editor.
-> **Sister sub-feature:** [`006-web-cv-editor`](../006-web-cv-editor/spec.md).
+> **Status:** ✅ SHIPPED (commit 4bf92b7, 2026-06-09) · **Hito:** v0.5 (P0.5) · **Sub-feature:** 006b de las dos que componen 006-cv-editor.
+> **Sister sub-feature:** [`006-web-cv-editor`](../006-web-cv-editor/spec.md) (shipped, commit 748611d).
 > **Backend counterparts consumidos:** [`003-adapt-ia`](../../../BuildCv-api/specs/003-adapt-ia/) (AdaptResult con `validation.warnings[]` y `validation.inventions[]`) y [`002-score-engine`](../../../BuildCv-api/specs/002-score-engine/) (re-score sobre texto editado).
 > **INDEX global:** [../000-INDEX.md](../000-INDEX.md)
+>
+> **⚠️ Spec vs. shipped deviation (audited 2026-06-09).** La spec original proponía Tiptap v2 (re-uso del editor 006a) en modo read-only para la columna adaptada, con `editable: true` solo en las invenciones marcadas. El shipped code REJECTED Tiptap. El diff viewer se implementa con:
+> - **`diff` (jsdiff) v5** (BSD-3-Clause, ~15 KB) para word-level Myers diff.
+> - **Renderer custom en React** (sin librería UI de diff) con `<span>` por segmento (`added` / `removed` / `unchanged`).
+> - **`<input>` HTML nativo** para la edición inline (controlado por React), con validación Zod.
+>
+> Ver `tasks.md` líneas 8–14 para la decisión arquitectónica explícita y la justificación. El shipped code mantiene el mismo Constitution compliance (Art. I FR-066/067/068/070) sin la complejidad de ProseMirror.
 
 ---
 
@@ -18,9 +25,9 @@ Cuando el usuario solicita una adaptación con IA (feature 003), recibe un `Adap
 El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 
 1. **Ver lado a lado** (desktop) o **unificado** (móvil) el CV original vs. el CV adaptado.
-2. **Resaltar visualmente** las diferencias a nivel de palabra (adiciones, eliminaciones, modificaciones).
+2. **Resaltar visualmente** las diferencias a nivel de palabra (adiciones, eliminaciones, modificaciones) via `<span>` con clases CSS.
 3. **Marcar con badge rojo** las `EntityInvention` que el backend marcó como `Soft` o `Hard` (defense in depth visual de Constitución Art. I).
-4. **Editar inline** las invenciones marcadas (la edición también es Zod-validada, re-usa el editor de 006a).
+4. **Editar inline** las invenciones marcadas mediante un **`<input>` HTML nativo** controlado por React, con validación Zod (re-uso del schema de 006a).
 5. **Aceptar la adaptación** → el CV adaptado reemplaza al actual y se puede exportar a PDF.
 6. **Rechazar la adaptación** → volver al CV original y re-prompt con nuevas instrucciones.
 7. **Re-puntuar** el CV adaptado (con o sin ediciones) llamando a `002-score-engine`.
@@ -29,7 +36,7 @@ El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 
 | Art. | Aplicación a esta feature |
 |---|---|
-| **Art. I** — Cero invención | El diff viewer **MUST** resaltar todas las `EntityInvention` del backend. El usuario **MUST** confirmar o editar cada invención antes de aceptar la adaptación. |
+| **Art. I** — Cero invención | El diff viewer **MUST** resaltar todas las `EntityInvention` del backend. El usuario **MUST** confirmar o editar cada invención Hard antes de aceptar la adaptación. |
 | **Art. II** — Determinismo | El re-score sigue siendo 100% C# determinista; el diff viewer no calcula números. |
 | **Art. III** — Privacidad | Los datos del diff se pasan vía `sessionStorage` (NO URL params, para no exponer PII en query strings). Sin persistencia adicional más allá de la del editor (006a). |
 | **Art. IV** — Encuadre honesto | Copy: "Revisa la adaptación", NUNCA "confirma el cambio automático" o "auto-acepta". |
@@ -46,9 +53,18 @@ El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 - **Tailwind CSS v4**
 - **Sin librería UI externa** — diseño custom (consistente con 002/003/004/005/006a)
 - **`diff` (jsdiff)** v5 (BSD-3-Clause) para word-level Myers diff
-- **Tiptap v2** (re-uso de 006a) en modo read-only para la columna adaptada, con `editable: true` solo en las invenciones marcadas
-- **Zod v3** (re-uso) para validar ediciones
-- **Sin testing framework** en v0.5 (mismo plan que 006a)
+- **Renderer custom en React** — `<span>` por segmento con clases CSS según kind
+- **`<input>` HTML nativo** para edición inline (NO Tiptap, NO librería de rich text)
+- **Zod v3** (re-uso de 006a) para validar ediciones inline (`z.string().min(1).max(200)`)
+- **Vitest 2** + **React Testing Library 16** + **jsdom** (unit + integración; sprint 0, ya configurado)
+- **Playwright 1 chromium** (E2E; opcional)
+
+**NO incluido** (rechazado durante implementación, ver `tasks.md` líneas 8–14):
+- ~~Tiptap v2 (read-only o cualquier modo)~~
+- ~~react-diff-viewer-continued / react-diff-component~~
+- ~~diff-match-patch~~
+- ~~Zustand / `persist` middleware~~ (re-uso del state local de React, mismo enfoque que 006a)
+- ~~hand-rolled Myers/LCS~~ (jsdiff ya lo implementa)
 
 ---
 
@@ -56,8 +72,8 @@ El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 
 - **G-1.** El usuario ve claramente qué cambió entre el CV original y el adaptado.
 - **G-2.** Las invenciones marcadas por el backend son visualmente inequívocas (color + icono + tooltip).
-- **G-3.** El usuario puede aceptar, editar o rechazar cada invención antes de confirmar la adaptación.
-- **G-4.** La edición de una invención actualiza el `CvDocument` y dispara un re-score on demand.
+- **G-3.** El usuario puede aceptar, editar (vía `<input>` validado por Zod) o rechazar cada invención antes de confirmar la adaptación.
+- **G-4.** La edición de una invención actualiza el `adaptedText` y dispara un re-score on demand.
 - **G-5.** WCAG 2.2 AA: navegación por teclado entre invenciones, screen reader anuncia cada flag, contraste de color suficiente.
 
 ## Non-Goals
@@ -67,6 +83,7 @@ El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 - **NG-3.** Sugerencias automáticas de cómo arreglar la invención — el usuario lo decide.
 - **NG-4.** Historial de diffs (v1 con cuentas).
 - **NG-5.** Export del diff como PDF/imagen (v1 si hay demanda).
+- **NG-6.** Editor enriquecido inline (Tiptap). El shipped usa `<input>` HTML nativo; v1 con Tiptap si hay demanda (deuda técnica documentada).
 
 ---
 
@@ -74,7 +91,7 @@ El diff viewer es una sub-página `/analizar/diff` que permite al usuario:
 
 ### User Story 1 — Ver el diff lado a lado (Priority: P1)
 
-Como usuario que acaba de recibir una adaptación, llego a `/analizar/diff` y veo el CV original y el adaptado en dos columnas, con las diferencias resaltadas (verde = añadido, rojo = eliminado, amarillo = modificado).
+Como usuario que acaba de recibir una adaptación, llego a `/analizar/diff` y veo el CV original y el adaptado en dos columnas, con las diferencias resaltadas (verde = añadido, rojo = eliminado, neutro = igual).
 
 **Why this priority**: Es el flujo central. Sin esto, el diff viewer no entrega valor.
 
@@ -88,7 +105,7 @@ Como usuario que acaba de recibir una adaptación, llego a `/analizar/diff` y ve
 
 ### User Story 2 — Ver invenciones marcadas (Priority: P1)
 
-Las `EntityInvention` del backend aparecen como **badges rojos** al lado del término afectado. El usuario hace click en un badge para ver detalles (severidad, posición, término original vs.Claimed).
+Las `EntityInvention` del backend aparecen como **badges rojos** al lado del término afectado. El usuario hace click en un badge para ver detalles (severidad, posición, término original vs. claimed).
 
 **Why this priority**: **REGLA DURA Constitución Art. I**. La marca visual de invenciones es la defensa principal contra aceptar contenido fabricado.
 
@@ -106,12 +123,12 @@ El usuario puede hacer click en "Editar" sobre una invención y modificar el tex
 
 **Why this priority**: Es P2 porque el usuario puede aceptar la invención y editar el texto manualmente en el editor (006a) antes de exportar. Pero la edición inline reduce la fricción.
 
-**Independent Test**: Click "Editar" sobre la invención "40%" → el badge se convierte en un input editable → cambiar a "35%" → confirmar → la invención desaparece del listado de flags.
+**Independent Test**: Click "Editar" sobre la invención "40%" → el badge se reemplaza por un `<input>` editable → cambiar a "35%" → confirmar (Enter o blur) → la invención desaparece del listado de flags.
 
 **Acceptance Scenarios**:
-1. **Given** una invención `Soft` marcada, **When** el usuario click "Editar", **Then** el badge se reemplaza por un input Tiptap con el valor actual pre-poblado.
-2. **Given** el usuario edita el valor, **When** confirma (Enter o click fuera), **Then** el nuevo valor se valida con Zod; si pasa, se reemplaza en el `AdaptResult.adaptedText`.
-3. **Given** la edición produce un cambio, **When** el usuario click "Re-puntuar", **Then** el editor llama a `002-score-engine` con el texto actualizado y muestra el nuevo `ScoreResult`.
+1. **Given** una invención `Soft` marcada, **When** el usuario click "Editar", **Then** el badge se reemplaza por un `<input>` HTML nativo con el valor actual pre-poblado.
+2. **Given** el usuario edita el valor, **When** confirma (Enter o blur o click fuera), **Then** el nuevo valor se valida con Zod (`z.string().min(1).max(200)`); si pasa, se reemplaza en el `adaptedText` en el offset de la invención.
+3. **Given** la edición produce un cambio, **When** el usuario click "Re-puntuar", **Then** el viewer llama a `002-score-engine` con el texto actualizado y muestra el nuevo `ScoreResponse`.
 
 ### User Story 4 — Aceptar o rechazar la adaptación (Priority: P1)
 
@@ -122,8 +139,8 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 **Independent Test**: Click "Aceptar y exportar" → navega a `/analizar/exportar` (004) con el CV adaptado como contenido → PDF descargado.
 
 **Acceptance Scenarios**:
-1. **Given** el diff revisado, **When** el usuario click "Aceptar y exportar", **Then** se setea el `DiffHandoff` con `currentDocument = adaptedDocument` y se navega a `/analizar/exportar`.
-2. **Given** el diff revisado, **When** el usuario click "Editar en el editor", **Then** se setea el `DiffHandoff` con `currentDocument = adaptedDocument` y se navega a `/analizar/editar`.
+1. **Given** el diff revisado, **When** el usuario click "Aceptar y exportar", **Then** se actualiza el `DiffHandoff` en `sessionStorage` y se navega a `/analizar/exportar`.
+2. **Given** el diff revisado, **When** el usuario click "Editar en el editor", **Then** se actualiza el `DiffHandoff` y se navega a `/analizar/editar`.
 3. **Given** el diff revisado, **When** el usuario click "Rechazar y re-prompt", **Then** se elimina el `DiffHandoff` y se navega a `/analizar` con un toast "Adaptación rechazada. Vuelve a solicitar con nuevas instrucciones."
 4. **Given** hay invenciones `Hard` sin resolver, **When** el usuario intenta "Aceptar y exportar", **Then** aparece un modal: "Tienes X invenciones Hard sin revisar. ¿Aceptar de todos modos o revisarlas primero?"
 
@@ -131,13 +148,14 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 
 ## Edge Cases
 
-- **`AdaptResult` sin invenciones** (`validation.inventions = []`): el diff viewer muestra un badge verde "Sin invenciones detectadas" y el footer se simplifica a "Aceptar y exportar" / "Editar en el editor".
-- **`AdaptResult.adaptedText` vacío** (error del LLM): el viewer muestra un panel rojo "La adaptación no produjo texto. Intenta de nuevo." y un botón "Reintentar".
-- **Diff de un CV muy largo** (>50 KB): el word-level diff puede tardar >2 s. Mostrar skeleton durante el cálculo.
-- **Cambio de orientación en móvil** (portrait ↔ landscape): el modo "unificado" se mantiene (móvil siempre unificado).
-- **`AdaptResult` expirado** (más de 1 hora en sessionStorage): el viewer muestra "La adaptación expiró. Vuelve a solicitarla."
-- **Invenciones que se solapan** (mismo término aparece en 2 invenciones): el viewer muestra la de mayor severidad primero; la otra se puede ver en el panel "Todas las invenciones".
-- **Usuario navega atrás tras aceptar**: el `DiffHandoff` se elimina, por lo que no se re-aplica la adaptación al volver.
+- **`AdaptResult` sin invenciones** (`validation.inventions = []`): el diff viewer renderiza sin badges y el footer funciona normal.
+- **`AdaptResult.adaptedText` vacío** (error del LLM): el viewer muestra un panel rojo "La adaptación no produjo texto. Intenta de nuevo." y un botón "Volver a analizar".
+- **Diff de un CV muy largo** (>50 KB): el word-level diff puede tardar ~500 ms. El render es síncrono (no requiere skeleton).
+- **Cambio de orientación en móvil** (portrait ↔ landscape): el modo se mantiene; un `useEffect` escucha `matchMedia("(min-width: 768px)")` para ajustar.
+- **`DiffHandoff` expirado** (más de 1 hora en sessionStorage): el viewer muestra "La adaptación expiró. Vuelve a solicitarla." con un botón "Volver a `/analizar`".
+- **Invenciones que se solapan** (mismo término aparece en 2 invenciones): el badge muestra la de mayor severidad (Hard > Soft) — `dedupeByHighestSeverity` en `flag-entities.ts`.
+- **Invenciones en segmentos `removed`** (no en texto adaptado): van a `orphanedFlags` y se muestran en un aviso "Hay N invención(es) que el backend marcó en una posición que el visor no pudo mapear."
+- **Usuario navega atrás tras aceptar**: el `DiffHandoff` se actualiza, por lo que no se re-aplica la adaptación al volver (la siguiente vez se re-lee).
 
 ---
 
@@ -145,11 +163,11 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 
 | ID | Requirement |
 |---|---|
-| **FR-064** | El sistema **MUST** renderizar un diff a nivel de palabra entre el CV original y el CV adaptado usando `diff` (jsdiff). |
+| **FR-064** | El sistema **MUST** renderizar un diff a nivel de palabra entre el CV original y el CV adaptado usando `diff` (jsdiff, `diffWords`). |
 | **FR-065** | El sistema **MUST** ofrecer dos modos: "unificado" (móvil) y "lado a lado" (desktop), seleccionables por el usuario. |
 | **FR-066** | El sistema **MUST** marcar visualmente con badge rojo cada `EntityInvention` del `AdaptResult.validation.inventions[]`, distinguiendo `Soft` (rojo claro) de `Hard` (rojo oscuro con icono de X). |
 | **FR-067** | El sistema **MUST** permitir al usuario hacer click en una invención y ver detalles (tipo, claimed, original, posición) y 2 acciones: "Editar" y "Mantener". |
-| **FR-068** | El sistema **MUST** permitir la edición inline de invenciones, validando con Zod el nuevo valor. |
+| **FR-068** | El sistema **MUST** permitir la edición inline de invenciones mediante un `<input>` HTML nativo controlado por React, validando con Zod (`z.string().min(1).max(200)`) el nuevo valor. |
 | **FR-069** | El sistema **MUST** ofrecer un footer con 3 acciones: "Aceptar y exportar", "Editar en el editor", "Rechazar y re-prompt". |
 | **FR-070** | El sistema **MUST** bloquear "Aceptar y exportar" si hay invenciones `Hard` sin resolver, mostrando un modal de confirmación. |
 | **FR-071** | El sistema **MUST** re-puntuar el CV adaptado (con o sin ediciones) llamando a `002-score-engine` cuando el usuario click "Re-puntuar". |
@@ -161,7 +179,7 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 | ID | Requirement |
 |---|---|
 | **NFR-031** | El diff viewer **MUST** cumplir WCAG 2.2 AA: roles ARIA, focus visible, navegación por teclado entre invenciones, anuncios de screen reader. |
-| **NFR-032** | El cálculo del diff **MUST** completar en <2 s para un CV de hasta 50 KB. |
+| **NFR-032** | El cálculo del diff **MUST** completar en <2 s para un CV de hasta 50 KB (jsdiff Myers es ~O(ND), ~300-500 ms en hardware moderno). |
 | **NFR-033** | El contraste de color para adiciones/eliminaciones **MUST** ser ≥4.5:1 (texto normal) y ≥3:1 (texto grande). |
 | **NFR-034** | El diff viewer **MUST** funcionar en móvil (≥360 px) con layout responsive. |
 | **NFR-035** | El modo unificado y lado a lado **MUST** compartir el mismo árbol DOM lógico (mismas invenciones marcadas) para que el screen reader navegue idéntico. |
@@ -172,10 +190,10 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 
 - ✅ Un usuario ve claramente las diferencias entre el CV original y el adaptado.
 - ✅ Las invenciones `Soft` y `Hard` son visualmente inequívocas.
-- ✅ La edición inline valida con Zod y actualiza el `CvDocument`.
+- ✅ La edición inline (vía `<input>`) valida con Zod y actualiza el `adaptedText`.
 - ✅ El footer bloquea "Aceptar y exportar" con invenciones `Hard` sin resolver.
 - ✅ WCAG 2.2 AA: Lighthouse a11y ≥95, navegación por teclado completa.
-- ✅ 0 console errors en happy path manual.
+- ✅ 0 console errors en happy path (verificado por tests unit + integración).
 - ✅ Diff de 50 KB completa en <2 s.
 
 ---
@@ -184,7 +202,7 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 
 - El `AdaptResult` de 003 ya pasó su Zod schema y es estructuralmente válido.
 - El usuario aceptó el rate-limit (5 adaptaciones/h, política `"ai"`) en el flujo previo.
-- El navegador soporta `IndexedDB` (mismo fallback que el editor, 006a).
+- El navegador soporta `sessionStorage` (todos los navegadores modernos).
 - La Constitución v1.1.0 está vigente.
 
 ---
@@ -196,22 +214,30 @@ Al final del diff, hay un footer con 3 acciones: **Aceptar y exportar**, **Edita
 - Historial de diffs — v1 con cuentas.
 - Export del diff como artefacto separado (PDF/imagen) — v1 si hay demanda.
 - Diff a nivel de sección o párrafo (palabra es suficiente) — v1.
+- Editor enriquecido inline (Tiptap) — v1 si hay demanda (deuda técnica documentada).
 
 ---
 
-## Open Questions
+## Resolved Decisions
 
-- ¿El badge de invención debe aparecer inline en el texto o en un panel lateral fijo? — Decisión propuesta: inline (más discoverable), con un panel lateral plegable "Todas las invenciones" como secondary view.
-- ¿La edición inline debe ser un Tiptap completo o un simple `<input>`? — Decisión propuesta: Tiptap read-only con un nodo editable solo donde está la invención (consistencia con 006a).
-- ¿Qué hacer si el usuario edita una invención y la empeora (introduce un error de Zod)? — Decisión propuesta: el editor rechaza el cambio con un toast y mantiene el valor original.
+- **(R1) Badge inline vs. panel lateral.** Inline (más discoverable) en el flujo principal; panel plegable "Todas las invenciones" no se implementa en v0.5.
+- **(R2) Edición inline con `<input>` HTML nativo vs. Tiptap read-only.** **REJECTED Tiptap read-only.** Se usa `<input>` controlado por React con Zod (justificación en `tasks.md` líneas 8–14).
+- **(R3) Edición que empeora (error de Zod).** El editor rechaza el cambio y muestra toast de validación; mantiene el valor original.
+- **(R4) Render del diff.** **REJECTED `react-diff-viewer-continued` / `react-diff-component`.** Se usa renderer custom con `<span>` (control total de a11y/estilos).
+- **(R5) Diff library.** **KEEP `diff` (jsdiff) v5** (BSD-3-Clause, ~15 KB, Myers).
+- **(R6) Estado global.** **REJECTED Zustand.** Se usa `useState` + `useCallback` local en `DiffPage` (mismo enfoque que 006a).
+- **(R7) Persistencia del modo.** **REJECTED `localStorage["buildcv:diff:mode"]`.** El modo se inicializa con `matchMedia` y se mantiene en `useState` (no persiste entre sesiones en v0.5).
+- **(R8) Hard invention bloquea Aceptar.** Modal de confirmación (no bloqueo total; UX mejor).
+- **(R9) Soft invention.** No bloquea; warning visible en el badge.
+- **(R10) Testing framework.** **REJECTED "manual-only en v0.5".** Vitest 2 + RTL 16 + jsdom YA están configurados (sprint 0, commit 21fb83b) y se usan activamente: 5 test files shipped en `lib/diff/` y `components/diff/`.
 
 ---
 
 ## Next Phase
 
-→ [`./plan.md`](./plan.md) — arquitectura jsdiff + Tiptap read-only + componentes.
-→ [`./research.md`](./research.md) — comparativa de librerías de diff.
+→ [`./plan.md`](./plan.md) — arquitectura jsdiff + renderer custom + componentes.
+→ [`./research.md`](./research.md) — comparativa de librerías de diff (histórico + shipped).
 → [`./data-model.md`](./data-model.md) — tipos TypeScript del diff.
 → [`./contracts/frontend-internal.md`](./contracts/frontend-internal.md) — contratos con 003 y 004.
 → [`./quickstart.md`](./quickstart.md) — pasos para probar.
-→ [`./tasks.md`](./tasks.md) — T-006b-01..N.
+→ [`./tasks.md`](./tasks.md) — T-006b-01..N (preserva el bloque "DECISIÓN ARQUITECTÓNICA" en líneas 8–14).

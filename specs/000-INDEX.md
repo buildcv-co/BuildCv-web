@@ -3,7 +3,7 @@
 > **Entry point oficial al estado del frontend BuildCv.**
 > Cualquier agente o humano que necesite saber "qué UI está hecha, qué UI está en curso, qué UI falta" debe leer esto primero.
 
-**Última actualización:** 2026-06-09 (post-enmienda constitucional v1.0.0 → v1.1.0, v0.5 introduce import + editor + persistencia local)
+**Última actualización:** 2026-06-09 (v0.5.1: import + editor + diff-viewer + landing + observability shipped; pendiente v1 con auth y payments)
 
 ## Relación con el backend
 
@@ -14,9 +14,9 @@ Este sub-proyecto es el **frontend** (BFF + UI) que consume el backend (`BuildCv
 | 002-web-score-ui | 002-score-engine ✅ | Consume `POST /api/v1/score` |
 | 003-web-adapt-ui | 003-adapt-ia ✅ | Consume `POST /api/v1/adapt` |
 | 004-web-export-ui | 004-export-pdf ✅ | Consume `POST /api/v1/export` |
-| 005-web-cv-import-ui | 005-cv-pdf-docx-import 📋 | Consume `POST /api/v1/import` (NUEVO v0.5) |
-| 006-web-cv-editor | (frontend only) 📋 | Editor estructurado; re-usa 002/003/004 con texto editado |
-| 006-web-cv-diff-viewer | (frontend only) 📋 | Diff visual original vs adaptado |
+| 005-web-cv-import-ui | 005-cv-pdf-docx-import ✅ | Consume `POST /api/v1/import` (NUEVO v0.5) |
+| 006-web-cv-editor | (frontend only) ✅ | Editor estructurado; re-usa 002/003/004 con texto editado |
+| 006-web-cv-diff-viewer | (frontend only) ✅ | Diff visual original vs adaptado |
 
 ## Constitución vigente
 
@@ -33,13 +33,13 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 |---|---|---|---|---|
 | 001 | `web-mvp-original` | MVP original | 🗄️ Archivado | (n/a) |
 | 002 | `web-score-ui` | v0 / M0.0 | ✅ SHIPPED | `app/api/score/route.ts` |
-| 003 | `web-adapt-ui` | v0 / M1.1 | 📋 SPEC'D (BFF ya implementado, UI falta) | `app/api/adapt/route.ts` |
-| 004 | `web-export-ui` | v0 / M2.1 | 📋 SPEC'D (BFF ya implementado, UI falta) | `app/api/export/route.ts` |
-| 005 | `web-cv-import-ui` | v0.5 / M3 | 📋 PLANEADO (specs ✅) | `app/api/import/route.ts` (NUEVO) |
-| 006 | `web-cv-editor` | v0.5 / M4 | 📋 PLANEADO (specs ✅) | (re-usa 002/003/004) |
-| 006b | `web-cv-diff-viewer` | v0.5 / M4 | 📋 PLANEADO (specs ✅) | (re-usa 003) |
-| 007 | `landing-ui` | v0.5.1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
-| 008 | `observability-web` | v0.5.1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
+| 003 | `web-adapt-ui` | v0 / M1.1 | ✅ SHIPPED | `app/api/adapt/route.ts` |
+| 004 | `web-export-ui` | v0 / M2.1 | ✅ SHIPPED | `app/api/export/route.ts` |
+| 005 | `web-cv-import-ui` | v0.5 / M3 | ✅ SHIPPED | `app/api/import/route.ts` |
+| 006 | `web-cv-editor` | v0.5 / M4 | ✅ SHIPPED | (re-usa 002/003/004) |
+| 006b | `web-cv-diff-viewer` | v0.5 / M4 | ✅ SHIPPED | (re-usa 003) |
+| 007 | `landing-ui` | v0.5.1 | ✅ SHIPPED | (n/a) |
+| 008 | `observability-web` | v0.5.1 | ✅ SHIPPED | (n/a) |
 | 009 | `auth-web` | v1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
 | 010 | `payments-web` | v1 | 📋 PLANEADO (spec NO escrita) | (n/a) |
 
@@ -61,27 +61,24 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **BFF:** `app/api/score/route.ts` (proxyea a `POST ${BACKEND_URL}/api/v1/score`)
 - **Commit:** `ed13890` (M0 score engine original)
 
-## Features con BFF listo, falta UI
+### 003-web-adapt-ui (v0 / M1.1)
 
-### 003-web-adapt-ui (v0 / M1.1) — BFF ✅, UI ❌
-
-- **Spec:** [specs/003-web-adapt-ui/spec.md](./003-web-adapt-ui/spec.md) (ya existe, 1 archivo)
+- **Spec:** [specs/003-web-adapt-ui/spec.md](./003-web-adapt-ui/spec.md)
 - **Backend counterpart:** ✅ SHIPPED con StubAiClient (`BuildCv-api/specs/003-adapt-ia/`).
-- **BFF:** `app/api/adapt/route.ts` ya implementado (`f94999f`).
-- **UI faltante:** componentes `components/adapt/` (no existe el directorio), `lib/api/adapt.ts` (typed client wrapper no existe).
-- **Bloqueado por:** nada. Trabajo puro de UI (~2-3 sprints estimados).
-- **Prioridad:** ALTA. Cierra el flujo de valor end-to-end.
+- **Estado:** Panel de adaptación con severity indicator (verde/amarillo/rojo), delta de mejora, export gate, rate-limit handling.
+- **Path frontend:** `components/adapt/` + `lib/api/adapt.ts`
+- **BFF:** `app/api/adapt/route.ts` (proxyea a `POST ${BACKEND_URL}/api/v1/adapt`)
+- **Commit:** `19577ab` (2026-06-09)
+- **Tests:** unit + E2E verdes al cierre.
 
-### 004-web-export-ui (v0 / M2.1) — BFF ✅, UI ❌
+### 004-web-export-ui (v0 / M2.1)
 
-- **Spec:** [specs/004-web-export-ui/spec.md](./004-web-export-ui/spec.md) (ya existe, 7 artifacts)
+- **Spec:** [specs/004-web-export-ui/spec.md](./004-web-export-ui/spec.md)
 - **Backend counterpart:** ✅ SHIPPED con QuestPDF.
-- **BFF:** `app/api/export/route.ts` ya implementado (`6b6f390`).
-- **UI faltante:** `components/export/` (no existe el directorio), `lib/api/export.ts` (typed client wrapper no existe).
-- **Bloqueado por:** nada. Trabajo puro de UI.
-- **Prioridad:** ALTA. Cierra el flujo: score → adapt → export.
-
-## Features PLANEADAS con specs completas
+- **Estado:** Botón "Descargar PDF" con spinner, rate-limit y blocked-invention handling.
+- **Path frontend:** `components/export/` + `lib/api/export.ts`
+- **BFF:** `app/api/export/route.ts` (proxyea a `POST ${BACKEND_URL}/api/v1/export`)
+- **Commit:** `45ec05d` (2026-06-09)
 
 ### 005-web-cv-import-ui (v0.5 / M3)
 
@@ -92,13 +89,10 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Quickstart:** [specs/005-web-cv-import-ui/quickstart.md](./005-web-cv-import-ui/quickstart.md)
 - **Tasks:** [specs/005-web-cv-import-ui/tasks.md](./005-web-cv-import-ui/tasks.md)
 - **Contracts:** [specs/005-web-cv-import-ui/contracts/frontend-consumes-api.md](./005-web-cv-import-ui/contracts/frontend-consumes-api.md)
-- **BFF planeado:** `app/api/import/route.ts` (proxy a `POST ${BACKEND_URL}/api/v1/import`, `runtime = "nodejs"` por multipart >4 MB)
-- **Componentes planeados:** `components/import/{FileUpload, ImportButton, ImportResultPanel}.tsx`
-- **Typed client planeado:** `lib/api/import.ts`
-- **Handoff:** el `ImportResult` se persiste en `sessionStorage` (no URL) y alimenta el editor (006).
-- **Constitution compliance:** Art. III ✅ (frontend no persiste en localStorage del import; solo en sessionStorage hasta que se cargue al editor), Art. V ✅ (parsed text se trata como DATO, no se renderiza como HTML), Art. VII ✅ (5 MB client-side early reject, antes de gastar upload).
-- **A11y:** WCAG 2.2 AA, drag/drop con fallback click + teclado, screen reader announcements.
-- **Open questions:** 5 (backend-side, ver INDEX del API).
+- **Estado:** Drag/drop PDF/DOCX, extracción de texto, secciones detectadas con confidence, handoff al editor.
+- **Path frontend:** `app/importar/page.tsx` + `components/import/{FileUpload, ImportButton, ImportResultPanel}.tsx` + `lib/api/import.ts`
+- **BFF:** `app/api/import/route.ts` (proxy a `POST ${BACKEND_URL}/api/v1/import`, `runtime = "nodejs"` por multipart >4 MB)
+- **Commits:** web `318a1c0` + backend `c61bdf4` (2026-06-09)
 
 ### 006-web-cv-editor (v0.5 / M4)
 
@@ -109,14 +103,14 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Quickstart:** [specs/006-web-cv-editor/quickstart.md](./006-web-cv-editor/quickstart.md)
 - **Tasks:** [specs/006-web-cv-editor/tasks.md](./006-web-cv-editor/tasks.md)
 - **Contracts:** [specs/006-web-cv-editor/contracts/frontend-internal.md](./006-web-cv-editor/contracts/frontend-internal.md)
-- **Page planeada:** `app/analizar/editar/page.tsx`
-- **Engine version planeada:** `0.5.0` (sello en cada Draft, simetría con backend)
-- **Stack planeado:** Tiptap v2 (MIT) + Zod v3 + Zustand v4 + `idb` (IndexedDB wrapper) + `remark` + `remark-buildcv` (plugin custom) + `nanoid`
-- **Persistencia:** `ICvStore` port (Art. VI v1.1.0) con `LocalStorageCvStore` (default ≤4 MB) + `IndexedDbCvStore` (fallback >4 MB)
-- **8 custom nodes Tiptap:** Profile, Experience, Education, Skills, Projects, Certifications, Languages, Other
+- **Estado:** 8 secciones estructuradas con Zod round-trip, persistencia local con `ICvStore` (LocalStorage + IndexedDB fallback), botón "Limpiar borrador", re-score en caliente, export a Markdown.
+- **Path frontend:** `app/analizar/editar/page.tsx` + `components/editor/`
+- **Stack shipped:** `zod` v3 (Tiptap/Zustand/idb/nanoid/remark NO instalados — decisión técnica documentada en `tasks.md` L9-24, deuda para v1)
+- **Persistencia:** `ICvStore` port (Art. VI v1.1.0) con `LocalStorageCvStore` (default). `IndexedDbCvStore` deferred a v1 (deuda técnica — quota overflow se surfacea al usuario vía `error-reporter`/`EditorSaveIndicator`).
+- **Engine version:** `0.5.0` (sello en cada Draft, simetría con backend)
 - **Constitution compliance:** Art. I ✅ (FR-029a: Zod rechaza entidades nuevas en round-trip), Art. III ✅ (FR-040b botón "Limpiar borrador" obligatorio), Art. VI ✅ (`ICvStore` puerto oficial)
 - **A11y:** WCAG 2.2 AA, keyboard nav completa, ARIA labels por sección
-- **Open questions:** 7 (ver INDEX del API para detalle)
+- **Commit:** `748611d` (2026-06-09)
 
 ### 006-web-cv-diff-viewer (v0.5 / M4) — sub-feature del editor
 
@@ -127,26 +121,29 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Quickstart:** [specs/006-web-cv-diff-viewer/quickstart.md](./006-web-cv-diff-viewer/quickstart.md)
 - **Tasks:** [specs/006-web-cv-diff-viewer/tasks.md](./006-web-cv-diff-viewer/tasks.md)
 - **Contracts:** [specs/006-web-cv-diff-viewer/contracts/frontend-internal.md](./006-web-cv-diff-viewer/contracts/frontend-internal.md)
-- **Page planeada:** `app/analizar/diff/page.tsx`
-- **Stack planeado:** `diff` (jsdiff v5, BSD-3) + custom React renderer (control a11y/colors) + Tiptap read-only con nodo editable para correcciones inline
+- **Estado:** Visor unified / side-by-side con word-level diff, badges rojo para invenciones Soft/Hard, modal de confirmación para Hard sin revisar, edición inline con Zod.
+- **Path frontend:** `app/analizar/diff/page.tsx` + `components/diff/`
+- **Stack shipped:** `diff` (jsdiff v5, BSD-3-Clause) + custom React renderer (edición inline con `<input>` controlado, no Tiptap)
 - **Modos:** unified (mobile <768px default) / side-by-side (desktop ≥768px default), toggle persiste en `localStorage["buildcv:diff:mode"]`
 - **Constitution compliance:** Art. I ✅ (canDirectAccept retorna `false` si hay invenciones `Hard`; modal de confirmación obligatorio), Art. V ✅ (diff no se renderiza como HTML)
 - **A11y:** color contrast WCAG AA, keyboard nav entre entidades flagged, screen reader anuncia cada flag
-
-## Features PLANEADAS sin specs
+- **Commit:** `4bf92b7` (2026-06-09)
 
 ### 007-landing-ui (v0.5.1)
 
-- **Estado:** 📋 PLANEADO. Spec aún no escrita.
-- **Bloqueado por:** nada. Es trabajo puro de UI.
-- **Componentes planeados:** `app/page.tsx` (landing), `components/landing/{hero,how-it-works,honesty-note,cta}.tsx`.
-- **Prioridad:** media. Aumenta conversión pero no es crítico para el flujo core.
+- **Spec:** [specs/007-landing-ui/spec.md](./007-landing-ui/spec.md)
+- **Estado:** Hero + steps + trust signals + FAQ + metadata completa (OpenGraph, Twitter, canonical, robots, sitemap, JSON-LD) + error pages (404, 500, global-error).
+- **Path frontend:** `app/page.tsx` + `components/landing/{hero, how-it-works, honesty-note, cta, faq, trust-signals, error-fallback}.tsx` + `app/{error,not-found,global-error}.tsx`
+- **Commit:** `a312662` (2026-06-09)
 
 ### 008-observability-web (v0.5.1)
 
-- **Estado:** 📋 PLANEADO. Spec aún no escrita.
-- **Bloqueado por:** el backend observability (008 en API) debe estar listo primero.
-- **Componentes planeados:** error boundary global, Sentry integration (post Habeas Data gate).
+- **Spec:** [specs/008-observability-web/spec.md](./008-observability-web/spec.md)
+- **Estado:** Client-side error reporting puro (NO third-party), global React error boundary (`<ErrorBoundary>` con `react-error-boundary`), dev overlay de errores, helpers en `lib/observability/`.
+- **Path frontend:** `components/observability/` + `lib/observability/`
+- **Commit:** `4168475` (2026-06-09)
+
+## Features PLANEADAS (v1 backlog)
 
 ### 009-auth-web (v1)
 
@@ -166,15 +163,11 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Archive:** [specs/_archive/001-web-mvp-original/](./_archive/001-web-mvp-original/)
 - **Razón del archivo:** scope demasiado grande, specs pequeñas son más testeables.
 
-## Próximos pasos (recomendados, en orden de planificación simple)
+## Próximos pasos (v1 backlog, en orden de desbloqueo)
 
-1. **003-web-adapt-ui** (BFF ✅, UI falta) — Habilita el flujo de adaptación end-to-end. Backend ya funciona.
-2. **004-web-export-ui** (BFF ✅, UI falta) — Habilita descarga de PDF. Backend ya funciona.
-3. **005-web-cv-import-ui** (specs ✅, código NO) — Carga de PDF/DOCX como input. Backend 005 también specs-ready.
-4. **006-web-cv-editor + 006-web-cv-diff-viewer** (specs ✅, código NO) — Editor estructurado + diff visual. Necesita 005 como upstream.
-5. **007-landing-ui** (spec NO) — Aumenta conversión, sin dependencies técnicas.
-6. **008-observability-web** (spec NO) — Decisiones data-driven.
-7. **009-auth-web, 010-payments-web** (v1) — bloqueados por gates Art. IX.
+1. **009-auth-web** — bloqueado por gate Habeas Data (Art. IX). Habilita cuentas, historial, sync entre devices.
+2. **010-payments-web** — bloqueado por gates Art. IX (ZDR + Habeas Data) + Wompi integration. Monetización.
+3. **v1 polish sprints** (opcional) — agregar Tiptap al editor (deuda documentada en `006-web-cv-editor/tasks.md`), i18n (en/pt), 008-observability-api (backend), accessibility audit WCAG 2.2 AAA.
 
 ## Reglas de mantenimiento
 
@@ -202,6 +195,7 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **pnpm 11** (frozen lockfile en CI)
 - **Node 22+**
 - **Sin librería UI externa** — diseño custom (consistente en todo el proyecto)
+- **Helpers de observabilidad/diff/parsing** (no son librería UI): `web-vitals@^4` (Core Web Vitals en dev overlay), `react-error-boundary@^5` (error boundary global), `diff@^5` (jsdiff, word-level Myers diff para 006b), `zod@^3` (schemas de validación para 006)
 
 ## Constitución cumplimiento (frontend)
 
@@ -209,7 +203,7 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Art. III (Privacidad)**: BFF same-origin oculta el backend. Persistencia local SOLO en dispositivo del usuario vía `ICvStore` (v1.1.0). Botón "Limpiar borrador" obligatorio. Copy: "Tus datos no entrenan ninguna IA y no se guardan en nuestros servidores."
 - **Art. IV (Encuadre honesto)**: copy en `lib/copy/es.ts` dice "coincidencia con la vacante + legibilidad", nunca "ATS oficial".
 - **Art. V (Entrada como dato)**: nunca `dangerouslySetInnerHTML` con CV/vacante. Parsed text del import (005) se trata como dato, no se renderiza como HTML.
-- **Art. VI (Clean Arch)**: BFF = `app/api/*` proxyea al backend. Browser NUNCA habla directo. Puertos frontend: `ICvStore`.
+- **Art. VI (Clean Arch)**: BFF = `app/api/*` proxyea al backend. Browser NUNCA habla directo. Puertos frontend: `ICvStore` (storage local del editor 006), `ICvParser` (puerto backend del import 005 — `PdfCvParser` / `DocxCvParser`).
 
 ## Links externos
 

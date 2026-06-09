@@ -51,8 +51,8 @@ app/                  # App Router pages + API routes
   api/
     score/route.ts    # POST → proxy al backend /api/v1/score
     health/route.ts   # GET → proxy /health/ready
-    adapt/            # (planeado M1-IA)
-    export/           # (planeado M2)
+    adapt/            # POST → proxy al backend /api/v1/adapt
+    export/           # POST → proxy al backend /api/v1/export
 components/
   analyzer/           # 7 componentes del analizador
     analyzer.tsx      # Orquestador
@@ -69,7 +69,7 @@ lib/
     types.ts          # ScoreResponse y tipos de contrato (congelados con el backend)
   copy/
     es.ts             # Copy en español (todo el texto visible de la UI)
-  utils/              # Utilidades (vacíos o planeados)
+  utils/              # Utilidades (cn.ts, prefers-reduced-motion.ts, demo-data.ts)
 ```
 
 ## Convenciones de código

@@ -1,6 +1,6 @@
 # Feature 008-web-observability-web — Observabilidad del frontend sin third-party tracking
 
-> **Status:** ✅ SHIPPED (commit 4168475, 2026-06-09) · **Hito:** v0.5.1 (P0.5.1) · **Rama:** `main` (merge directo) · **Backend counterparts:** ninguno (frontend puro; el backend 008-observability-api NO se implementa en este sprint — está documentado como deferido en INDEX)
+> **Status:** 🚧 EN CURSO · **Hito:** v0.5.1 (P0.5.1) · **Rama:** `main` (merge directo) · **Backend counterparts:** ninguno (frontend puro; el backend 008-observability-api NO se implementa en este sprint — está documentado como deferido en INDEX)
 > **Pre-requisito:** v0.5 completa (sprints 0/1/2/3a/3b/4a/4b/007 shipped en `a312662`).
 > **Sister features:** 007-web-landing-ui (shipped, con error pages base), 008-observability-api (backlog, sin spec).
 

@@ -136,7 +136,7 @@ export const copy = {
       error: "No pudimos procesar el archivo",
     },
     buttonUseInEditor: "Usar este texto en el editor",
-    handoffHint: "Próximamente — el editor 006-cv-editor está en construcción.",
+    handoffHint: "Listo — abrir el editor con este texto pre-poblado.",
     sections: {
       title: "Secciones detectadas",
       confidenceHigh: "Alta confianza",

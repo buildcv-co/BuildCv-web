@@ -2,19 +2,23 @@
 
 > **Spec:** [./spec.md](./spec.md) · **Plan:** [./plan.md](./plan.md) · **Research:** [./research.md](./research.md) · **Contracts:** [./contracts/frontend-internal.md](./contracts/frontend-internal.md)
 > **Convención**: TypeScript strict, tipos en inglés, copy en español.
+>
+> **Source of truth:** `lib/diff/types.ts`, `lib/diff/compute-diff.ts`, `lib/diff/flag-entities.ts`, `lib/diff/handoff.ts`, `components/diff/diff-page.tsx`. Verificado contra el shipped code (commit 4bf92b7).
 
 ---
 
 ## Overview
 
-Este documento define los tipos TypeScript del diff viewer. La mayoría son **inmutables** y se calculan en runtime mediante funciones puras (ver `lib/diff/compute-diff.ts` y `lib/diff/flag-entities.ts`).
+Este documento define los tipos TypeScript del diff viewer. La mayoría son **inmutables** (`Readonly<>`) y se calculan en runtime mediante funciones puras (ver `lib/diff/compute-diff.ts` y `lib/diff/flag-entities.ts`).
 
 ```
 AdaptResult (de 003, ya validado por Zod en 003)
-    ↓ parse
-DiffInput { originalText, adaptedText, inventions[], warnings[] }
-    ↓ computeWordDiff + mapFlagsToSegments
-DiffResult { segments[], flaggedEntities[], summary }
+    ↓ readDiffHandoff
+DiffHandoff (en sessionStorage["buildcv:diff-handoff"])
+    ↓ parse → originalText, adaptedText, validation.inventions[]
+DiffInput
+    ↓ computeDiff + flagEntitiesInDiff
+DiffResult { segments[], orphanedFlags[] }
     ↓ render
 React tree con <DiffView>, <FlaggedEntityBadge>, etc.
 ```
@@ -23,40 +27,68 @@ React tree con <DiffView>, <FlaggedEntityBadge>, etc.
 
 ## Tipos centrales (en `lib/diff/types.ts`)
 
-### `DiffSegment`
+### `DiffChange`
 
 Unidad básica del diff. Representa una palabra o frase que se añadió, eliminó o quedó igual.
 
 ```typescript
-export type DiffSegmentType = "added" | "removed" | "unchanged";
+export type DiffChangeKind = "added" | "removed" | "unchanged";
 
-export interface DiffSegment {
-  readonly type: DiffSegmentType;
+export interface DiffChange {
+  readonly kind: DiffChangeKind;
   readonly value: string;
 }
 ```
 
+**Nota shipped**: el campo se llama `kind` (no `type` como proponía la spec original). Es consistente con el resto del codebase (006a usa `kind` en `CvSection`).
+
 ### `DiffSegmentWithFlags`
 
-Extiende `DiffSegment` con offsets absolutos y las invenciones que caen dentro del segmento.
+Extiende `DiffChange` con offsets absolutos y las invenciones que caen dentro del segmento.
 
 ```typescript
 import type { EntityInvention } from "@/lib/api/types";
 
-export interface DiffSegmentWithFlags extends DiffSegment {
+export interface DiffSegmentWithFlags {
+  readonly kind: DiffChangeKind;
+  readonly value: string;
   /** Offset absoluto de inicio en el texto adaptado. */
   readonly startOffset: number;
   /** Offset absoluto de fin en el texto adaptado. */
   readonly endOffset: number;
-  /** EntityInvention[] que caen dentro de este segmento. */
-  readonly flags: ReadonlyArray<EntityInvention>;
+  /** FlaggedEntity[] que caen dentro de este segmento. */
+  readonly flags: ReadonlyArray<FlaggedEntity>;
 }
 ```
 
-### `EntityInvention` (re-uso de 003)
+### `FlaggedEntity`
 
 ```typescript
-// Re-uso de BuildCv-api/specs/003-adapt-ia/data-model.md EntityInventionDto
+export type FlagColor = "soft" | "hard";
+
+export interface FlaggedEntity {
+  readonly entity: EntityInvention;
+  /** Posición (offset en caracteres) en el texto adaptado. */
+  readonly position: number;
+  /** Color derivado de la severidad (Hard > Soft). */
+  readonly color: FlagColor;
+}
+```
+
+### `FlagEntitiesResult`
+
+```typescript
+export interface FlagEntitiesResult {
+  readonly segments: ReadonlyArray<DiffSegmentWithFlags>;
+  /** Invenciones que no caen en ningún segmento (segmento "removed" o posición inválida). */
+  readonly orphanedFlags: ReadonlyArray<EntityInvention>;
+}
+```
+
+### `EntityInvention` (re-uso de 003, en `lib/api/types.ts`)
+
+```typescript
+// Re-uso de BuildCv-api/specs/003-adapt-ia/contracts/adapt-api.md EntityInventionDto
 export type EntityInventionType =
   | "Skill"
   | "Certification"
@@ -80,10 +112,9 @@ export interface EntityInvention {
 }
 ```
 
-### `AdaptResult` (re-uso de 003, ya validado por Zod)
+### `AdaptResult` (re-uso de 003, en `lib/api/types.ts`)
 
 ```typescript
-// Re-uso de BuildCv-api/specs/003-adapt-ia/contracts/adapt-api.md
 export interface ValidationReport {
   readonly isValid: boolean;
   readonly severity: "None" | "Warning" | "Critical";
@@ -99,276 +130,220 @@ export interface AdaptResult {
 }
 ```
 
-### `DiffInput`
-
-Entrada del diff viewer. Se construye a partir del `AdaptResult` + el texto original.
+### `DiffMode`
 
 ```typescript
-export interface DiffInput {
+export type DiffMode = "unified" | "side-by-side";
+```
+
+**Decisión shipped**: el modo se inicializa con `matchMedia("(min-width: 768px)")` y se mantiene en `useState`. **NO persiste** entre sesiones (decisión v0.5; v1 con `localStorage["buildcv:diff:mode"]`).
+
+### `DiffHandoff`
+
+Handoff desde el flujo de adaptación (003) al diff viewer. Se serializa a JSON en `sessionStorage["buildcv:diff-handoff"]`.
+
+```typescript
+/**
+ * Privacy: Constitution Art. III — el handoff vive solo en sessionStorage
+ * (no URL, no localStorage). El viewer lo lee y lo limpia al aceptar/rechazar.
+ */
+export interface DiffHandoff {
   /** Texto del CV original (antes de adaptar). */
   readonly originalText: string;
   /** Texto del CV adaptado (después de adaptar). */
   readonly adaptedText: string;
-  /** Invenciones detectadas por el validador post-IA. */
-  readonly inventions: ReadonlyArray<EntityInvention>;
-  /** Warnings del validador (puede incluir advertencias no-invención). */
-  readonly warnings: ReadonlyArray<string>;
-  /** Versión del motor de adaptación (para reproducibilidad). */
-  readonly engineVersion: string;
-  /** Trace ID de la request de adapt (para correlación con logs del backend). */
+  /** ValidationReport del AdaptResult (severity, inventions, warnings). */
+  readonly validation: ValidationReport;
+  /** Trace ID de la request de adapt (correlación con logs del backend). */
   readonly adaptTraceId: string;
-  /** Timestamp del adapt (para detectar "expirado"). */
-  readonly adaptedAt: string;
+  /** Timestamp ISO 8601 del handoff. Se valida <1 h de antigüedad. */
+  readonly timestamp: string;
 }
 ```
 
-### `DiffResult`
+**Diferencia shipped vs. spec original**: la spec original proponía que el handoff incluyera un `currentDocument: CvDocument` (referencia al doc del editor 006a). El shipped code solo contiene `originalText` + `adaptedText` + `validation` + `adaptTraceId` + `timestamp`. **No hay `currentDocument`** porque el flujo 003 → 006b no requiere que el editor haya participado; el diff viewer es standalone una vez que se carga el handoff.
 
-Salida del cómputo del diff. Lo que renderiza la UI.
+---
 
-```typescript
-export interface DiffResult {
-  /** Segmentos del diff palabra-por-palabra con flags inyectados. */
-  readonly segments: ReadonlyArray<DiffSegmentWithFlags>;
-  /** Resumen del diff (totales, sin computar de nuevo). */
-  readonly summary: DiffSummary;
-  /** Invenciones que NO pudieron mapearse a un segmento (caen en "removed" o posición inválida). */
-  readonly orphanedFlags: ReadonlyArray<EntityInvention>;
-}
-
-export interface DiffSummary {
-  /** Total de palabras añadidas. */
-  readonly addedWords: number;
-  /** Total de palabras eliminadas. */
-  readonly removedWords: number;
-  /** Total de palabras sin cambios. */
-  readonly unchangedWords: number;
-  /** Total de invenciones (Soft + Hard). */
-  readonly totalFlags: number;
-  /** Total de Hard pendientes. */
-  readonly hardFlags: number;
-  /** Total de Soft pendientes. */
-  readonly softFlags: number;
-}
-```
-
-### `DiffMode`
-
-Modo de visualización del diff.
+## Constantes (en `lib/diff/handoff.ts`)
 
 ```typescript
-export type DiffMode = "unified" | "side-by-side";
-
-export const DEFAULT_DIFF_MODE_BY_BREAKPOINT: ReadonlyArray<{
-  readonly maxWidth: number;
-  readonly mode: DiffMode;
-}> = [
-  { maxWidth: 767, mode: "unified" },     // móvil
-  { maxWidth: Infinity, mode: "side-by-side" }, // desktop
-];
-```
-
-### `DiffHandoff`
-
-Handoff desde el diff viewer al editor (006a) o al export (004).
-
-```typescript
-// Re-uso de BuildCv-web/specs/006-web-cv-editor/contracts/frontend-internal.md §7
-export interface DiffHandoff {
-  /** CvDocument actual (lo que el usuario editó). */
-  readonly currentDocument: CvDocument;
-  /** Resultado de la adaptación que se está revisando. */
-  readonly adaptResult: AdaptResult;
-  /** Texto original (de donde se partió para adaptar). */
-  readonly originalText: string;
-  /** Trace ID de la request de adapt. */
-  readonly adaptTraceId: string;
-  /** Timestamp del handoff. */
-  readonly at: string;
-}
+export const DIFF_HANDOFF_KEY = "buildcv:diff-handoff";
+export const MAX_DIFF_HANDOFF_AGE_MS = 60 * 60 * 1000; // 1 hora
 ```
 
 ---
 
-## Zod schemas (en `lib/diff/schema.ts`)
+## Errores (en `lib/diff/handoff.ts`)
 
 ```typescript
-import { z } from "zod";
+export class AdaptationExpiredError extends Error {
+  readonly ageMs: number;
+  constructor(ageMs: number) {
+    super(`ADAPTATION_EXPIRED: la adaptación tiene ${Math.round(ageMs / 60_000)} minutos (máx 60).`);
+    this.name = "AdaptationExpiredError";
+    this.ageMs = ageMs;
+  }
+}
 
-// Re-uso de los schemas de 003 + 006a, con validación adicional para DiffInput
-export const EntityInventionSchema = z.object({
-  type: z.enum(["Skill", "Certification", "Company", "Date", "Metric", "Title", "Other"]),
-  claimed: z.string().min(1).max(200),
-  original: z.string().max(200).nullable(),
-  severity: z.enum(["Soft", "Hard"]),
-  position: z.number().int().min(0),
-});
-
-export const ValidationReportSchema = z.object({
-  isValid: z.boolean(),
-  severity: z.enum(["None", "Warning", "Critical"]),
-  inventions: z.array(EntityInventionSchema).max(50),
-  warnings: z.array(z.string().max(500)).max(20),
-});
-
-export const AdaptResultSchema = z.object({
-  adaptedText: z.string().max(50_000),
-  validation: ValidationReportSchema,
-  engineVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
-  aiModel: z.string().min(1).max(100),
-});
-
-export const DiffInputSchema = z.object({
-  originalText: z.string().max(50_000),
-  adaptedText: z.string().max(50_000),
-  inventions: z.array(EntityInventionSchema).max(50),
-  warnings: z.array(z.string().max(500)).max(20),
-  engineVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
-  adaptTraceId: z.string().min(1).max(100),
-  adaptedAt: z.string().datetime(),
-});
+export class AdaptationStorageError extends Error {
+  constructor(message: string) {
+    super(`ADAPTATION_STORAGE_ERROR: ${message}`);
+    this.name = "AdaptationStorageError";
+  }
+}
 ```
+
+**Nota shipped**: `DiffComputationError` y `HardInventionPendingError` mencionadas en la spec original **NO existen** como clases. Los errores se manejan con `instanceof AdaptationExpiredError` / `instanceof AdaptationStorageError` en `getClientSnapshot`, y el bloqueo de Hard se hace por conteo en el componente (no como excepción).
 
 ---
 
 ## Funciones puras (en `lib/diff/`)
 
-### `computeWordDiff`
+### `computeDiff(before: string, after: string): ReadonlyArray<DiffChange>`
 
 ```typescript
 // lib/diff/compute-diff.ts
 import { diffWords } from "diff";
 
 /**
- * Calcula el diff palabra-por-palabra entre dos textos.
+ * Calcula el diff palabra-por-palabra entre dos textos usando Myers algorithm (jsdiff).
+ * Devuelve una secuencia de `DiffChange` mapeada a un tipo local inmutable.
  * @pure
  */
-export function computeWordDiff(
-  original: string,
-  adapted: string,
-): ReadonlyArray<DiffSegment>;
+export function computeDiff(
+  before: string,
+  after: string,
+): ReadonlyArray<DiffChange>;
 ```
 
-### `mapFlagsToSegments`
+### `flagEntitiesInDiff(diff, inventions): FlagEntitiesResult`
 
 ```typescript
 // lib/diff/flag-entities.ts
+import type { EntityInvention } from "@/lib/api/types";
+import type { DiffChange, DiffSegmentWithFlags, FlagColor, FlaggedEntity } from "./types";
 
 /**
- * Mapea cada EntityInvention al segmento del diff que la contiene.
+ * Mapea cada `EntityInvention` al segmento del diff que la contiene.
+ *
+ * Reglas:
+ * - Solo se asigna flags a segmentos `added` o `unchanged` (los `removed` no
+ *   forman parte del texto adaptado y sus flags van a `orphanedFlags`).
+ * - Si dos invenciones caen en la misma posición, gana la de mayor severidad
+ *   (Hard > Soft) — Constitution Art. I.
+ * - `startOffset`/`endOffset` se calculan acumulando `value.length` desde 0.
+ * - Posiciones negativas o más allá del texto → `orphanedFlags`.
  * @pure
  */
-export function mapFlagsToSegments(
-  segments: ReadonlyArray<DiffSegment>,
+export function flagEntitiesInDiff(
+  diff: ReadonlyArray<DiffChange>,
   inventions: ReadonlyArray<EntityInvention>,
-): {
-  readonly segments: ReadonlyArray<DiffSegmentWithFlags>;
-  readonly orphanedFlags: ReadonlyArray<EntityInvention>;
-};
+): FlagEntitiesResult;
 ```
 
-### `buildDiffResult`
+### `readDiffHandoff()`, `readValidDiffHandoff()`, `writeDiffHandoff()`, `clearDiffHandoff()`
 
 ```typescript
-// lib/diff/compute-diff.ts
-
-/**
- * Compone el DiffResult completo a partir del DiffInput.
- * @pure
- */
-export function buildDiffResult(input: DiffInput): DiffResult;
+// lib/diff/handoff.ts
+export function readDiffHandoff(): DiffHandoff | null;          // sin validar expiración
+export function readValidDiffHandoff(): DiffHandoff;             // lanza AdaptationExpiredError si >1h
+export function writeDiffHandoff(handoff: DiffHandoff): void;
+export function clearDiffHandoff(): void;
 ```
 
-### `canDirectAccept`
+**Reglas**:
 
-```typescript
-// lib/diff/can-direct-accept.ts
-
-/**
- * Determina si el usuario puede "Aceptar y exportar" sin modal de confirmación.
- * @pure
- */
-export function canDirectAccept(inventions: ReadonlyArray<EntityInvention>): {
-  readonly allowed: boolean;
-  readonly hardCount: number;
-  readonly softCount: number;
-};
-```
+- `readDiffHandoff` retorna `null` si no hay handoff, si el JSON está corrupto, o si no pasa `isDiffHandoffShape` (validador manual de shape, no Zod).
+- `readValidDiffHandoff` lanza `AdaptationStorageError("no handoff found")` si no hay handoff, `AdaptationStorageError("invalid timestamp")` si el timestamp no parsea, y `AdaptationExpiredError` si tiene >1 h.
+- Reloj del cliente desincronizado hacia el futuro (más de 1 minuto en el futuro) se acepta sin error.
 
 ---
 
-## Hooks (en `lib/diff/use-diff.ts`)
+## Hook React: `DiffPage` (en `components/diff/diff-page.tsx`)
 
-### `useDiff(input: DiffInput): UseDiffResult`
+**No existe un hook `useDiff()`** en el shipped code. Toda la lógica de estado vive en el componente `DiffPage` (467 líneas):
 
 ```typescript
-export interface UseDiffResult {
-  readonly result: DiffResult | null;
-  readonly isComputing: boolean;
-  readonly error: Error | null;
-  readonly mode: DiffMode;
-  readonly setMode: (mode: DiffMode) => void;
-  readonly editedAdaptedText: string;
-  readonly applyEdit: (position: number, newValue: string) => void;
+export interface DiffPageProps {
+  /** Texto de la vacante, necesario para re-puntuar. */
+  readonly jobText: string;
 }
 
-export function useDiff(input: DiffInput): UseDiffResult;
+export function DiffPage({ jobText }: DiffPageProps): JSX.Element;
 ```
 
-**Comportamiento**:
+**Estado interno**:
 
-- `result` se computa en `useMemo` (evita recálculo en cada render).
-- `mode` persiste en `localStorage["buildcv:diff:mode"]`.
-- `applyEdit` actualiza el texto adaptado, elimina la invención correspondiente del array de flags, y re-computa el diff (en `useMemo`).
+```typescript
+const hydration = useSyncExternalStore(
+  subscribeHandoff, getClientSnapshot, getServerSnapshot,
+);
+const [editedText, setEditedText] = useState<string | null>(null);
+const [inventions, setInventions] = useState<ReadonlyArray<EntityInvention>>([]);
+const [mode, setMode] = useState<DiffMode>(() => /* matchMedia */);
+const [isRescoring, setIsRescoring] = useState(false);
+const [lastScore, setLastScore] = useState<number | null>(null);
+const [errorMsg, setErrorMsg] = useState<string | null>(null);
+const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null);
+const [toastMsg, setToastMsg] = useState<string | null>(null);
+```
+
+**Computación del diff** (con `useMemo` para evitar recálculo):
+
+```typescript
+const result = useMemo(() => {
+  if (hydration.status !== "ready") return null;
+  const diff = computeDiff(hydration.originalText, adaptedText);
+  return flagEntitiesInDiff(diff, inventions);
+}, [hydration.status, hydration.originalText, adaptedText, inventions]);
+```
+
+**Handlers principales**:
+
+- `onRescore` — `requestScore(adaptedText, jobText)` con manejo de `ScoreError`.
+- `onEditEntity(entity)` — `setInlineEdit({ entity, value: entity.claimed })`.
+- `onConfirmEdit` — valida con `InlineValueSchema` (Zod), reemplaza en `adaptedText` en el offset, elimina la invención de la lista.
+- `onCancelEdit` — `setInlineEdit(null)`.
+- `onAcceptExport` — escribe el handoff actualizado, navega a `/analizar/exportar`, notifica listeners.
+- `onEditInEditor` — escribe el handoff actualizado, navega a `/analizar/editar`, notifica listeners.
+- `onReject` — limpia el handoff, guarda contexto de re-prompt, navega a `/analizar` con delay 300ms.
 
 ---
 
-## Errores (en `lib/diff/errors.ts`)
+## Validación Zod para edición inline (en `components/diff/diff-page.tsx`)
 
 ```typescript
-export class DiffComputationError extends Error {
-  constructor(public readonly reason: string) {
-    super(`DIFF_COMPUTATION_FAILED: ${reason}`);
-    this.name = "DiffComputationError";
-  }
-}
-
-export class AdaptationExpiredError extends Error {
-  constructor(public readonly ageMs: number) {
-    super(`ADAPTATION_EXPIRED: la adaptación tiene ${ageMs} ms (máx 1h).`);
-    this.name = "AdaptationExpiredError";
-  }
-}
-
-export class HardInventionPendingError extends Error {
-  constructor(public readonly count: number) {
-    super(`HARD_INVENTION_PENDING: ${count} invenciones Hard sin resolver.`);
-    this.name = "HardInventionPendingError";
-  }
-}
+const InlineValueSchema = z
+  .string()
+  .min(1, "vacío")
+  .max(200, "demasiado largo");
 ```
+
+**Aplicación**: el nuevo valor de la invención debe ser un string no vacío de máximo 200 caracteres. Si falla, se muestra `copy.diff.errors.validationFailed` y se cancela la edición.
 
 ---
 
-## Resumen de archivos a crear
+## Resumen de archivos shipped
 
 | Path | Líneas (aprox.) | Exports principales |
 |---|---|---|
-| `lib/diff/types.ts` | 80 | `DiffSegment`, `DiffSegmentWithFlags`, `DiffInput`, `DiffResult`, `DiffSummary` |
-| `lib/diff/schema.ts` | 50 | `DiffInputSchema`, `AdaptResultSchema` (re-uso) |
-| `lib/diff/compute-diff.ts` | 80 | `computeWordDiff`, `buildDiffResult` |
-| `lib/diff/flag-entities.ts` | 50 | `mapFlagsToSegments` |
-| `lib/diff/can-direct-accept.ts` | 30 | `canDirectAccept` |
-| `lib/diff/render-diff.tsx` | 100 | `renderDiffSegment` |
-| `lib/diff/use-diff.ts` | 100 | `useDiff` |
-| `lib/diff/errors.ts` | 30 | `DiffComputationError`, `AdaptationExpiredError`, `HardInventionPendingError` |
+| `lib/diff/types.ts` | 61 | `DiffChange`, `DiffChangeKind`, `DiffSegmentWithFlags`, `FlagColor`, `FlaggedEntity`, `DiffMode`, `DiffHandoff` |
+| `lib/diff/compute-diff.ts` | 44 | `computeDiff` |
+| `lib/diff/flag-entities.ts` | 112 | `flagEntitiesInDiff`, `FlagEntitiesResult` |
+| `lib/diff/handoff.ts` | 84 | `readDiffHandoff`, `readValidDiffHandoff`, `writeDiffHandoff`, `clearDiffHandoff`, `AdaptationExpiredError`, `AdaptationStorageError`, `DIFF_HANDOFF_KEY`, `MAX_DIFF_HANDOFF_AGE_MS` |
+| `components/diff/diff-page.tsx` | 467 | `DiffPage`, `DiffPageProps` |
+| `components/diff/diff-view.tsx` | 163 | `DiffView`, `DiffViewProps` |
+| `components/diff/diff-toolbar.tsx` | 88 | `DiffToolbar`, `DiffToolbarProps` |
+| `components/diff/flagged-entity-badge.tsx` | 129 | `FlaggedEntityBadge`, `FlaggedEntityBadgeProps` |
+| `components/diff/action-footer.tsx` | 113 | `ActionFooter`, `ActionFooterProps` |
 
-**Total**: ~520 líneas de tipos y contratos.
+**Total**: ~1 300 líneas de tipos y código shipped + 5 archivos de test (~20+ tests).
 
 ---
 
 ## Versionado
 
-- **`DiffInput` y `DiffResult` NO tienen campo `version`**: son outputs de cómputo, no se persisten.
-- **`DiffHandoff.at`**: timestamp ISO 8601; se valida que tenga <1 h al cargar.
-- **`AdaptResult.engineVersion`**: sincronizado con el backend (003). Si bumpea, el frontend acepta el nuevo formato automáticamente (defensa con Zod).
+- **`DiffHandoff.timestamp`**: timestamp ISO 8601; se valida que tenga <1 h al cargar (`MAX_DIFF_HANDOFF_AGE_MS`).
+- **`AdaptResult.engineVersion`**: sincronizado con el backend (003). Si bumpea, el frontend acepta el nuevo formato automáticamente (defensa con Zod en el backend 003).
+- **`DiffHandoff` NO tiene campo `version`**: se versiona por la forma del JSON. Si cambia, bumpear `MAX_DIFF_HANDOFF_AGE_MS` o ajustar el shape validator (`isDiffHandoffShape` en `handoff.ts`).

@@ -149,9 +149,9 @@ describe("copy.import", () => {
     expect(copy.import.buttonUseInEditor.length).toBeGreaterThan(0);
   });
 
-  it("handoffHint existe (cuando 006 no está implementado)", () => {
+  it("handoffHint existe (006 ya está shipped, así que el copy debe orientar al editor)", () => {
     expect(typeof copy.import.handoffHint).toBe("string");
-    expect(copy.import.handoffHint.toLowerCase()).toContain("próximamente");
+    expect(copy.import.handoffHint.toLowerCase()).toContain("listo");
   });
 
   it("sections: title + confidenceHigh + confidenceLow existen", () => {

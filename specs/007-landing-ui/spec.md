@@ -1,6 +1,6 @@
 # Feature 007-web-landing-ui — Polish de landing para v0.5.1
 
-> **Status:** 🚧 EN CURSO · **Hito:** v0.5.1 (P0.5.1) · **Rama:** `main` (merge directo) · **Backend counterparts:** ninguno (frontend puro)
+> **Status:** ✅ SHIPPED (commit a312662, 2026-06-09) · **Hito:** v0.5.1 (P0.5.1) · **Rama:** `main` (merge directo) · **Backend counterparts:** ninguno (frontend puro)
 > **Pre-requisito:** v0.5 completa (sprints 0/1/2/3a/3b/4a/4b shipped en `4bf92b7`).
 > **Sister features:** 008-observability-web (siguiente, sin spec aún) · v1 features (009/010/011) bloqueadas por Constitution Art. IX.
 

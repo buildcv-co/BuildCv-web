@@ -1,6 +1,6 @@
 # Feature 004-web-export-ui — UI de Export PDF
 
-> **Status:** 📋 PLANEADO (frontend de la 004 del API) · **Prioridad:** M2.1
+> **Status:** ✅ SHIPPED (commit 45ec05d, 2026-06-09) · **Prioridad:** M2.1
 > **Backend counterpart:** [../../BuildCv-api/specs/004-export-pdf/](../../BuildCv-api/specs/004-export-pdf/) (✅ SHIPPED con QuestPDF)
 > **INDEX global:** [../000-INDEX.md](../000-INDEX.md)
 

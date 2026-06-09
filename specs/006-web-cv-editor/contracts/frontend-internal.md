@@ -4,6 +4,8 @@
 > **Propósito**: Este documento es la **fuente de verdad** de los contratos internos del editor: tipos exportados, firmas de funciones puras, hooks, errores, y los contratos con las features hermanas (005 import, 002 score, 004 export, 003 adapt).
 >
 > Cualquier cambio a una firma aquí listada es un cambio **breaking** que requiere bump MINOR de `CvDocument.version` y migración.
+>
+> **Source of truth:** el shipped code (commit 748611d). Los tipos, firmas y errores listados a continuación son los que existen en el código, no los que la spec original proponía.
 
 ---
 
@@ -13,27 +15,25 @@
 
 ```typescript
 import type { Draft, DraftSummary } from "@/lib/editor/types";
-import { QuotaExceededError, StorageUnavailableError, DraftNotFoundError } from "@/lib/editor/errors";
+import { QuotaExceededError, DraftNotFoundError } from "./errors";
 
 export interface ICvStore {
   /**
    * Persiste un Draft. Sobrescribe si ya existe uno con el mismo id.
-   * @throws {QuotaExceededError} si no hay espacio (localStorage) o quota del navegador (IndexedDB).
-   * @throws {StorageUnavailableError} si el storage está bloqueado (modo privado Safari, cookies deshabilitadas).
+   * @throws {QuotaExceededError} si `localStorage.setItem` lanza `DOMException.name === "QuotaExceededError"`.
+   * @throws {Error} si el Draft no pasa `DraftSchema.safeParse`.
    */
   save(draft: Draft): Promise<void>;
 
   /**
    * Carga un Draft por id.
-   * @returns el Draft si existe, `null` si no existe.
+   * @returns el Draft si existe y pasa `DraftSchema.safeParse`, `null` en caso contrario.
    * @throws {DraftNotFoundError} si el id tiene formato inválido.
-   * @throws {ZodError} si el Draft persistido no pasa validación (corrupción).
    */
   load(id: string): Promise<Draft | null>;
 
   /**
    * Lista summaries de todos los Drafts persistidos, ordenados por `lastSavedAt` desc.
-   * En v0.5 retorna un array de máximo 1 elemento (singleton "default").
    */
   list(): Promise<ReadonlyArray<DraftSummary>>;
 
@@ -54,15 +54,18 @@ export interface ICvStore {
   onQuotaExceeded(handler: (err: QuotaExceededError) => void): () => void;
 }
 
-export { QuotaExceededError, StorageUnavailableError, DraftNotFoundError };
+export { QuotaExceededError, DraftNotFoundError };
 ```
 
-**Implementaciones** (en `lib/storage/`):
+**Implementación shipped (en `lib/storage/icv-store.ts`):**
 
-- `LocalStorageCvStore` — adapter default (≤4 MB), `key = "buildcv:draft:default"`.
-- `IndexedDbCvStore` — adapter fallback (>4 MB), DB = `buildcv-drafts`, store = `drafts`.
+- **`LocalStorageCvStore`** — única implementación shipped. Prefijo de clave: `buildcv:draft:`. Singleton draft: id `"default"`.
 
-**Factory**: `getCvStore(): Promise<ICvStore>` — elige adapter según prueba de cuota.
+**Implementación pendiente (deuda técnica v1, NO shipped):**
+
+- **`IndexedDbCvStore`** — diseño previsto: usar `idb` (`openDB`) con DB `buildcv-drafts`, object store `drafts`, keyPath `id`. **No existe como código** en v0.5 (verificado contra `lib/storage/`).
+
+**Factory**: `getCvStore(): Promise<ICvStore>` (en `lib/storage/index.ts`) — devuelve `LocalStorageCvStore` si `localStorage` está disponible; lanza `Error("LocalStorage unavailable")` en caso contrario.
 
 ---
 
@@ -80,11 +83,12 @@ export interface UseDraftResult {
   isLoading: boolean;
   /** `true` durante un guardado en curso. */
   isSaving: boolean;
-  /** Último error capturado (puede ser QuotaExceeded, StorageUnavailable, ZodError). */
+  /** Último error capturado (puede ser `QuotaExceededError` u otro). */
   error: Error | null;
-  /** Persiste un nuevo Draft. Sobrescribe el anterior. */
+  /** Persiste un nuevo Draft. Sobrescribe el anterior.
+   *  @throws re-lanza errores del store (incluido `QuotaExceededError`). */
   save: (draft: Draft) => Promise<void>;
-  /** Elimina el Draft persistido. */
+  /** Elimina el Draft persistido (`id="default"`). */
   clear: () => Promise<void>;
   /** Recarga desde `ICvStore` (útil tras import desde 005). */
   reload: () => Promise<void>;
@@ -95,45 +99,58 @@ export function useDraft(): UseDraftResult;
 
 **Comportamiento**:
 
-- En `useEffect` inicial, llama `getCvStore().load("default")`.
-- `save` actualiza el estado local optimistamente; revierte si lanza error.
+- En `useEffect` inicial (con `setTimeout(0)` para evitar SSR issues), llama `getCvStore().load("default")`.
+- `save` actualiza el estado local optimistamente (`setDraft(next)`) y re-lanza errores del store.
 - `clear` pone `draft = null` localmente.
 - `error` se setea en `save`/`clear`/`load`; el componente debe renderizar un toast.
 
 ---
 
-## 3. `useCvDocument()` — Hook del editor Tiptap
+## 3. Componente `Editor` — Orquestador
 
-**Ubicación**: `lib/editor/use-cv-document.ts`
+**Ubicación**: `components/editor/editor.tsx`
 
 ```typescript
-import type { Editor } from "@tiptap/react";
-import type { CvDocument } from "@/lib/editor/types";
-
-export interface UseCvDocumentResult {
-  /** Instancia de Tiptap Editor. `null` hasta que monta. */
-  editor: Editor | null;
-  /** CvDocument actual (sincronizado con el editor). */
-  document: CvDocument | null;
-  /** `true` si hay cambios sin guardar. */
-  isDirty: boolean;
-  /** Sincroniza el editor con un CvDocument externo (ej. import desde 005). */
-  setDocument: (doc: CvDocument) => void;
-  /** Resetea el editor a un documento vacío. */
-  reset: () => void;
+export interface EditorProps {
+  /** Texto de la vacante (pre-poblado si viene del query string `?job=...`). */
+  readonly initialJobText?: string;
 }
 
-export function useCvDocument(options?: {
-  initialDocument?: CvDocument;
-  onChange?: (doc: CvDocument) => void;
-}): UseCvDocumentResult;
+export function Editor(props: EditorProps): JSX.Element;
 ```
 
-**Comportamiento**:
+**Comportamiento shipped** (ver `editor.tsx`):
 
-- Internamente usa Zustand (`useCvDocumentStore`) para el estado global.
-- `onChange` se invoca en cada `transaction` de Tiptap (debounce de 300 ms).
-- `setDocument` reemplaza el contenido del editor (cuidado: descarta `isDirty`).
+- `useState<CvDocument>(BLANK_DOCUMENT)` para el documento.
+- `useState<string>(initialJobText)` para `jobText`.
+- `useState<boolean>(false)` para `isDirty`, `isRescoring`, `hydrated`.
+- `useState<ScoreResponse | null>(null)` para `score`.
+- `useState<string | null>(null)` para `errorMsg`.
+- `useDraft()` para el ciclo de vida del draft persistido.
+- `useEffect` que hidrata desde `useDraft.draft` O desde handoff de import (`sessionStorage["buildcv:editor-handoff"]`) cuando no hay draft.
+- `useCallback(updateSection)` — actualiza una sección en `document.sections` y marca `isDirty = true`.
+- `useMemo(orderedSections)` — ordena las secciones en `SECTION_ORDER` canónico.
+- `useCallback(onSave)` — valida con `CvDocumentSchema.safeParse`, construye `Draft`, llama `useDraft.save`, maneja errores.
+- `useCallback(onClear)` — llama `useDraft.clear`, resetea el documento.
+- `useCallback(onRescore)` — serializa con `serializeCvDocument`, llama `requestScore`, muestra resultado.
+- `useCallback(onExportMd)` — genera Blob con `text/markdown;charset=utf-8` y dispara descarga via `downloadBlob`.
+
+**No existe `useCvDocument()`** ni `tiptapToCvDocument()` en el shipped code. El mapeo entre el doc en memoria y la UI es directo: el componente `Editor` pasa `document.sections` a `SectionNode`, que renderiza inputs/textareas nativos por `kind`.
+
+**Constantes shipped**:
+
+```typescript
+const SECTION_ORDER: CvSectionKind[] = [
+  "profile", "experience", "education", "skills",
+  "projects", "certifications", "languages", "other",
+];
+
+const HANDOFF_KEY = "buildcv:editor-handoff";
+
+interface HandoffShape {
+  importedText: string;
+}
+```
 
 ---
 
@@ -145,98 +162,42 @@ export function useCvDocument(options?: {
 
 ```typescript
 /**
- * Serializa un CvDocument a Markdown (CommonMark + custom syntax para las 8 secciones).
- * @returns Markdown válido. Sección vacía se omite (no exporta heading vacío).
+ * Serializa un CvDocument a Markdown. Itera las 8 secciones en orden canónico.
+ * Sección vacía se omite (no exporta heading vacío).
  * @pure
  */
 export function serializeCvDocument(doc: CvDocument): string;
 ```
 
-**Sintaxis del Markdown generado**:
-
-```markdown
-## Perfil
-
-**Juan Pérez** · Backend Developer · Medellín, Colombia
-juan@example.com · +57 300 123 4567 · [linkedin.com/in/juan](https://linkedin.com/in/juan)
-
-Resumen profesional de 2-3 líneas.
-
-## Experiencia
-
-### Backend Developer · Acme Corp · 2022-01 → actualidad · Medellín
-
-- Reduje latencia de API en 35% mediante caché distribuido.
-- Lideré migración de monolito a microservicios (Node.js, PostgreSQL).
-- Stack: Node.js, TypeScript, PostgreSQL, Redis, AWS.
-
-### Backend Developer · BetaSoft · 2020-03 → 2021-12 · Bogotá
-
-- Implementé pipeline de CI/CD con GitHub Actions.
-- Stack: Python, Django, MySQL.
-
-## Educación
-
-### Ingeniería de Sistemas · Universidad de Antioquia · 2014 → 2019 · Medellín
-
-## Habilidades
-
-- **Backend**: Node.js, Python, PostgreSQL, Redis
-- **Cloud**: AWS (EC2, S3, Lambda), Docker, Kubernetes
-- **Frontend**: React, TypeScript, Tailwind CSS
-
-## Proyectos
-
-### BuildCv · https://buildcv.app
-
-Asistente de CV con IA para Colombia. Stack: Next.js, .NET, Claude API.
-
-## Certificaciones
-
-- AWS Solutions Architect · Amazon · 2023-05 · cred-id-123
-
-## Idiomas
-
-- Español · Nativo
-- Inglés · B2
-
-## Otros
-
-### Publicaciones
-
-- "Microservicios en LATAM" · Medium · 2024-03
-```
-
-### 4.2 `parseCvDocument(md: string, ctx: ParseContext): CvDocument`
+### 4.2 `parseCvDocument(md: string, ctx?: ParseContext): CvDocument`
 
 ```typescript
-import type { CvDocument, EntityRef } from "@/lib/editor/types";
+import type { CvDocument } from "@/lib/editor/types";
 
 export interface ParseContext {
   /** Set de tokens normalizados (lowercase + trim) del CV importado. */
   readonly originalEntities: ReadonlySet<string>;
-  /** Set de `EntityRef.value` que el usuario tipeó explícitamente (whitelist en runtime). */
+  /** Set de `EntityRef.value` que el usuario tipeó explícitamente. */
   readonly userTypedEntities: ReadonlySet<string>;
 }
 
 /**
- * Parsea Markdown a CvDocument.
- * @throws {EntityNotAllowedError} si un nodo contiene un token que no está en `originalEntities`
- *         ni en `userTypedEntities` (defense in depth, Constitución Art. I FR-029a).
- * @throws {SectionValidationFailedError} si un nodo no pasa su Zod schema.
+ * Parsea Markdown a CvDocument usando parser regex hand-rolled.
+ * Valida con `CvDocumentSchema.safeParse`; si falla, lanza `RoundTripMismatchError`.
+ * @throws {RoundTripMismatchError} si el output no pasa validación Zod.
  * @pure
  */
-export function parseCvDocument(md: string, ctx: ParseContext): CvDocument;
+export function parseCvDocument(md: string, ctx?: ParseContext): CvDocument;
 ```
 
-### 4.3 `roundtrip(doc: CvDocument, ctx: ParseContext): RoundTripResult`
+### 4.3 `roundtrip(doc: CvDocument, ctx?: ParseContext): RoundTripResult`
 
 ```typescript
 export type RoundTripResult =
   | { readonly ok: true; readonly markdown: string }
   | {
       readonly ok: false;
-      readonly error: "ENTITY_NOT_ALLOWED" | "SECTION_VALIDATION_FAILED" | "ROUNDTRIP_MISMATCH";
+      readonly error: "ENTITY_NOT_ALLOWED" | "ROUNDTRIP_MISMATCH";
       readonly details: string;
     };
 
@@ -244,157 +205,128 @@ export type RoundTripResult =
  * Verifica que `parse(serialize(doc))` produce un CvDocument estructuralmente equivalente a `doc`.
  * @pure
  */
-export function roundtrip(doc: CvDocument, ctx: ParseContext): RoundTripResult;
+export function roundtrip(doc: CvDocument, ctx?: ParseContext): RoundTripResult;
 ```
 
 ---
 
 ## 5. Contrato con feature 005 — Handoff del ImportResult
 
-**Ubicación**: `lib/api/editor-handoff.ts`
+**Ubicación**: lectura inline en `components/editor/editor.tsx` (no hay módulo dedicado)
 
 ```typescript
-import type { DetectedSection, ImportResult } from "@/lib/api/types";
+const HANDOFF_KEY = "buildcv:editor-handoff";
 
-const HANDOFF_KEY = "buildcv:import:handoff";
-
-export interface EditorHandoff {
-  /** Texto completo extraído del PDF/DOCX. */
-  readonly importedText: string;
-  /** Secciones detectadas por el parser del backend. */
-  readonly importedSections: ReadonlyArray<DetectedSection>;
-  /** Trace ID de la request de import (para correlación con logs del backend). */
-  readonly importedTraceId: string;
-  /** Timestamp ISO 8601 del import. */
-  readonly importedAt: string;
-  /** Engine version del parser (005). */
-  readonly parserEngineVersion: string;
+interface HandoffShape {
+  importedText: string;
 }
 
-export function setEditorHandoff(handoff: EditorHandoff): void;
-export function getEditorHandoff(): EditorHandoff | null;
-export function clearEditorHandoff(): void;
+function readHandoff(): HandoffShape | null {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(HANDOFF_KEY);
+  if (raw === null) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const obj = parsed as Record<string, unknown>;
+    if (typeof obj.importedText !== "string") return null;
+    return { importedText: obj.importedText };
+  } catch {
+    return null;
+  }
+}
 ```
 
 **Flujo**:
 
-1. 005 (import) llama `setEditorHandoff(...)` antes de navegar a `/analizar/editar?traceId=...`.
-2. 006 (editor) llama `getEditorHandoff()` en mount, parsea `importedText` con `parseCvDocument`, pre-pobla el editor.
-3. El usuario edita. Los `EntityRef` heredan `source: 'imported'` y se registran en la whitelist.
-4. Al guardar, el `Draft` incluye la whitelist derivada del import (no se persiste el `ImportResult` completo).
+1. 005 (import) escribe `sessionStorage["buildcv:editor-handoff"] = JSON.stringify({ importedText: "..." })` antes de navegar a `/analizar/editar?job=...`.
+2. 006 (editor) lee el handoff en el `useEffect` de hidratación cuando no hay draft persistido.
+3. `parseCvDocument(importedText, { originalEntities, userTypedEntities: new Set() })` produce el `CvDocument` inicial con `source: "imported"`.
+4. Si el handoff no existe, el editor crea un documento en blanco con `buildBlankSections(now)` y `source: "blank"`.
+
+**Nota**: el handoff del shipped code es **más simple** que el propuesto en la spec original. Solo contiene `importedText`; las `importedSections` (de 005) NO se persisten en el handoff (se reconstruyen con `parseCvDocument`).
 
 ---
 
 ## 6. Contrato con feature 002 — Re-score
 
-**Ubicación**: `lib/api/score.ts` (extendido)
+**Ubicación**: `lib/api/score.ts` (existente, reusado)
 
 ```typescript
 import type { ScoreResponse } from "@/lib/api/types";
-import type { CvDocument } from "@/lib/editor/types";
-import { serializeCvDocument } from "@/lib/editor/markdown/serialize";
 
 /**
- * Re-puntúa el CvDocument contra el backend 002-score-engine.
- * @param doc el CvDocument actual.
- * @param jobText la vacante (del Draft.jobText).
- * @returns ScoreResponse (idéntico al de la feature 002).
+ * Re-puntúa el texto del CV contra el backend 002-score-engine.
+ * @param cvText Markdown serializado del CvDocument.
+ * @param jobText la vacante.
+ * @returns ScoreResponse.
  * @throws {ScoreError} si el backend retorna 4xx/5xx (incluido 429 rate-limit).
  */
-export async function requestRescore(
-  doc: CvDocument,
+export async function requestScore(
+  cvText: string,
   jobText: string,
 ): Promise<ScoreResponse>;
 ```
 
-**Comportamiento**:
-
-- Internamente llama `serializeCvDocument(doc)` y luego `requestScore(md, jobText)`.
-- Si `jobText` está vacío, retorna error `JOB_TEXT_REQUIRED` (la vacante es necesaria para re-puntuar).
-
----
-
-## 7. Contrato con feature 003 — Diff viewer (sub-feature 006b)
-
-**Ubicación**: `lib/editor/handoff-to-diff.ts`
+**Uso en el editor** (`onRescore` en `editor.tsx`):
 
 ```typescript
-import type { CvDocument } from "@/lib/editor/types";
-import type { AdaptResult } from "@/lib/api/types";
-
-const DIFF_HANDOFF_KEY = "buildcv:diff:handoff";
-
-export interface DiffHandoff {
-  /** CvDocument actual (lo que el usuario editó). */
-  readonly currentDocument: CvDocument;
-  /** Resultado de la adaptación 003 que el diff viewer va a mostrar. */
-  readonly adaptResult: AdaptResult;
-  /** Texto original (de donde se partió para adaptar). */
-  readonly originalText: string;
-  /** Trace ID de la request de adapt. */
-  readonly adaptTraceId: string;
-  /** Timestamp del handoff. */
-  readonly at: string;
-}
-
-export function setDiffHandoff(handoff: DiffHandoff): void;
-export function getDiffHandoff(): DiffHandoff | null;
-export function clearDiffHandoff(): void;
+const onRescore = useCallback(async () => {
+  if (jobText.trim().length === 0) {
+    setErrorMsg(copy.editor.errors.jobTextRequired);
+    return;
+  }
+  setIsRescoring(true);
+  setErrorMsg(null);
+  try {
+    const md = serializeCvDocument(document);
+    const result = await requestScore(md, jobText);
+    setScore(result);
+  } catch (err) {
+    const message = err && typeof err === "object" && "message" in err
+      ? String((err as { message: unknown }).message)
+      : copy.editor.errors.network;
+    setErrorMsg(message);
+  } finally {
+    setIsRescoring(false);
+  }
+}, [document, jobText]);
 ```
 
-**Flujo**:
-
-1. 003 retorna `AdaptResult`.
-2. La UI de 003 (o un botón "Ver diff" en el editor) llama `setDiffHandoff(...)`.
-3. Navega a `/analizar/diff` (sub-feature 006b).
-4. 006b lee `getDiffHandoff()` y renderiza el diff viewer.
-
 ---
 
-## 8. Contrato con feature 004 — Export PDF
+## 7. Contrato con feature 004 — Export PDF
 
-**Ubicación**: `lib/editor/markdown/serialize.ts` (re-uso)
+**Ubicación**: `lib/api/export.ts` (existente, reusado)
 
 ```typescript
-import type { CvDocument } from "@/lib/editor/types";
-
 /**
- * Punto de entrada para 004-export-pdf. 004 puede importar `serializeCvDocument`
- * directamente o consumir el Blob que genera `exportCvDocumentAsMarkdown`.
- *
- * Convención: el Markdown que `serializeCvDocument` produce es el MISMO que
- * `004-export-pdf` espera como input. La función es la "puerta" entre features.
+ * Dispara la descarga de un Blob en el navegador.
+ * @param blob el Blob (ej. `new Blob([md], { type: "text/markdown;charset=utf-8" })`).
+ * @param filename nombre del archivo descargado.
  */
-export function serializeCvDocument(doc: CvDocument): string;
+export function downloadBlob(blob: Blob, filename: string): void;
 ```
 
-**No se añade un nuevo endpoint BFF** — 004 consume el Markdown directamente (server-to-server si necesita enriquecer estilos).
+**Uso en el editor** (`onExportMd` en `editor.tsx`):
+
+```typescript
+const onExportMd = useCallback(() => {
+  const md = serializeCvDocument(document);
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const today = new Date().toISOString().slice(0, 10);
+  downloadBlob(blob, `cv-${today}.md`);
+}, [document]);
+```
+
+004-export-pdf consume el mismo `serializeCvDocument` para generar el PDF server-side.
 
 ---
 
-## 9. Códigos de error (en `lib/editor/errors.ts`)
+## 8. Códigos de error (en `lib/editor/errors.ts` y `lib/storage/errors.ts`)
 
 ```typescript
-export class EntityNotAllowedError extends Error {
-  constructor(
-    public readonly entityValue: string,
-    public readonly sectionKind: string,
-  ) {
-    super(`ENTITY_NOT_ALLOWED: "${entityValue}" en sección ${sectionKind} no fue tipeado por el usuario y no está en el CV importado.`);
-    this.name = "EntityNotAllowedError";
-  }
-}
-
-export class SectionValidationFailedError extends Error {
-  constructor(
-    public readonly sectionKind: string,
-    public readonly issues: ReadonlyArray<{ path: string; message: string }>,
-  ) {
-    super(`SECTION_VALIDATION_FAILED: ${sectionKind} no pasó validación Zod.`);
-    this.name = "SectionValidationFailedError";
-  }
-}
-
+// lib/editor/errors.ts
 export class RoundTripMismatchError extends Error {
   constructor(public readonly details: string) {
     super(`ROUNDTRIP_MISMATCH: ${details}`);
@@ -402,6 +334,7 @@ export class RoundTripMismatchError extends Error {
   }
 }
 
+// lib/storage/errors.ts
 export class QuotaExceededError extends Error {
   constructor(
     public readonly bytesRequested: number,
@@ -409,13 +342,6 @@ export class QuotaExceededError extends Error {
   ) {
     super(`QUOTA_EXCEEDED: solicitados ${bytesRequested} bytes, disponibles ${bytesAvailable}.`);
     this.name = "QuotaExceededError";
-  }
-}
-
-export class StorageUnavailableError extends Error {
-  constructor(public readonly reason: string) {
-    super(`STORAGE_UNAVAILABLE: ${reason}.`);
-    this.name = "StorageUnavailableError";
   }
 }
 
@@ -427,37 +353,36 @@ export class DraftNotFoundError extends Error {
 }
 ```
 
+**Nota shipped**: las clases `EntityNotAllowedError` y `SectionValidationFailedError` mencionadas en la spec original **NO existen** en el shipped code. La validación Art. I FR-029a se hace vía Zod `safeParse` en `LocalStorageCvStore.save` y `roundtrip()`, no como errores dedicados.
+
 **Mapeo a UI** (en `components/editor/`):
 
 | Error | UI |
 |---|---|
-| `EntityNotAllowedError` | Toast rojo persistente: "No pudimos guardar: <entityValue> no estaba en tu CV importado." |
-| `SectionValidationFailedError` | Banner rojo arriba del editor: "La sección <kind> tiene datos inválidos. Revisa los campos marcados." |
 | `RoundTripMismatchError` | Toast rojo: "Detectamos una inconsistencia al guardar. Tu borrador se restauró a la última versión válida." |
-| `QuotaExceededError` | Toast amarillo: "Tu borrador es grande (>4 MB). Lo guardamos en almacenamiento extendido." + log en consola. |
-| `StorageUnavailableError` | Toast rojo: "No pudimos guardar el borrador. Usa el modo normal del navegador o desactiva el modo privado." |
+| `QuotaExceededError` | Toast rojo: "Tu borrador es grande (>5 MB). Reduce el contenido o limpia el borrador." (se surfacea vía el `EditorSaveIndicator` con `state="error"`). |
 | `DraftNotFoundError` | Solo log en consola; la UI no debería verlo (es bug). |
 
 ---
 
-## 10. Ejemplos de payloads
+## 9. Ejemplos de payloads (alineados con el shipped code)
 
-### 10.1 `Draft` ejemplo (válido, persistido en ICvStore)
+### 9.1 `Draft` ejemplo (válido, persistido en `localStorage` bajo `buildcv:draft:default`)
 
 ```json
 {
   "id": "default",
   "document": {
-    "id": "V1StGXR8_Z5jdHi6B-myT",
+    "id": "doc_8f3kq2x1",
     "version": "0.5.0",
     "locale": "es-CO",
     "sections": [
       {
-        "id": "sec_01",
+        "id": "sec_profile",
         "kind": "profile",
         "source": "user-typed",
-        "createdAt": "2026-06-08T14:30:00.000Z",
-        "updatedAt": "2026-06-08T14:30:00.000Z",
+        "createdAt": "2026-06-09T14:30:00.000Z",
+        "updatedAt": "2026-06-09T14:30:00.000Z",
         "fullName": "Juan Pérez",
         "headline": "Backend Developer",
         "email": "juan@example.com",
@@ -467,11 +392,11 @@ export class DraftNotFoundError extends Error {
         "summary": "Backend developer con 4 años de experiencia en Node.js y Python."
       },
       {
-        "id": "sec_02",
+        "id": "sec_experience",
         "kind": "experience",
         "source": "imported",
-        "createdAt": "2026-06-08T14:25:00.000Z",
-        "updatedAt": "2026-06-08T14:30:00.000Z",
+        "createdAt": "2026-06-09T14:25:00.000Z",
+        "updatedAt": "2026-06-09T14:30:00.000Z",
         "role": "Backend Developer",
         "company": "Acme Corp",
         "startDate": "2022-01",
@@ -484,30 +409,9 @@ export class DraftNotFoundError extends Error {
         "techStack": ["Node.js", "TypeScript", "PostgreSQL", "Redis", "AWS"]
       }
     ],
-    "entities": [
-      {
-        "id": "ent_01",
-        "kind": "skill",
-        "value": "Node.js",
-        "normalized": "node.js",
-        "source": "imported",
-        "confidence": "high",
-        "sectionId": "sec_02",
-        "firstSeenAt": "2026-06-08T14:25:00.000Z"
-      },
-      {
-        "id": "ent_02",
-        "kind": "company",
-        "value": "Acme Corp",
-        "normalized": "acme corp",
-        "source": "imported",
-        "confidence": "high",
-        "sectionId": "sec_02",
-        "firstSeenAt": "2026-06-08T14:25:00.000Z"
-      }
-    ],
-    "createdAt": "2026-06-08T14:25:00.000Z",
-    "updatedAt": "2026-06-08T14:30:00.000Z",
+    "entities": [],
+    "createdAt": "2026-06-09T14:25:00.000Z",
+    "updatedAt": "2026-06-09T14:30:00.000Z",
     "source": "imported"
   },
   "jobText": "Buscamos backend developer con 4+ años de experiencia en Node.js, PostgreSQL y AWS. Modalidad remota desde Colombia.",
@@ -516,10 +420,10 @@ export class DraftNotFoundError extends Error {
       "score": 78,
       "band": "Strong",
       "engineVersion": "1.0.0",
-      "at": "2026-06-08T14:30:00.000Z"
+      "at": "2026-06-09T14:30:00.000Z"
     }
   ],
-  "lastSavedAt": "2026-06-08T14:30:00.000Z",
+  "lastSavedAt": "2026-06-09T14:30:00.000Z",
   "engineVersions": {
     "editor": "0.5.0",
     "score": "1.0.0"
@@ -527,62 +431,27 @@ export class DraftNotFoundError extends Error {
 }
 ```
 
-### 10.2 `EditorHandoff` ejemplo (de 005 al editor)
+### 9.2 Handoff desde 005 (`sessionStorage["buildcv:editor-handoff"]`)
 
 ```json
 {
-  "importedText": "Juan Pérez\nBackend Developer\nMedellín, Colombia\njuan@example.com\n\nEXPERIENCIA\n\nBackend Developer · Acme Corp · 2022 - actualidad\n- Reduje latencia de API en 35%\n- Lideré migración a microservicios\nStack: Node.js, PostgreSQL, AWS\n\nEDUCACIÓN\n\nIngeniería de Sistemas · Universidad de Antioquia · 2014 - 2019",
-  "importedSections": [
-    { "heading": "EXPERIENCIA", "start": 95, "end": 250, "confidence": "High" },
-    { "heading": "EDUCACIÓN", "start": 252, "end": 340, "confidence": "High" }
-  ],
-  "importedTraceId": "0HMVD9F2E5Q2P:00000007",
-  "importedAt": "2026-06-08T14:20:00.000Z",
-  "parserEngineVersion": "1.0.0"
+  "importedText": "Juan Pérez\nBackend Developer\nMedellín, Colombia\njuan@example.com\n\nEXPERIENCIA\n\nBackend Developer · Acme Corp · 2022 - actualidad\n- Reduje latencia de API en 35%\n- Lideré migración a microservicios\nStack: Node.js, PostgreSQL, AWS\n\nEDUCACIÓN\n\nIngeniería de Sistemas · Universidad de Antioquia · 2014 - 2019"
 }
 ```
 
-### 10.3 `DiffHandoff` ejemplo (del editor al diff viewer 006b)
+**Nota**: el handoff shipped es más simple que el propuesto en la spec original (solo `importedText`; las `importedSections` y `importTraceId` no se persisten).
 
-```json
-{
-  "currentDocument": { "...": "(CvDocument actual, ver §10.1)" },
-  "adaptResult": {
-    "adaptedText": "...",
-    "validation": {
-      "isValid": true,
-      "severity": "Warning",
-      "inventions": [
-        {
-          "type": "Metric",
-          "claimed": "40%",
-          "original": "35%",
-          "severity": "Soft",
-          "position": 142
-        }
-      ],
-      "warnings": ["Una métrica fue redondeada (40% vs 35%)."]
-    },
-    "engineVersion": "1.0.0",
-    "aiModel": "claude-sonnet-4-20250514"
-  },
-  "originalText": "...",
-  "adaptTraceId": "0HMVD9F2E5Q2P:00000012",
-  "at": "2026-06-08T14:35:00.000Z"
-}
-```
-
-### 10.4 Markdown exportado (output de `serializeCvDocument`)
+### 9.3 Markdown exportado (output de `serializeCvDocument`)
 
 ```markdown
-## Perfil
+## Profile
 
 **Juan Pérez** · Backend Developer · Medellín, Colombia
 juan@example.com · +57 300 123 4567 · [LinkedIn](https://linkedin.com/in/juan)
 
 Backend developer con 4 años de experiencia en Node.js y Python.
 
-## Experiencia
+## Experience
 
 ### Backend Developer · Acme Corp · 2022-01 → actualidad · Medellín
 
@@ -591,37 +460,40 @@ Backend developer con 4 años de experiencia en Node.js y Python.
 
 Stack: Node.js, TypeScript, PostgreSQL, Redis, AWS.
 
-## Educación
+## Education
 
 ### Ingeniería de Sistemas · Universidad de Antioquia · 2014 → 2019 · Medellín
 ```
 
 ---
 
-## 11. Reglas de versionado y compatibilidad
+## 10. Reglas de versionado y compatibilidad
 
 - **`CvDocument.version`**: SemVer. Cambio MAYOR si se elimina o renombra un campo requerido de cualquier sección. Cambio MINOR si se añade un campo opcional. Cambio PARCHE si solo se documenta o se ajusta Zod.
-- **`Draft.engineVersions.editor`**: sincronizado con `CvDocument.version` en cada `save`. Si difieren al `load`, se descarta el Draft (es de una versión vieja).
-- **`Draft.engineVersions.score`**: sincronizado con `ScoreResult.engineVersion` del backend. Si el backend bumpea, se reinicia `scoreHistory` (con log informativo en consola).
-- **Handoff contracts**: `EditorHandoff` y `DiffHandoff` se versionan en su TYPE (no en el JSON). Si cambia la forma, bumpear `CvDocument.version` y manejar migración en `getEditorHandoff`/`getDiffHandoff`.
+- **`Draft.engineVersions.editor`**: "0.5.0" en v0.5.
+- **`Draft.engineVersions.score`**: sincronizado con el backend 002-score-engine ("1.0.0" en v0.5).
 
 ---
 
-## 12. Garantías (lo que el contrato PROMETE)
+## 11. Garantías (lo que el contrato PROMETE)
 
-1. **`ICvStore.save` es atómico**: o persiste el Draft completo, o lanza error sin efectos colaterales.
-2. **`parseCvDocument` es determinista**: para la misma entrada y el mismo `ctx`, retorna el mismo `CvDocument`.
-3. **`serializeCvDocument` es determinista**: para el mismo `CvDocument`, retorna el mismo Markdown (mismo orden de secciones, mismo formato).
-4. **`roundtrip` detecta cualquier inserción de entidad nueva** (Art. I FR-029a).
-5. **El `Draft` NUNCA se envía al servidor** salvo en operaciones explícitas (`requestRescore`, `requestAdapt` futuro, `exportCvDocumentAsMarkdown`).
-6. **El `Limpiar borrador` elimina TODA la persistencia** (localStorage + IndexedDB + sessionStorage) asociada a la feature.
+1. **`ICvStore.save` valida con Zod antes de persistir**: si `DraftSchema.safeParse` falla, lanza `Error("Draft failed schema validation")` y NO escribe a `localStorage`.
+2. **`ICvStore.load` retorna `null` si el JSON está corrupto** o si no pasa `DraftSchema.safeParse`. **No lanza** errores de parseo (fail-soft).
+3. **`LocalStorageCvStore.save` es atómico** desde el punto de vista del caller: o persiste el Draft completo, o lanza `QuotaExceededError` sin efectos colaterales.
+4. **`parseCvDocument` es determinista**: para la misma entrada y el mismo `ctx`, retorna el mismo `CvDocument` (o lanza `RoundTripMismatchError`).
+5. **`serializeCvDocument` es determinista**: para el mismo `CvDocument`, retorna el mismo Markdown (mismo orden de secciones, mismo formato).
+6. **`roundtrip` detecta cualquier inserción de entidad nueva** (Art. I FR-029a) — vía validación Zod.
+7. **El `Draft` NUNCA se envía al servidor** salvo en operaciones explícitas (`requestScore`, `requestAdapt` futuro, descarga local via `downloadBlob`).
+8. **El "Limpiar borrador" elimina la clave `buildcv:draft:default`** de `localStorage` (verificable en DevTools).
 
 ---
 
-## 13. Anti-garantías (lo que el contrato NO PROMETE)
+## 12. Anti-garantías (lo que el contrato NO PROMETE)
 
 1. **NO hay sync entre dispositivos** (v1).
 2. **NO hay colaboración en tiempo real** (v1).
 3. **NO hay versionado de Drafts** (v1).
 4. **NO hay compresión del Draft** (v1).
-5. **NO hay encryption at rest** (depende del navegador; en modo normal el localStorage es accesible por otras extensiones).
+5. **NO hay encryption at rest** (depende del navegador; en modo normal el `localStorage` es accesible por otras extensiones).
+6. **NO hay fallback a IndexedDB en v0.5** (deuda técnica v1). El usuario recibe un toast rojo si se agota la cuota de `localStorage`.
+7. **NO hay formato inline (bold/italic/links) en el editor** (v1 con Tiptap si hay demanda).

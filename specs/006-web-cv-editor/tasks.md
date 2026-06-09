@@ -1,6 +1,6 @@
 # Tasks: 006-web-cv-editor
 
-**Status:** 🚧 EN CURSO · **Sister sub-feature:** [../006-web-cv-diff-viewer/](../006-web-cv-diff-viewer/) (sprint 4b) · **Hito:** v0.5 (P0.5)
+**Status:** ✅ SHIPPED (commit 748611d, 2026-06-09) · **Sister sub-feature:** [../006-web-cv-diff-viewer/](../006-web-cv-diff-viewer/) (shipped, commit 4bf92b7) · **Hito:** v0.5 (P0.5)
 
 > **TDD estricto (Constitution Art. VIII).** Test → rojo → impl → verde → refactor. Sin supresiones, sin mocks falsos, sin `any` inseguros.
 >

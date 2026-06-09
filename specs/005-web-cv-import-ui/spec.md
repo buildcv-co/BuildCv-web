@@ -1,6 +1,6 @@
 # Feature 005-web-cv-import-ui — UI de Import PDF/DOCX del CV
 
-> **Status:** 📋 PLANEADO (frontend de la 005 del API) · **Hito:** v0.5 (P0.5)
+> **Status:** ✅ SHIPPED (web commit 318a1c0, backend commit c61bdf4, 2026-06-09) · **Hito:** v0.5 (P0.5)
 > **Backend counterpart:** [../../BuildCv-api/specs/005-cv-pdf-docx-import/](../../BuildCv-api/specs/005-cv-pdf-docx-import/) (✅ specs escritos, implementación TDD-ordenada)
 > **Handoff downstream:** `006-cv-editor` (planeado) — el editor recibe `ImportResult` y lo usa como semilla.
 > **INDEX global:** [../000-INDEX.md](../000-INDEX.md)

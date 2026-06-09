@@ -1,6 +1,6 @@
 # Feature 003-web-adapt-ui — UI de Adaptación con IA
 
-> **Status:** 📋 PLANEADO (frontend de la 003 del API) · **Prioridad:** M1.1
+> **Status:** ✅ SHIPPED (commit 19577ab, 2026-06-09) · **Prioridad:** M1.1
 > **Backend counterpart:** [../../BuildCv-api/specs/003-adapt-ia/](../../BuildCv-api/specs/003-adapt-ia/) (✅ SHIPPED con StubAiClient)
 > **INDEX global:** [../000-INDEX.md](../000-INDEX.md)
 

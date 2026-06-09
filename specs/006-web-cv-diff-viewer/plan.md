@@ -2,22 +2,25 @@
 
 > **Feature Branch:** `006-web-cv-diff-viewer`
 > **Spec:** [./spec.md](./spec.md) · **Research:** [./research.md](./research.md) · **Data Model:** [./data-model.md](./data-model.md) · **Contracts:** [./contracts/frontend-internal.md](./contracts/frontend-internal.md)
-> **Sister sub-feature:** [`../006-web-cv-editor/`](../006-web-cv-editor/)
+> **Sister sub-feature:** [`../006-web-cv-editor/`](../006-web-cv-editor/) (shipped, commit 748611d)
 > **INDEX global:** [../000-INDEX.md](../000-INDEX.md)
+>
+> **⚠️ Plan vs. shipped deviation.** El plan original proponía Tiptap v2 read-only con un nodo editable solo donde está la invención. El shipped code REJECTÓ Tiptap. Se usa un `<input>` HTML nativo controlado por React con Zod. El render del diff es custom (sin librería UI). El estado es local con `useState` + `useCallback` (mismo enfoque que 006a). Ver `tasks.md` líneas 8–14 para la decisión arquitectónica explícita. Este plan refleja el shipped code (commit 4bf92b7).
 
 ---
 
 ## Summary
 
-Construir el visor de diff en `/analizar/diff`. El viewer consume un `AdaptResult` (de 003) vía `sessionStorage` y renderiza un diff palabra-por-palabra entre el CV original y el adaptado, con **badges rojos** sobre cada `EntityInvention` marcada por el backend. El usuario puede editar inline, aceptar, rechazar, o re-prompt. El viewer reusa Tiptap (006a) en modo read-only para la columna adaptada y `diff` (jsdiff) para el word-level diff.
+Construir el visor de diff en `/analizar/diff`. El viewer consume un `AdaptResult` (de 003) vía `sessionStorage` (`buildcv:diff-handoff`) y renderiza un diff palabra-por-palabra entre el CV original y el adaptado, con **badges rojos** sobre cada `EntityInvention` marcada por el backend. El usuario puede editar inline (vía `<input>` validado por Zod), aceptar, rechazar, o re-prompt. El viewer usa **`diff` (jsdiff v5)** para el word-level diff y un **renderer custom en React** con `<span>` por segmento.
 
-**Decisiones locked** (detalle en `research.md`):
+**Decisiones locked (reflejando el shipped code):**
 
-1. **Diff library**: `diff` (jsdiff, BSD-3-Clause) — rechazados: react-diff-viewer-continued (pesado, opinionated), diff-match-patch (Google, menos mantenido), `git-diff` (no aplica a texto).
-2. **Render**: custom React component (no librería de diff UI) para control total de a11y/estilos.
-3. **Edición inline**: Tiptap v2 read-only con un nodo editable solo donde está la invención.
-4. **Modo default**: unificado en móvil (<768 px), lado a lado en desktop.
-5. **Sin backend nuevo**: reusa `POST /api/score` (002) y `POST /api/adapt` (003).
+1. **Diff library**: `diff` (jsdiff, BSD-3-Clause) — única dep nueva para 006b. Rechazados: `react-diff-viewer-continued` (pesado, opinionated), `diff-match-patch` (Google, menos mantenido), hand-rolled Myers/LCS.
+2. **Render**: custom React component (NO librería UI de diff) — control total de a11y/estilos.
+3. **Edición inline**: **`<input>` HTML nativo** controlado por React, con Zod (`z.string().min(1).max(200)`). **NO Tiptap** (read-only o cualquier modo).
+4. **Modo default**: unificado en móvil (<768 px), lado a lado en desktop. Sin persistencia del modo entre sesiones (decisión v0.5; v1 con `localStorage`).
+5. **Estado**: `useState` + `useCallback` local en `DiffPage` (mismo enfoque que 006a). **Sin Zustand**.
+6. **Sin backend nuevo**: reusa `POST /api/score` (002) y `POST /api/adapt` (003).
 
 ---
 
@@ -27,12 +30,13 @@ Construir el visor de diff en `/analizar/diff`. El viewer consume un `AdaptResul
 |---|---|---|
 | Lenguaje/versión | TypeScript ^5 strict | Estricto en `tsconfig.json`. |
 | Framework | Next.js 16.2.7 + React 19.2.4 | Stack locked del sub-proyecto. |
-| Diff library | `diff` v5 (jsdiff) | BSD-3, word-level Myers, ~10 KB. |
-| Render | Custom React + Tiptap v2 read-only | Control de a11y/estilos, consistencia con 006a. |
-| Estado | Zustand (mismo store que 006a, extendido) | Sin duplicar estado. |
+| Diff library | `diff` v5 (jsdiff) | BSD-3, word-level Myers, ~15 KB. |
+| Render | Custom React (`<span>` por segmento) | Control de a11y/estilos, consistencia con 006a. |
+| Edición inline | `<input>` HTML nativo + Zod | Mínimo bundle, accesibilidad nativa. |
+| Estado | `useState` + `useCallback` local en `DiffPage` | Sin store global; mismo enfoque que 006a. |
 | Validación | Zod v3 (re-uso) | Consistencia con 005/006a. |
-| Storage adicional | Ninguno (reusa `ICvStore` de 006a) | sessionStorage para handoff. |
-| Testing | Manual e2e checklist (Vitest en M3+) | Sin framework en v0.5. |
+| Storage adicional | `sessionStorage["buildcv:diff-handoff"]` | Handoff desde 003; Art. III. |
+| Testing | Vitest 2 + RTL 16 + jsdom + Playwright 1 chromium | TDD activo (Constitution Art. VIII). 5 test files shipped. |
 | Plataforma | Web moderno + móvil ≥360 px | NFR-034. |
 
 ---
@@ -41,15 +45,16 @@ Construir el visor de diff en `/analizar/diff`. El viewer consume un `AdaptResul
 
 | Art. | Verificación | Estado |
 |---|---|---|
-| **Art. I** — Cero invención | FR-066/067/068: badges rojos sobre cada invención, edición inline, footer bloquea "Aceptar" con Hard pendientes. | ✅ PASS |
+| **Art. I** — Cero invención | FR-066/067/068/070: badges rojos sobre cada invención, edición inline con `<input>` + Zod, footer bloquea "Aceptar" con Hard pendientes (modal). | ✅ PASS |
 | **Art. II** — Determinismo | Re-score via 002-score-engine. Diff viewer no calcula números. | ✅ PASS |
 | **Art. III** — Privacidad | Handoff via sessionStorage (no URL). Sin persistencia adicional. | ✅ PASS |
 | **Art. IV** — Encuadre honesto | Copy: "Revisa la adaptación", NUNCA "confirma el cambio". | ✅ PASS |
 | **Art. V** — Entrada como dato | Sin modificaciones automáticas del adaptedText. Cada cambio es explícito. | ✅ PASS |
 | **Art. VI** — Clean Arch | Reusa BFF existentes (003, 002, 004). No nuevo endpoint backend. | ✅ PASS |
 | **Art. VII** — v0.5 sin fricción | Sin cuentas, sin server-side. | ✅ PASS |
+| **Art. VIII** — TDD | Vitest 2 + RTL 16 + jsdom configurados; 5 test files shipped. | ✅ PASS |
 
-**Compliance esperado: PASS** en v0.5.
+**Compliance esperado: PASS en v0.5.**
 
 ---
 
@@ -60,220 +65,418 @@ Construir el visor de diff en `/analizar/diff`. El viewer consume un `AdaptResul
 ```text
 BuildCv-web/specs/006-web-cv-diff-viewer/
 ├── plan.md                              # Este archivo
-├── research.md                          # Phase 0
-├── data-model.md                        # Phase 1
-├── quickstart.md                        # Phase 1
-├── tasks.md                             # Phase 2
+├── research.md                          # Phase 0 — histórico de evaluación
+├── data-model.md                        # Phase 1 — tipos TypeScript
+├── quickstart.md                        # Phase 1 — pasos para correr
+├── tasks.md                             # Phase 2 — T-006b-01..N (preserva bloque DECISIÓN)
 └── contracts/
-    └── frontend-internal.md             # Phase 1
+    └── frontend-internal.md             # Phase 1 — contratos
 ```
 
-### Código fuente (paths desde `BuildCv-web/`)
+### Código fuente shipped (paths desde `BuildCv-web/`)
 
 ```text
 app/
 └── analizar/
     └── diff/
-        ├── page.tsx                     # 🆕 Página principal del diff viewer
-        └── layout.tsx                   # 🆕 Layout con DiffToolbar persistente
+        └── page.tsx                     # ✅ SHIPPED — Server Component que monta <DiffPage> dentro de <ClientWrapper>
 
 components/
 └── diff/
-    ├── diff-view.tsx                    # 🆕 Orquestador (unified | side-by-side)
-    ├── diff-toolbar.tsx                 # 🆕 Toggle modo + Re-puntuar + Acción footer
-    ├── diff-column.tsx                  # 🆕 Una columna del diff (original o adaptado)
-    ├── flagged-entity-badge.tsx         # 🆕 Badge rojo sobre EntityInvention
-    ├── flagged-entity-popover.tsx       # 🆕 Popover con detalles + Editar/Mantener
-    ├── inline-entity-editor.tsx         # 🆕 Tiptap read-only con nodo editable
-    └── action-footer.tsx                # 🆕 Footer con 3 acciones
+    ├── diff-page.tsx                    # ✅ SHIPPED — Orquestador (useState + useCallback, handoff listener, 467 líneas)
+    ├── diff-view.tsx                    # ✅ SHIPPED — Renderer (unified | side-by-side), 163 líneas
+    ├── diff-toolbar.tsx                 # ✅ SHIPPED — Toggle modo + Re-puntuar, 88 líneas
+    ├── flagged-entity-badge.tsx         # ✅ SHIPPED — Badge rojo con popover de detalles, 129 líneas
+    └── action-footer.tsx                # ✅ SHIPPED — Footer con 3 acciones + modal Hard, 113 líneas
 
 lib/
-├── diff/
-│   ├── compute-diff.ts                  # 🆕 jsdiff wrapper (palabra a palabra)
-│   ├── flag-entities.ts                 # 🆕 Mapeo de EntityInvention → posición en texto
-│   ├── render-diff.ts                   # 🆕 Pure function: DiffResult → React nodes
-│   ├── use-diff.ts                      # 🆕 Hook principal
-│   └── types.ts                         # 🆕 DiffSegment, FlaggedEntity, etc.
-└── copy/
-    └── es.ts                            # ⚠️ EXTENDER — añadir bloque `DIFF_COPY`
+└── diff/
+    ├── compute-diff.ts                  # ✅ SHIPPED — jsdiff wrapper (diffWords → DiffChange[]), 44 líneas
+    ├── flag-entities.ts                 # ✅ SHIPPED — Mapeo EntityInvention → segmento + dedupe Hard>Soft + orphanedFlags, 112 líneas
+    ├── types.ts                         # ✅ SHIPPED — DiffChange, DiffSegmentWithFlags, FlaggedEntity, DiffMode, DiffHandoff, 61 líneas
+    ├── handoff.ts                       # ✅ SHIPPED — readDiffHandoff, readValidDiffHandoff, writeDiffHandoff, clearDiffHandoff, 84 líneas
+    ├── compute-diff.test.ts             # ✅ SHIPPED — 8+ tests
+    ├── flag-entities.test.ts            # ✅ SHIPPED — 6+ tests
+    └── types.test.ts                    # ✅ SHIPPED — 4+ tests
+
+e2e/                                     # Playwright specs (cuando se creen en sprint futuro)
 ```
 
-**Decisión de estructura**: agrupar en `components/diff/` y `lib/diff/`. Reusa Zustand store de 006a.
+**5 componentes shipped** + **4 lib/diff helpers** + **3 archivos de test** = ~1 200 líneas de código shipped.
 
 ---
 
-## Decisiones de arquitectura (locked)
+## Decisiones de arquitectura (locked — shipped)
 
-### 1. Diff library: `diff` (jsdiff)
+### 1. Diff library: `diff` (jsdiff) v5
 
 ```typescript
 // lib/diff/compute-diff.ts
 import { diffWords } from "diff";
 
-export interface DiffSegment {
-  readonly type: "added" | "removed" | "unchanged";
+export type DiffChangeKind = "added" | "removed" | "unchanged";
+
+export interface DiffChange {
+  readonly kind: DiffChangeKind;
   readonly value: string;
 }
 
-export function computeWordDiff(original: string, adapted: string): ReadonlyArray<DiffSegment> {
-  return diffWords(original, adapted).map((change) => ({
-    type: change.added ? "added" : change.removed ? "removed" : "unchanged",
-    value: change.value,
-  }));
+export function computeDiff(
+  before: string,
+  after: string,
+): ReadonlyArray<DiffChange> {
+  return diffWords(before, after).map(toDiffChange);
+}
+
+function toDiffChange(change: { value: string; added?: boolean; removed?: boolean }): DiffChange {
+  const kind: DiffChangeKind = change.added ? "added" : change.removed ? "removed" : "unchanged";
+  return { kind, value: change.value };
 }
 ```
 
-**Por qué jsdiff sobre alternativas**:
+**Por qué jsdiff sobre alternativas** (rechazadas):
 
-- `react-diff-viewer-continued`: bonita UI pero opinionated; no respeta el tema oscuro cálido del proyecto.
+- `react-diff-viewer-continued`: UI bonita pero opinionated; no respeta el tema oscuro cálido del proyecto.
 - `diff-match-patch` (Google): orientado a patching, no a display. Más complejo para lo que necesitamos.
-- `git-diff` (jsdiff add-on): orientado a código; para texto plano es over-engineering.
+- hand-rolled Myers/LCS: 2-3 días de código + tests. jsdiff ya lo tiene.
 
 **Performance**: word-level diff de 50 KB completa en ~300-500 ms en hardware moderno. Aceptable para NFR-032 (<2 s).
 
-### 2. Render custom (no librería UI)
+### 2. Render custom (NO librería UI) — `components/diff/diff-view.tsx`
 
-El render es un componente React que itera sobre los `DiffSegment[]` y emite `<span>` con clases CSS según el tipo:
+El render es un componente React que itera sobre los `DiffSegmentWithFlags[]` y emite `<span>` con clases CSS según el kind:
 
 ```tsx
-<span className="bg-green-900/30 text-green-200">{segment.value}</span>  // added
-<span className="bg-red-900/30 text-red-200 line-through">{segment.value}</span>  // removed
+const SEGMENT_CLASS: Record<string, string> = {
+  added: "bg-present/15 text-present",         // verde
+  removed: "bg-missing/15 text-missing line-through",  // rojo
+  unchanged: "text-ink",                       // neutro
+};
+
+// Modo unificado: una sola columna
+function UnifiedColumn({ segments, ... }) {
+  return (
+    <article>
+      {segments.map((seg, i) => (
+        <span key={i} className="whitespace-pre-wrap">
+          {seg.kind === "added" ? <span className="bg-present/15 text-present">+{seg.value}</span>
+           : seg.kind === "removed" ? <span className="bg-missing/15 text-missing line-through">−{seg.value}</span>
+           : <span>{seg.value}</span>}
+          {seg.flags.map((f) => <FlaggedEntityBadge key={...} flag={f} ... />)}
+        </span>
+      ))}
+    </article>
+  );
+}
+
+// Modo lado a lado: 2 columnas (original | adapted)
+function SideColumn({ segments, side, ... }) {
+  const filtered = segments.filter((s) =>
+    side === "original" ? s.kind !== "added" : s.kind !== "removed"
+  );
+  // render similar con filtered
+}
 ```
 
-**Justificación**: control total de a11y (aria-labels en cada segmento), colores que respetan el tema oscuro cálido, y consistencia con el resto del proyecto (Tailwind v4 sin librería UI externa).
+**Justificación**: control total de a11y (aria-labels en cada segmento, `aria-live="polite"` en la región), colores que respetan el tema oscuro cálido (`bg-present` = verde, `bg-missing` = rojo), y consistencia con el resto del proyecto.
 
-### 3. Badges sobre EntityInvention (FR-066/067)
+### 3. Badges sobre `EntityInvention` (FR-066/067) — `lib/diff/flag-entities.ts`
 
 El backend retorna `EntityInvention[]` con `position: number` (offset en el `adaptedText`). El viewer:
 
-1. Calcula el word-level diff.
-2. Mapea cada `EntityInvention.position` a un nodo del árbol del diff (búsqueda binaria sobre los offsets acumulados).
+1. Calcula el word-level diff (`computeDiff`).
+2. Mapea cada `EntityInvention.position` al segmento del diff que contiene la posición (`flagEntitiesInDiff`).
 3. Inyecta un `<FlaggedEntityBadge>` justo después del segmento que contiene la posición.
 
 ```typescript
 // lib/diff/flag-entities.ts
-export function mapFlagsToSegments(
-  segments: ReadonlyArray<DiffSegment>,
+export function flagEntitiesInDiff(
+  diff: ReadonlyArray<DiffChange>,
   inventions: ReadonlyArray<EntityInvention>,
-): ReadonlyArray<SegmentWithFlags> {
+): FlagEntitiesResult {
+  const segments: DiffSegmentWithFlags[] = [];
+  const orphaned: EntityInvention[] = [];
   let offset = 0;
-  return segments.map((segment) => {
-    const flags = inventions.filter(
-      (inv) => inv.position >= offset && inv.position < offset + segment.value.length,
-    );
-    offset += segment.value.length;
-    return { ...segment, flags };
-  });
+
+  for (const change of diff) {
+    const startOffset = offset;
+    const endOffset = offset + change.value.length;
+    offset = endOffset;
+
+    if (change.kind === "removed") {
+      segments.push({ ...change, startOffset, endOffset, flags: [] });
+      continue;
+    }
+
+    const flags: FlaggedEntity[] = [];
+    for (const entity of inventions) {
+      if (entity.position < 0) { orphaned.push(entity); continue; }
+      if (entity.position >= startOffset && entity.position < endOffset) {
+        flags.push({
+          entity, position: entity.position,
+          color: severityToColor(entity.severity),
+        });
+      }
+    }
+    const dedup = dedupeByHighestSeverity(flags);
+    segments.push({ ...change, startOffset, endOffset, flags: dedup });
+  }
+
+  // Lo que no quedó asignado → orphaned
+  const assigned = new Set(segments.flatMap((s) => s.flags.map((f) => f.entity)));
+  for (const entity of inventions) {
+    if (!assigned.has(entity) && !orphaned.includes(entity)) orphaned.push(entity);
+  }
+
+  return { segments, orphanedFlags: orphaned };
+}
+
+// Regla Art. I: Hard > Soft. Si dos invenciones comparten position, conserva la Hard.
+function dedupeByHighestSeverity(flags: ReadonlyArray<FlaggedEntity>): ReadonlyArray<FlaggedEntity> {
+  if (flags.length <= 1) return flags;
+  const byPosition = new Map<number, FlaggedEntity>();
+  for (const flag of flags) {
+    const existing = byPosition.get(flag.position);
+    if (!existing) { byPosition.set(flag.position, flag); continue; }
+    if (flag.color === "hard" && existing.color !== "hard") {
+      byPosition.set(flag.position, flag);
+    }
+  }
+  return Array.from(byPosition.values());
 }
 ```
 
-### 4. Edición inline con Tiptap read-only
+### 4. Edición inline con `<input>` HTML nativo (NO Tiptap) — `DiffPage` con `InlineEditRow`
 
-Cuando el usuario click "Editar" en un popover, el badge se reemplaza por un `<InlineEntityEditor>` que es un mini-Tiptap con un único nodo editable. El editor:
-
-- Acepta solo texto plano (no rich text).
-- Valida con Zod al confirmar.
-- Si pasa, emite `onChange(newValue)` que actualiza el `AdaptResult.adaptedText` y elimina la invención del listado de flags.
-
-### 5. Footer (FR-069/070)
+Cuando el usuario click "Editar" en un popover, el badge se reemplaza por un `<input>` controlado por React:
 
 ```tsx
-<div className="action-footer">
-  <Button onClick={onAcceptExport}>Aceptar y exportar</Button>
-  <Button onClick={onEditInEditor} variant="secondary">Editar en el editor</Button>
-  <Button onClick={onReject} variant="danger">Rechazar y re-prompt</Button>
-</div>
+// InlineEditRow (dentro de diff-page.tsx)
+<input
+  id="inline-edit-input"
+  type="text"
+  value={edit.value}
+  onChange={(e) => onChange(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") { e.preventDefault(); onConfirm(); }
+    else if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+  }}
+  onBlur={() => onConfirm()}
+  className="flex-1 min-w-[200px] rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+/>
+
+// Validación Zod (también en diff-page.tsx)
+const InlineValueSchema = z
+  .string()
+  .min(1, "vacío")
+  .max(200, "demasiado largo");
+
+// onConfirm: si pasa Zod, reemplaza en adaptedText
+const onConfirmEdit = useCallback(() => {
+  if (!inlineEdit) return;
+  const parsed = InlineValueSchema.safeParse(inlineEdit.value);
+  if (!parsed.success) {
+    setToastMsg(copy.diff.errors.validationFailed);
+    setInlineEdit(null);
+    return;
+  }
+  const { entity } = inlineEdit;
+  const before = adaptedText.slice(0, entity.position);
+  const after = adaptedText.slice(entity.position + entity.claimed.length);
+  const next = before + parsed.data + after;
+  setEditedText(next);
+  setInventions(inventions.filter((i) => i !== entity));
+  setInlineEdit(null);
+}, [inlineEdit, adaptedText, inventions]);
 ```
 
-Si hay invenciones `Hard` sin resolver y el usuario click "Aceptar y exportar":
+**Justificación del `<input>` HTML sobre Tiptap** (rechazado):
+
+- Mismo Constitution compliance (Art. I FR-068) con Zod como gate.
+- Bundle 0 KB extra (Tiptap añade ~50-80 KB).
+- Tests más simples (input controlado vs. ProseMirror state).
+- Accesibilidad nativa del `<input>` (mejor que custom editor).
+- Suficiente para "editar el valor de una palabra/frase corta" (claimed ≤ 200 chars por convención de 003).
+
+### 5. Footer (FR-069/070) — `components/diff/action-footer.tsx`
+
 ```tsx
-<Modal>
-  <h2>Tienes {hardCount} invenciones Hard sin revisar</h2>
-  <p>¿Aceptar de todos modos o revisarlas primero?</p>
-  <Button onClick={forceAccept}>Aceptar de todos modos</Button>
-  <Button onClick={onCancel}>Revisarlas primero</Button>
-</Modal>
+export function ActionFooter({ inventions, onAcceptExport, onEditInEditor, onReject }) {
+  const hardCount = inventions.filter((i) => i.severity === "Hard").length;
+  const onAcceptClick = () => {
+    if (hardCount > 0) { setModalOpen(true); return; }
+    onAcceptExport();
+  };
+
+  return (
+    <div role="toolbar" aria-label="Acciones finales del diff">
+      <button onClick={onAcceptClick}>{copy.diff.actions.accept}</button>
+      <button onClick={onEditInEditor}>{copy.diff.actions.edit}</button>
+      <button onClick={onReject}>{copy.diff.actions.reject}</button>
+
+      {modalOpen && (
+        <div role="alertdialog" aria-modal="true">
+          <h2>{copy.diff.modal.hardTitle}</h2>
+          <p>{copy.diff.modal.hardDetail.replace("{count}", String(hardCount))}</p>
+          <button onClick={() => setModalOpen(false)}>{copy.diff.actions.reviewFirst}</button>
+          <button onClick={() => { setModalOpen(false); onAcceptExport(); }}>
+            {copy.diff.actions.acceptAnyway}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 ```
 
-### 6. Re-puntuar (FR-071)
+### 6. Re-puntuar (FR-071) — `useCallback` en `DiffPage`
 
-Mismo flujo que en 006a: serializar el `adaptedText` (después de ediciones) a Markdown, llamar a `requestScore(md, jobText)`. El `jobText` viene del `Draft` (006a) o del `DiffHandoff`.
+```typescript
+const onRescore = useCallback(async () => {
+  if (!hasJobText) return;
+  setIsRescoring(true);
+  setErrorMsg(null);
+  try {
+    const r = await requestScore(adaptedText, jobText);
+    setLastScore(r.overallScore);
+  } catch (err) {
+    const message = err && typeof err === "object" && "message" in err
+      ? String((err as ScoreError).message)
+      : copy.diff.errors.network;
+    setErrorMsg(message);
+  } finally {
+    setIsRescoring(false);
+  }
+}, [adaptedText, jobText, hasJobText]);
+```
+
+**Rate-limit**: el backend 002 aplica 60/h por IP. El viewer deshabilita el botón "Re-puntuar" si `!hasJobText` o `isRescoring`.
+
+### 7. Handoff listener con `useSyncExternalStore` — `components/diff/diff-page.tsx`
+
+`DiffPage` usa `useSyncExternalStore` para leer el handoff de sessionStorage de forma estable (no causa re-renders innecesarios):
+
+```typescript
+function getClientSnapshot(): HandoffSnapshot {
+  if (typeof window === "undefined") return LOADING_SNAPSHOT;
+  const raw = readDiffHandoff();
+  if (raw === null) return SNAPSHOT_CACHE["no-handoff"];
+  try {
+    const h = readValidDiffHandoff();
+    // ... cache snapshot para mantener referencia estable
+  } catch (err) {
+    if (err instanceof AdaptationExpiredError) return SNAPSHOT_CACHE.expired;
+    if (err instanceof AdaptationStorageError) return SNAPSHOT_CACHE["no-handoff"];
+    return SNAPSHOT_CACHE.error;
+  }
+}
+
+let handoffListeners: Array<() => void> = [];
+function subscribeHandoff(listener: () => void): () => void {
+  handoffListeners.push(listener);
+  return () => { handoffListeners = handoffListeners.filter((l) => l !== listener); };
+}
+```
 
 ---
 
 ## Routing
 
-- **`/analizar/diff`**: página principal del diff viewer.
-- **`/analizar/diff?traceId=...`**: query param opcional para correlación con logs (NO contiene PII).
+- **`/analizar/diff`**: página principal del diff viewer (server component que monta el client component `DiffPage` dentro de `ClientWrapper`).
+- **`/analizar/diff?job=...`**: query param opcional con la vacante (URL-friendly, NO PII).
 - **No sub-rutas**: el viewer es una sola pantalla.
 
 ---
 
-## Files a create (resumen)
+## State management
 
-| Path | Propósito |
-|---|---|
-| `app/analizar/diff/page.tsx` | Server component |
-| `app/analizar/diff/layout.tsx` | Layout con DiffToolbar |
-| `components/diff/diff-view.tsx` | Orquestador (unified \| side-by-side) |
-| `components/diff/diff-toolbar.tsx` | Toggle modo + Re-puntuar |
-| `components/diff/diff-column.tsx` | Una columna del diff |
-| `components/diff/flagged-entity-badge.tsx` | Badge rojo sobre EntityInvention |
-| `components/diff/flagged-entity-popover.tsx` | Popover con detalles |
-| `components/diff/inline-entity-editor.tsx` | Tiptap read-only con nodo editable |
-| `components/diff/action-footer.tsx` | Footer con 3 acciones |
-| `lib/diff/compute-diff.ts` | jsdiff wrapper |
-| `lib/diff/flag-entities.ts` | Mapeo de flags a segmentos |
-| `lib/diff/render-diff.ts` | Pure function para render |
-| `lib/diff/use-diff.ts` | Hook principal |
-| `lib/diff/types.ts` | Tipos del diff |
-| `lib/copy/es.ts` (extender) | Bloque `DIFF_COPY` |
+**Decisión shipped: `useState` + `useCallback` local en `DiffPage`.**
 
-## Dependencias a añadir
+```typescript
+export function DiffPage({ jobText }: DiffPageProps) {
+  const hydration = useSyncExternalStore(/* ... */);
+  const [editedText, setEditedText] = useState<string | null>(null);
+  const [inventions, setInventions] = useState<ReadonlyArray<EntityInvention>>([]);
+  const [mode, setMode] = useState<DiffMode>(() => {
+    if (typeof window === "undefined") return "unified";
+    return window.matchMedia("(min-width: 768px)").matches ? "side-by-side" : "unified";
+  });
+  const [isRescoring, setIsRescoring] = useState(false);
+  const [lastScore, setLastScore] = useState<number | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-```bash
-# Reusa las deps de 006a + añade:
-pnpm add diff@^5
+  const adaptedText = editedText ?? hydration.adaptedText;
+  // ...
+}
 ```
 
-Solo `diff` (jsdiff). El resto ya está instalado por 006a.
+**Justificación**: el viewer tiene UN diff. No hay múltiples vistas que necesiten sincronización. `useState` local es más simple, más testeable, y suficiente.
 
 ---
 
-## Test plan (manual E2E checklist)
+## Test plan (TDD activo, Constitution Art. VIII)
 
-- [ ] **Happy path — adapt + diff + accept + export**
-  1. `pnpm dev`, ir a `/analizar`, pegar CV + vacante.
-  2. Click "Adaptar con IA" → spinner → llega `AdaptResult`.
-  3. Click "Ver diff" → llega a `/analizar/diff`.
-  4. Ve dos columnas (desktop) o una (móvil) con diff palabra-por-palabra.
-  5. Las invenciones `Soft`/`Hard` aparecen como badges rojos.
-  6. Click "Aceptar y exportar" → navega a `/analizar/exportar` (004) con el CV adaptado.
-- [ ] **Editar invención inline**
-  1. En el diff, click sobre un badge rojo → popover.
-  2. Click "Editar" → el badge se reemplaza por un input.
-  3. Cambiar el valor a algo coherente → Enter.
-  4. La invención desaparece del listado; el diff se recalcula.
-  5. Click "Re-puntuar" → nuevo `ScoreResult`.
-- [ ] **Hard invention bloquea Aceptar**
-  1. Adaptar un CV que genera una invención `Hard` (empresa inventada).
-  2. Ver badge rojo oscuro con icono X.
-  3. Click "Aceptar y exportar" → modal: "Tienes 1 invención Hard sin revisar".
-  4. Confirmar "Aceptar de todos modos" → continúa.
-- [ ] **Toggle de modo (unificado ↔ lado a lado)**
-  1. En desktop, click toggle "Unificado" → la vista cambia a una columna.
-  2. Click "Lado a lado" → vuelve a dos columnas.
-- [ ] **WCAG 2.2 AA**
-  1. Navegar con `Tab` por los badges → cada uno es focusable.
-  2. `Enter` abre el popover.
-  3. Screen reader anuncia cada invención con su severidad.
-  4. Contraste: verificaciones con axe-core o Lighthouse.
-- [ ] **Adaptación vacía**
-  1. Provocar un error del LLM que retorne `adaptedText = ""`.
-  2. El viewer muestra panel rojo "La adaptación no produjo texto. Intenta de nuevo."
-- [ ] **Adaptación expirada**
-  1. Setear un `DiffHandoff` con `at: "2026-01-01T00:00:00Z"`.
-  2. El viewer detecta >1 h de antigüedad → muestra "La adaptación expiró".
+### Tests automatizados (5 test files shipped)
+
+- **Unit (`lib/diff/`)**:
+  - `compute-diff.test.ts` (8+ tests) — `diffWords` mapea a `DiffChange[]` correctamente; casos: idénticos, added, removed, modified, empty, caracteres especiales (&, <, >, "), performance 50 KB.
+  - `flag-entities.test.ts` (6+ tests) — `flagEntitiesInDiff` mapea posiciones correctamente; `dedupeByHighestSeverity` aplica Hard>Soft; `orphanedFlags` para segmentos `removed` y posiciones inválidas.
+  - `types.test.ts` (4+ tests) — shape de `DiffChange`, `DiffSegmentWithFlags`, `FlaggedEntity`, `DiffMode`, `DiffHandoff`.
+- **Component (`components/diff/`)**:
+  - `action-footer.test.tsx` (3+ tests) — renderiza 3 botones; abre modal Hard si hay Hard pendientes; llama `onAcceptExport` solo tras confirmar.
+  - `diff-page.test.tsx` (5+ tests) — render de loading/expired/no-handoff/error/empty/ready; edición inline con Zod; re-puntuar; "Aceptar y exportar" navega.
+  - `diff-toolbar.test.tsx` (2+ tests) — toggle modo; deshabilita re-puntuar si `!hasJobText`.
+  - `diff-view.test.tsx` (2+ tests) — render unified/side-by-side; badges con `aria-label`.
+  - `flagged-entity-badge.test.tsx` (2+ tests) — badge con popover; severidad Hard vs Soft.
+
+### Tests E2E (Playwright 1 chromium)
+
+- `e2e/diff.spec.ts` — flujo adapt + diff + edit + accept + export (cuando se cree en sprint futuro).
+
+### CI ground truth
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run build
+pnpm test                       # vitest run → 710 tests passing
+pnpm test:e2e                   # playwright test → si existe
+```
+
+---
+
+## Files shipped (resumen)
+
+| Path | Líneas (aprox.) | Exports principales |
+|---|---|---|
+| `app/analizar/diff/page.tsx` | 35 | Server Component |
+| `components/diff/diff-page.tsx` | 467 | `DiffPage` (orquestador) |
+| `components/diff/diff-view.tsx` | 163 | `DiffView`, `DiffViewProps` |
+| `components/diff/diff-toolbar.tsx` | 88 | `DiffToolbar`, `DiffToolbarProps` |
+| `components/diff/flagged-entity-badge.tsx` | 129 | `FlaggedEntityBadge`, `FlaggedEntityBadgeProps` |
+| `components/diff/action-footer.tsx` | 113 | `ActionFooter`, `ActionFooterProps` |
+| `lib/diff/compute-diff.ts` | 44 | `computeDiff`, `DiffChange`, `DiffChangeKind` |
+| `lib/diff/flag-entities.ts` | 112 | `flagEntitiesInDiff`, `FlagEntitiesResult` |
+| `lib/diff/types.ts` | 61 | `DiffChange`, `DiffSegmentWithFlags`, `FlaggedEntity`, `FlagColor`, `DiffMode`, `DiffHandoff` |
+| `lib/diff/handoff.ts` | 84 | `readDiffHandoff`, `readValidDiffHandoff`, `writeDiffHandoff`, `clearDiffHandoff`, `AdaptationExpiredError`, `AdaptationStorageError`, `DIFF_HANDOFF_KEY`, `MAX_DIFF_HANDOFF_AGE_MS` |
+
+**Total**: ~1 300 líneas de código shipped + 5 archivos de test (~20+ tests).
+
+---
+
+## Dependencias añadidas (`pnpm add`)
+
+**SÓLO UNA dep nueva** para 006b:
+
+```bash
+pnpm add diff
+```
+
+Las demás dependencias (Vitest, RTL, jsdom, Playwright, Zod) ya estaban instaladas por sprint 0 / sprint 4a.
+
+**Verificación previa a `pnpm add`**: `pnpm-lock.yaml` no debe romperse. CI corre `pnpm install --frozen-lockfile`.
 
 ---
 
@@ -281,14 +484,15 @@ Solo `diff` (jsdiff). El resto ya está instalado por 006a.
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| jsdiff añade ~10 KB | Alta | Bajo | Tree-shaking con named imports. |
-| Word-level diff de 50 KB >2 s | Baja | Medio | Skeleton + Web Worker (futuro). |
-| `position` del backend no coincide con offsets del frontend | Media | Alto (badges misplaced) | Logs + assertion en dev (`if (process.env.NODE_ENV === 'development')`). |
-| Móvil no cabe el diff lado a lado | Alta | Bajo | Default unificado en móvil, toggle sigue disponible. |
+| jsdiff añade ~15 KB al bundle | Alta | Bajo | Tree-shaking con named imports (`import { diffWords } from "diff"`). |
+| Word-level diff de 50 KB >2 s | Baja | Medio | jsdiff Myers es ~O(ND); medido ~500 ms. Si falla, Web Worker (futuro). |
+| `position` del backend no coincide con offsets del frontend | Media | Alto (badges misplaced) | `flagEntitiesInDiff` calcula offsets acumulativos; las invenciones fuera de rango van a `orphanedFlags` con un aviso visible. |
+| Móvil no cabe el diff lado a lado | Alta | Bajo | Default unificado en móvil, toggle sigue disponible (`useMatchMedia` listener). |
 | Sesión de adaptaciones >1 h se borra de sessionStorage | Baja | Bajo | Banner "La adaptación expiró" + link a re-adaptar. |
+| Race condition en handoff listener (otro tab) | Baja | Bajo | `handoffListeners` notifica a los componentes suscritos cuando el handoff cambia. |
 
 ---
 
 ## Next Phase
 
-→ `tasks.md` — desglose T-006b-01..N.
+→ `tasks.md` — desglose T-006b-01..N por fase (Setup, Foundational, US-1..4, Polish). El bloque "DECISIÓN ARQUITECTÓNICA" (líneas 8–14) está preservado verbatim.
