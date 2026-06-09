@@ -1,6 +1,63 @@
 import { describe, it, expect } from "vitest";
 import { copy } from "./es";
 
+describe("copy.export", () => {
+  it("es un objeto con button/buttonLoading/filenameHint/success/errors/retry", () => {
+    expect(typeof copy.export).toBe("object");
+    expect(copy.export).not.toBeNull();
+  });
+
+  it("button y buttonLoading existen", () => {
+    expect(typeof copy.export.button).toBe("string");
+    expect(typeof copy.export.buttonLoading).toBe("string");
+  });
+
+  it("filenameHint usa el patrón cv-adapted-{date}.pdf", () => {
+    expect(typeof copy.export.filenameHint).toBe("string");
+    expect(copy.export.filenameHint).toMatch(/^cv-adapted-\{date\}\.pdf$/);
+  });
+
+  it("success existe (post-click feedback)", () => {
+    expect(typeof copy.export.success).toBe("string");
+  });
+
+  it("errors: rateLimit/blocked/unavailable/network/generic existen", () => {
+    expect(typeof copy.export.errors.rateLimit).toBe("string");
+    expect(typeof copy.export.errors.blocked).toBe("string");
+    expect(typeof copy.export.errors.unavailable).toBe("string");
+    expect(typeof copy.export.errors.network).toBe("string");
+    expect(typeof copy.export.errors.generic).toBe("string");
+  });
+
+  it("rateLimit es honesto y menciona el tope '20/hora' (Constitution Art. VII)", () => {
+    expect(copy.export.errors.rateLimit).toMatch(/20\/hora/);
+    expect(copy.export.errors.rateLimit.toLowerCase()).toContain("exportaciones");
+  });
+
+  it("blocked menciona 'invenciones' y 'regenerar' (Art. I, hard inventions)", () => {
+    expect(copy.export.errors.blocked.toLowerCase()).toContain("invenciones");
+    expect(copy.export.errors.blocked.toLowerCase()).toContain("regenera");
+  });
+
+  it("retry existe (usado en 503)", () => {
+    expect(typeof copy.export.retry).toBe("string");
+  });
+
+  it("NO contiene frases prohibidas por Art. IV (encuadre honesto)", () => {
+    const flat = JSON.stringify(copy.export).toLowerCase();
+    const forbiddenPatterns: RegExp[] = [
+      /ats\s+oficial/,
+      /empleo\s+garantizado/,
+      /garantiza\s+empleo/,
+      /puntaje\s+oficial/,
+      /cv\s+optimizado/,
+    ];
+    for (const pattern of forbiddenPatterns) {
+      expect(flat).not.toMatch(pattern);
+    }
+  });
+});
+
 describe("copy.adapt", () => {
   it("es un objeto con bloques panel/severity/errors/delta/cta", () => {
     expect(typeof copy.adapt).toBe("object");

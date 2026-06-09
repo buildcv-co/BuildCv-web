@@ -310,3 +310,59 @@ describe("AdaptPanel — edge case happy + empty inventions (None)", () => {
     expect(within(deltaSection).getByText(copy.adapt.delta.empty)).toBeInTheDocument();
   });
 });
+
+describe("AdaptPanel — integración con ExportButton (sprint 2)", () => {
+  it("estado success renderiza el botón 'Descargar PDF' de ExportButton", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("None"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByText(/sin invenciones/i)).toBeInTheDocument();
+    });
+    // El botón de export (de ExportButton) debe estar presente en success
+    expect(
+      screen.getByRole("button", { name: copy.export.button }),
+    ).toBeInTheDocument();
+  });
+
+  it("estado success también renderiza el filename-hint", async () => {
+    const user = userEvent.setup();
+    fetchMock(() => Promise.resolve(jsonResponse(successResult("None"))));
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByTestId("filename-hint")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("filename-hint").textContent).toMatch(
+      /^cv-adapted-\d{4}-\d{2}-\d{2}\.pdf$/,
+    );
+  });
+
+  it("estado idle (sin click) NO renderiza el botón de export", () => {
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    expect(
+      screen.queryByRole("button", { name: copy.export.button }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("estado error NO renderiza el botón de export (solo el error panel)", async () => {
+    const user = userEvent.setup();
+    fetchMock(() =>
+      Promise.resolve(
+        jsonResponse(
+          { title: "Boom", detail: "Algo se rompió" },
+          500,
+        ),
+      ),
+    );
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByText(/Algo se rompió/)).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("button", { name: copy.export.button }),
+    ).not.toBeInTheDocument();
+  });
+});

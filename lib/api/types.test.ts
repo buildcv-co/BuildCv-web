@@ -6,6 +6,10 @@ import {
   type AdaptationResult,
   type ValidationReport,
   type EntityInvention,
+  type ExportRequest,
+  type ExportErrorKind,
+  type ExportErrorCode,
+  type ExportErrorShape,
 } from "./types";
 
 const validInvention: EntityInvention = {
@@ -83,6 +87,71 @@ describe("isValidationReport", () => {
 
   it("rechaza reporte sin inventions array", () => {
     expect(isValidationReport({ ...validReport, inventions: "no-array" })).toBe(false);
+  });
+});
+
+describe("ExportRequest", () => {
+  it("ExportRequest es un objeto con adaptedCv/validation/candidateName (shape)", () => {
+    const req: ExportRequest = {
+      adaptedCv: "# CV",
+      validation: validReport,
+      candidateName: "Candidato",
+    };
+    expect(req.adaptedCv).toBe("# CV");
+    expect(req.candidateName).toBe("Candidato");
+    expect(req.validation).toBe(validReport);
+  });
+
+  it("ExportErrorKind acepta los 6 kinds del contrato", () => {
+    const kinds: ExportErrorKind[] = [
+      "network",
+      "validation",
+      "invention",
+      "rate_limit",
+      "unavailable",
+      "unknown",
+    ];
+    expect(kinds).toHaveLength(6);
+    expect(kinds[0]).toBe("network");
+    expect(kinds[5]).toBe("unknown");
+  });
+
+  it("ExportErrorCode es string (cualquier title del backend)", () => {
+    const code: ExportErrorCode = "EXPORT_RATE_LIMITED";
+    expect(typeof code).toBe("string");
+  });
+
+  it("ExportErrorShape tiene status, code, kind, message y fields opcional", () => {
+    const shape: ExportErrorShape = {
+      status: 429,
+      code: "EXPORT_RATE_LIMITED",
+      kind: "rate_limit",
+      message: "Has alcanzado el tope de exportaciones (20/hora).",
+    };
+    expect(shape.status).toBe(429);
+    expect(shape.kind).toBe("rate_limit");
+    expect(shape.fields).toBeUndefined();
+
+    const withFields: ExportErrorShape = {
+      status: 400,
+      code: "Validation",
+      kind: "validation",
+      message: "datos inválidos",
+      fields: { adaptedCv: ["demasiado largo"] },
+    };
+    expect(withFields.fields).toEqual({ adaptedCv: ["demasiado largo"] });
+  });
+
+  it("filenameHint permite interpolar fecha YYYY-MM-DD (helper de UI)", () => {
+    // El test verifica que el patrón 'cv-adapted-YYYY-MM-DD.pdf' se puede construir
+    // de forma determinista a partir de una fecha — no prueba la función del copy,
+    // prueba la convención.
+    const date = new Date("2026-06-08T12:00:00Z");
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(date.getUTCDate()).padStart(2, "0");
+    const filename = `cv-adapted-${yyyy}-${mm}-${dd}.pdf`;
+    expect(filename).toBe("cv-adapted-2026-06-08.pdf");
   });
 });
 

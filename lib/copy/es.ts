@@ -94,6 +94,23 @@ export const copy = {
       regenerate: "Regenerar con prompt estricto",
     },
   },
+  export: {
+    button: "Descargar PDF",
+    buttonLoading: "Generando PDF…",
+    filenameHint: "cv-adapted-{date}.pdf",
+    success: "Descarga iniciada",
+    errors: {
+      rateLimit:
+        "Has alcanzado el tope de exportaciones (20/hora). El análisis determinista y la adaptación siguen disponibles.",
+      blocked:
+        "El CV adaptado tiene invenciones que no estaban en el original. Regenera la adaptación antes de exportar.",
+      unavailable:
+        "La generación de PDF no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+      network: "No pudimos conectar con el servidor. Revisa tu conexión.",
+      generic: "Ocurrió un error al generar el PDF. Intenta de nuevo.",
+    },
+    retry: "Reintentar",
+  },
 } as const;
 
 export type Copy = typeof copy;

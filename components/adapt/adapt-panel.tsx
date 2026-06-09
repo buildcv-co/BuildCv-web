@@ -5,6 +5,7 @@ import { AdaptError, requestAdapt } from "@/lib/api/adapt";
 import type { AdaptationResult } from "@/lib/api/types";
 import { copy } from "@/lib/copy/es";
 import { cn } from "@/lib/utils/cn";
+import { ExportButton } from "@/components/export/export-button";
 import { AdaptedCvViewer } from "./adapted-cv-viewer";
 import { DeltaImprovements } from "./delta-improvements";
 import { RegenerateButton } from "./regenerate-button";
@@ -75,6 +76,15 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
           </div>
           <AdaptedCvViewer adaptedCv={result.adaptedCv} />
           <DeltaImprovements inventions={result.validation.inventions} />
+          <ExportButton
+            request={{
+              adaptedCv: result.adaptedCv,
+              validation: result.validation,
+              candidateName: "Candidato",
+            }}
+    
+            onRegenerate={run}
+          />
         </div>
       )}
 

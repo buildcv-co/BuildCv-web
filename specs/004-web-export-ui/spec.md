@@ -82,36 +82,122 @@ export interface ExportRequest {
 
 // El response es binario (application/pdf) — no se modela en TS.
 // El browser lo descarga directamente vía blob URL.
+
+export type ExportErrorKind = "network" | "validation" | "invention" | "rate_limit" | "unavailable" | "unknown";
+export type ExportErrorCode = string;
+
+export interface ExportErrorShape {
+  status: number;
+  code: ExportErrorCode;
+  kind: ExportErrorKind;
+  message: string;
+  fields?: Record<string, string[]>;
+}
 ```
 
 ## API client (en `lib/api/export.ts`)
 
+> **Corrección 2026-06-09:** el browser **NUNCA** habla directo con `BACKEND_URL` (Constitution Art. VI — Clean Arch, BFF same-origin). Va contra `/api/export` (mismo origen), que es el Route Handler ya implementado en `app/api/export/route.ts` (commit `6b6f390`).
+
 ```typescript
-import { BACKEND_URL } from "./backend";
-import type { ExportRequest } from "./types";
+import type { ExportRequest, ExportErrorKind, ExportErrorCode } from "./types";
+
+const BFF_PATH = "/api/export";
 
 export class ExportError extends Error {
-  constructor(public status: number, public code: string, message: string) {
-    super(message);
+  readonly status: number;
+  readonly code: ExportErrorCode;
+  readonly kind: ExportErrorKind;
+  readonly fields?: Record<string, string[]>;
+
+  constructor(params: {
+    status: number;
+    code: ExportErrorCode;
+    kind: ExportErrorKind;
+    message: string;
+    fields?: Record<string, string[]>;
+  }) {
+    super(params.message);
+    this.name = "ExportError";
+    this.status = params.status;
+    this.code = params.code;
+    this.kind = params.kind;
+    this.fields = params.fields;
   }
 }
 
 export async function requestExportPdf(req: ExportRequest): Promise<Blob> {
-  const res = await fetch(`${BACKEND_URL}/api/v1/export`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(req),
-  });
-
-  if (!res.ok) {
-    const problem = await res.json().catch(() => ({}));
-    throw new ExportError(res.status, problem.title || "EXPORT_FAILED", problem.detail || res.statusText);
+  let response: Response;
+  try {
+    response = await fetch(BFF_PATH, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(req),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ExportError({
+      status: 0,
+      code: "EXPORT_NETWORK",
+      kind: "network",
+      message: "No pudimos conectar con el servidor. Revisa tu conexión.",
+    });
   }
 
-  return res.blob();
+  if (response.ok) {
+    return response.blob();
+  }
+
+  let problem: { errors?: Record<string, string[]>; detail?: string; title?: string } = {};
+  try {
+    problem = (await response.json()) as typeof problem;
+  } catch {
+    // respuesta sin cuerpo JSON
+  }
+
+  const { status } = response;
+  const code = problem.title ?? "EXPORT_FAILED";
+  const detail = problem.detail ?? "No pudimos generar el PDF. Intenta de nuevo.";
+
+  if (status === 400) {
+    throw new ExportError({
+      status,
+      code,
+      kind: "validation",
+      message: "Revisa los datos: el CV adaptado o el nombre son demasiado largos.",
+      fields: problem.errors,
+    });
+  }
+  if (status === 422) {
+    throw new ExportError({
+      status,
+      code,
+      kind: "invention",
+      message: detail,
+    });
+  }
+  if (status === 429) {
+    throw new ExportError({
+      status,
+      code,
+      kind: "rate_limit",
+      message: "Has alcanzado el tope de exportaciones (20/hora). El análisis determinista y la adaptación siguen disponibles.",
+    });
+  }
+  if (status === 503) {
+    throw new ExportError({
+      status,
+      code,
+      kind: "unavailable",
+      message: "La generación de PDF no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+    });
+  }
+
+  throw new ExportError({ status, code, kind: "unknown", message: detail });
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
+/** Crea un blob URL, dispara descarga vía <a>, libera el URL. Llamar desde el cliente. */
+export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -125,19 +211,23 @@ export function downloadBlob(blob: Blob, filename: string) {
 
 ## Copy (en `lib/copy/es.ts`)
 
+Agregar bloque `export` (NO crear `EXPORT_COPY` separado — unificar con el patrón 003, todos los bloques viven en `copy.export`):
+
 ```typescript
-export const EXPORT_COPY = {
+export: {
   button: "Descargar PDF",
-  loading: "Generando PDF...",
-  filenameHint: "cv-adapted-{date}.pdf",
+  buttonLoading: "Generando PDF…",
+  filenameHint: "cv-adapted-{date}.pdf", // se sustituye con la fecha actual al renderizar
   success: "Descarga iniciada",
   errors: {
     rateLimit: "Has alcanzado el tope de exportaciones (20/hora). El análisis determinista y la adaptación siguen disponibles.",
     blocked: "El CV adaptado tiene invenciones que no estaban en el original. Regenera la adaptación antes de exportar.",
     unavailable: "La generación de PDF no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+    network: "No pudimos conectar con el servidor. Revisa tu conexión.",
     generic: "Ocurrió un error al generar el PDF. Intenta de nuevo.",
   },
-};
+  retry: "Reintentar",
+}
 ```
 
 ## Convención de nombres

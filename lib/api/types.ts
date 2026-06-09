@@ -177,3 +177,31 @@ export function isAdaptationResult(value: unknown): value is AdaptationResult {
   if (typeof value.aiModel !== "string") return false;
   return true;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// 004-web-export-ui — contrato JSON de POST /api/v1/export (BFF /api/export)
+// ─────────────────────────────────────────────────────────────────────
+
+export interface ExportRequest {
+  adaptedCv: string;
+  validation: ValidationReport;
+  candidateName: string;
+}
+
+export type ExportErrorKind =
+  | "network"
+  | "validation"
+  | "invention"
+  | "rate_limit"
+  | "unavailable"
+  | "unknown";
+
+export type ExportErrorCode = string;
+
+export interface ExportErrorShape {
+  status: number;
+  code: ExportErrorCode;
+  kind: ExportErrorKind;
+  message: string;
+  fields?: Record<string, string[]>;
+}
