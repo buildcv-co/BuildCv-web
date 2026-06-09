@@ -501,3 +501,94 @@ describe("copy.landing", () => {
   });
 });
 
+// =====================================================================
+// 008-web-observability-web — copy.observability
+// =====================================================================
+
+describe("copy.observability", () => {
+  it("es un objeto con bloques devOverlay y errorBoundary", () => {
+    expect(typeof copy.observability).toBe("object");
+    expect(copy.observability).not.toBeNull();
+  });
+
+  describe("devOverlay", () => {
+    it("title no vacío", () => {
+      expect(typeof copy.observability.devOverlay.title).toBe("string");
+      expect(copy.observability.devOverlay.title.length).toBeGreaterThan(0);
+    });
+
+    it("dismissLabel es una acción clara (NO 'Cerrar' genérico)", () => {
+      expect(typeof copy.observability.devOverlay.dismissLabel).toBe("string");
+      // debe ser una acción, no solo un sustantivo
+      expect(copy.observability.devOverlay.dismissLabel.length).toBeGreaterThan(2);
+    });
+
+    it("copyStackLabel es una acción clara", () => {
+      expect(typeof copy.observability.devOverlay.copyStackLabel).toBe("string");
+      expect(
+        copy.observability.devOverlay.copyStackLabel.toLowerCase(),
+      ).toMatch(/copi/);
+    });
+
+    it("disclaimer menciona 'terceros' explícitamente (Constitution Art. III)", () => {
+      const disc = copy.observability.devOverlay.disclaimer;
+      expect(typeof disc).toBe("string");
+      expect(disc.toLowerCase()).toContain("tercero");
+    });
+
+    it("disclaimer menciona 'local' para reforzar Art. III", () => {
+      expect(
+        copy.observability.devOverlay.disclaimer.toLowerCase(),
+      ).toContain("local");
+    });
+
+    it("emptyHint existe (cuando no hay errores aún)", () => {
+      expect(typeof copy.observability.devOverlay.emptyHint).toBe("string");
+      expect(
+        copy.observability.devOverlay.emptyHint.length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  describe("errorBoundary", () => {
+    it("title y detail en español", () => {
+      expect(typeof copy.observability.errorBoundary.title).toBe("string");
+      expect(typeof copy.observability.errorBoundary.detail).toBe("string");
+      expect(
+        copy.observability.errorBoundary.title.length,
+      ).toBeGreaterThan(0);
+      expect(
+        copy.observability.errorBoundary.detail.length,
+      ).toBeGreaterThan(0);
+    });
+
+    it("retryLabel es 'Reintentar' (sin jerga técnica)", () => {
+      expect(
+        copy.observability.errorBoundary.retryLabel.toLowerCase(),
+      ).toContain("reintent");
+    });
+  });
+
+  describe("Art. IV — encuadre honesto", () => {
+    it("NO contiene 'ATS oficial' ni 'garantiza empleo' (Constitution Art. IV)", () => {
+      const flat = JSON.stringify(copy.observability).toLowerCase();
+      const forbidden: RegExp[] = [
+        /ats\s+oficial/,
+        /empleo\s+garantizado/,
+        /garantiza\s+empleo/,
+        /puntaje\s+oficial/,
+        /cv\s+optimizado/,
+      ];
+      for (const pattern of forbidden) {
+        expect(flat).not.toMatch(pattern);
+      }
+    });
+
+    it("NO contiene claims de AI monitoring o real-time tracking", () => {
+      const flat = JSON.stringify(copy.observability).toLowerCase();
+      expect(flat).not.toContain("real-time");
+      expect(flat).not.toContain("ai monitoring");
+    });
+  });
+});
+

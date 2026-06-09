@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Editor } from "@/components/editor/editor";
+import { ClientWrapper } from "@/components/observability/client-wrapper";
 import { copy } from "@/lib/copy/es";
 
 export const metadata: Metadata = {
@@ -21,7 +22,9 @@ export default function EditarPage() {
       </header>
 
       <main id="contenido">
-        <Editor />
+        <ClientWrapper>
+          <Editor />
+        </ClientWrapper>
       </main>
     </div>
   );

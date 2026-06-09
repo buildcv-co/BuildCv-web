@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { copy } from "@/lib/copy/es";
+import { WebVitalsReporter } from "@/components/observability/web-vitals-reporter";
+import { DevErrorOverlay } from "@/components/observability/dev-error-overlay";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -33,6 +35,8 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         {children}
+        <WebVitalsReporter />
+        <DevErrorOverlay />
       </body>
     </html>
   );

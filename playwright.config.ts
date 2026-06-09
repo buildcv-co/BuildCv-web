@@ -26,6 +26,9 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    env: {
+      BUILDCV_LOG_ENDPOINT: "enabled",
+    },
     stdout: "ignore",
     stderr: "pipe",
   },

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ImportButton } from "@/components/import/import-button";
+import { ClientWrapper } from "@/components/observability/client-wrapper";
 import { copy } from "@/lib/copy/es";
 
 export const metadata: Metadata = {
@@ -28,7 +29,9 @@ export default function ImportarPage() {
         <p className="mb-8 mt-2 max-w-2xl text-sm text-muted">
           {copy.import.page.subtitle}
         </p>
-        <ImportButton editorAvailable={false} />
+        <ClientWrapper>
+          <ImportButton editorAvailable={false} />
+        </ClientWrapper>
       </main>
     </div>
   );

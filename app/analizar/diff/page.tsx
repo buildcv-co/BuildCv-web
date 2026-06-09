@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DiffPage } from "@/components/diff/diff-page";
+import { ClientWrapper } from "@/components/observability/client-wrapper";
 import { copy } from "@/lib/copy/es";
 
 export const metadata: Metadata = {
@@ -24,7 +25,9 @@ export default async function DiffRoutePage({
         <span className="font-mono text-xs text-faint">diff viewer</span>
       </header>
       <main id="contenido">
-        <DiffPage jobText={jobText} />
+        <ClientWrapper>
+          <DiffPage jobText={jobText} />
+        </ClientWrapper>
       </main>
     </div>
   );

@@ -369,6 +369,22 @@ export const copy = {
       backHome: "Volver al inicio",
     },
   },
+  observability: {
+    devOverlay: {
+      title: "Panel de errores en desarrollo",
+      emptyHint: "Sin errores todavía.",
+      dismissLabel: "Descartar panel",
+      copyStackLabel: "Copiar stack",
+      disclaimer:
+        "Errores locales (no se envían a terceros). En este navegador.",
+    },
+    errorBoundary: {
+      title: "Algo se rompió en este componente",
+      detail:
+        "El resto de la aplicación sigue funcionando. Probá reintentar o volvé al inicio.",
+      retryLabel: "Reintentar",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;
