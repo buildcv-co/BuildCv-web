@@ -399,3 +399,105 @@ describe("copy.diff", () => {
   });
 });
 
+// =====================================================================
+// 007-web-landing-ui — copy.landing (FAQs, trust, error pages)
+// =====================================================================
+
+describe("copy.landing", () => {
+  it("es un objeto con bloques faqs/trust/notFound/serverError/globalError", () => {
+    expect(typeof copy.landing).toBe("object");
+    expect(copy.landing).not.toBeNull();
+  });
+
+  it("faqs: 5-7 items, cada uno con q y a no vacíos", () => {
+    const faqs = copy.landing.faqs;
+    expect(Array.isArray(faqs)).toBe(true);
+    expect(faqs.length).toBeGreaterThanOrEqual(5);
+    expect(faqs.length).toBeLessThanOrEqual(7);
+    for (const f of faqs) {
+      expect(typeof f.q).toBe("string");
+      expect(f.q.length).toBeGreaterThan(0);
+      expect(typeof f.a).toBe("string");
+      expect(f.a.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("faqs: cada item es UNIQUE por pregunta (no dupes)", () => {
+    const faqs = copy.landing.faqs;
+    const questions = faqs.map((f) => f.q);
+    const unique = new Set(questions);
+    expect(unique.size).toBe(questions.length);
+  });
+
+  it("trust.openSource: label no vacío y href URL absoluta de GitHub", () => {
+    const o = copy.landing.trust.openSource;
+    expect(typeof o.label).toBe("string");
+    expect(o.label.length).toBeGreaterThan(0);
+    expect(typeof o.href).toBe("string");
+    expect(o.href).toMatch(/^https?:\/\//);
+    expect(o.href).toContain("github.com");
+  });
+
+  it("trust.constitution: label incluye 'v1.1.0' (verificable)", () => {
+    expect(copy.landing.trust.constitution.label).toContain("v1.1.0");
+  });
+
+  it("trust.tests: count > 500 (refleja realidad 540+)", () => {
+    expect(copy.landing.trust.tests.count).toBeGreaterThan(500);
+  });
+
+  it("trust.tests.label menciona '0 supresiones' (Constitution Art. VIII)", () => {
+    expect(copy.landing.trust.tests.label.toLowerCase()).toContain("0 supresiones");
+  });
+
+  it("notFound: title NO contiene '404' (UX: 'Página no encontrada')", () => {
+    expect(copy.landing.notFound.title).not.toContain("404");
+    expect(copy.landing.notFound.title.length).toBeGreaterThan(0);
+  });
+
+  it("notFound: detail y 2 CTAs existen", () => {
+    expect(typeof copy.landing.notFound.detail).toBe("string");
+    expect(copy.landing.notFound.detail.length).toBeGreaterThan(0);
+    expect(typeof copy.landing.notFound.backHome).toBe("string");
+    expect(typeof copy.landing.notFound.backAnalyze).toBe("string");
+  });
+
+  it("serverError: title NO contiene '500' ni 'Internal'", () => {
+    expect(copy.landing.serverError.title).not.toContain("500");
+    expect(copy.landing.serverError.title.toLowerCase()).not.toContain("internal");
+    expect(copy.landing.serverError.title.length).toBeGreaterThan(0);
+  });
+
+  it("serverError: detail honesta (no culpa al usuario)", () => {
+    const detail = copy.landing.serverError.detail.toLowerCase();
+    // debe sonar a 'no es tu culpa' o equivalente
+    expect(detail).toMatch(/no es tu culpa|no te preocupes|inesperado|revisando|mirando/i);
+  });
+
+  it("serverError: retry y backHome existen", () => {
+    expect(typeof copy.landing.serverError.retry).toBe("string");
+    expect(typeof copy.landing.serverError.backHome).toBe("string");
+  });
+
+  it("globalError: title/detail/reload/backHome existen", () => {
+    expect(typeof copy.landing.globalError.title).toBe("string");
+    expect(typeof copy.landing.globalError.detail).toBe("string");
+    expect(typeof copy.landing.globalError.reload).toBe("string");
+    expect(typeof copy.landing.globalError.backHome).toBe("string");
+  });
+
+  it("NO contiene frases prohibidas por Art. IV (encuadre honesto)", () => {
+    const flat = JSON.stringify(copy.landing).toLowerCase();
+    const forbidden: RegExp[] = [
+      /ats\s+oficial/,
+      /empleo\s+garantizado/,
+      /garantiza\s+empleo/,
+      /puntaje\s+oficial/,
+      /cv\s+optimizado/,
+    ];
+    for (const pattern of forbidden) {
+      expect(flat).not.toMatch(pattern);
+    }
+  });
+});
+

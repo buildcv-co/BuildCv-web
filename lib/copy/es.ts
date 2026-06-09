@@ -309,6 +309,66 @@ export const copy = {
       storage: "No pudimos leer la adaptación de este navegador. Vuelve a solicitarla.",
     },
   },
+  landing: {
+    faqs: [
+      {
+        q: "¿BuildCv guarda mi CV o la vacante?",
+        a: "No. En v0 el texto se procesa en memoria en el backend y se descarta al responder. La única persistencia es tu borrador local en este navegador, y solo si lo guardas tú.",
+      },
+      {
+        q: "¿La adaptación con IA puede inventar contenido?",
+        a: "No. Tenemos un validador de invenciones Hard (entidades que no estaban en tu CV original) que bloquea la exportación hasta que se resuelvan. La IA puede reescribir, pero no añadir experiencia.",
+      },
+      {
+        q: "¿Cuánto cuesta?",
+        a: "Es gratis en v0. No pedimos tarjeta, no hay trial, no hay upsell. Si en el futuro hay planes pagos, se anunciarán antes con transparencia.",
+      },
+      {
+        q: "¿Funciona en móvil?",
+        a: "Sí. El diseño es responsive y las tres rutas principales (/, /analizar, /importar) están optimizadas para touch.",
+      },
+      {
+        q: "¿Puedo exportar mi CV a PDF?",
+        a: "Sí, después de adaptar tu CV. La exportación a PDF está bloqueada solo si el validador detecta invenciones Hard (texto añadido por la IA que no estaba en tu CV original).",
+      },
+      {
+        q: "¿Qué pasa con mis datos si el backend falla?",
+        a: "El backend procesa tu CV en memoria. Si la respuesta falla, los datos ya se descartaron. No hay colas, no hay retries persistentes, no hay logs con tu CV.",
+      },
+    ],
+    trust: {
+      openSource: {
+        label: "Código abierto",
+        href: "https://github.com/buildcv-co/BuildCv-web",
+      },
+      constitution: {
+        label: "Constitution v1.1.0 ratificada",
+        href: "/constitution",
+      },
+      tests: {
+        label: "540 tests automatizados · 0 supresiones",
+        count: 540,
+      },
+    },
+    notFound: {
+      title: "Página no encontrada",
+      detail: "La ruta que buscás no existe o fue movida.",
+      backHome: "Volver al inicio",
+      backAnalyze: "Ir a analizar",
+    },
+    serverError: {
+      title: "Algo se rompió",
+      detail: "No es tu culpa. Estamos mirando qué pasó.",
+      retry: "Reintentar",
+      backHome: "Volver al inicio",
+    },
+    globalError: {
+      title: "Error grave",
+      detail: "La aplicación no pudo cargar. Probá recargar o volver al inicio.",
+      reload: "Recargar",
+      backHome: "Volver al inicio",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;
