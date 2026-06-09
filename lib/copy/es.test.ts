@@ -208,3 +208,104 @@ describe("copy.import", () => {
     }
   });
 });
+
+// =====================================================================
+// 006-web-cv-editor — copy.editor
+// =====================================================================
+
+describe("copy.editor", () => {
+  it("es un objeto con bloques page/toolbar/sections/placeholders/confirm/toasts/errors", () => {
+    expect(typeof copy.editor).toBe("object");
+    expect(copy.editor).not.toBeNull();
+  });
+
+  it("page: title + subtitle + noHandoff existen", () => {
+    expect(typeof copy.editor.page.title).toBe("string");
+    expect(typeof copy.editor.page.subtitle).toBe("string");
+    expect(typeof copy.editor.page.noHandoff).toBe("string");
+  });
+
+  it("page.title es 'Editar tu borrador' (Constitution Art. IV — encuadre honesto)", () => {
+    expect(copy.editor.page.title.toLowerCase()).toContain("editar");
+    expect(copy.editor.page.title.toLowerCase()).toContain("borrador");
+  });
+
+  it("toolbar: save + saved + saving + dirty + rescore + rescoreLoading + exportMd + clear existen", () => {
+    expect(typeof copy.editor.toolbar.save).toBe("string");
+    expect(typeof copy.editor.toolbar.saved).toBe("string");
+    expect(typeof copy.editor.toolbar.saving).toBe("string");
+    expect(typeof copy.editor.toolbar.dirty).toBe("string");
+    expect(typeof copy.editor.toolbar.rescore).toBe("string");
+    expect(typeof copy.editor.toolbar.rescoreLoading).toBe("string");
+    expect(typeof copy.editor.toolbar.exportMd).toBe("string");
+    expect(typeof copy.editor.toolbar.clear).toBe("string");
+  });
+
+  it("sections: 8 nombres en español", () => {
+    expect(copy.editor.sections.profile).toBeTypeOf("string");
+    expect(copy.editor.sections.experience).toBeTypeOf("string");
+    expect(copy.editor.sections.education).toBeTypeOf("string");
+    expect(copy.editor.sections.skills).toBeTypeOf("string");
+    expect(copy.editor.sections.projects).toBeTypeOf("string");
+    expect(copy.editor.sections.certifications).toBeTypeOf("string");
+    expect(copy.editor.sections.languages).toBeTypeOf("string");
+    expect(copy.editor.sections.other).toBeTypeOf("string");
+  });
+
+  it("placeholders tiene entrada para cada field de las 8 sections", () => {
+    const p = copy.editor.placeholders;
+    expect(p.profileFullName).toBeTypeOf("string");
+    expect(p.profileHeadline).toBeTypeOf("string");
+    expect(p.profileEmail).toBeTypeOf("string");
+    expect(p.experienceRole).toBeTypeOf("string");
+    expect(p.experienceCompany).toBeTypeOf("string");
+    expect(p.educationDegree).toBeTypeOf("string");
+    expect(p.skillsCategory).toBeTypeOf("string");
+    expect(p.projectName).toBeTypeOf("string");
+    expect(p.certificationName).toBeTypeOf("string");
+    expect(p.languageName).toBeTypeOf("string");
+    expect(p.otherTitle).toBeTypeOf("string");
+  });
+
+  it("confirm.clearDraft: title + detail + cancel + confirm existen", () => {
+    const c = copy.editor.confirm.clearDraft;
+    expect(c.title).toBeTypeOf("string");
+    expect(c.detail).toBeTypeOf("string");
+    expect(c.cancel).toBeTypeOf("string");
+    expect(c.confirm).toBeTypeOf("string");
+  });
+
+  it("confirm.clearDraft.title menciona 'borrador' (Constitution Art. III FR-040b)", () => {
+    expect(copy.editor.confirm.clearDraft.title.toLowerCase()).toContain("borrador");
+  });
+
+  it("toasts: saved + cleared + rescoreSuccess + rescoreFailed + exported existen", () => {
+    expect(typeof copy.editor.toasts.saved).toBe("string");
+    expect(typeof copy.editor.toasts.cleared).toBe("string");
+    expect(typeof copy.editor.toasts.rescoreSuccess).toBe("string");
+    expect(typeof copy.editor.toasts.rescoreFailed).toBe("string");
+    expect(typeof copy.editor.toasts.exported).toBe("string");
+  });
+
+  it("errors: network + storage + validation + jobTextRequired existen", () => {
+    expect(typeof copy.editor.errors.network).toBe("string");
+    expect(typeof copy.editor.errors.storage).toBe("string");
+    expect(typeof copy.editor.errors.validation).toBe("string");
+    expect(typeof copy.editor.errors.jobTextRequired).toBe("string");
+  });
+
+  it("NO contiene frases prohibidas por Art. IV (encuadre honesto)", () => {
+    const flat = JSON.stringify(copy.editor).toLowerCase();
+    const forbiddenPatterns: RegExp[] = [
+      /ats\s+oficial/,
+      /empleo\s+garantizado/,
+      /garantiza\s+empleo/,
+      /puntaje\s+oficial/,
+      /mejorar.*automaticamente/,
+      /cv\s+optimizado/,
+    ];
+    for (const pattern of forbiddenPatterns) {
+      expect(flat).not.toMatch(pattern);
+    }
+  });
+});
