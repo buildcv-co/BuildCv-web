@@ -428,6 +428,55 @@ export const copy = {
     errorGeneric: "No pudimos procesar la suscripción. Intentá de nuevo.",
     errorCancel: "No pudimos cancelar la suscripción. Intentá de nuevo.",
   },
+  iteration: {
+    title: "Iteración de adaptación",
+    subtitle:
+      "Generando la mejor versión de tu CV para esta vacante — corremos N adaptaciones y elegimos la mejor según compatibilidad y legibilidad.",
+    controls: {
+      iterationsLabel: "Iteraciones",
+      iterationsHint: "Entre 1 y 20. Más iteraciones gastan más créditos.",
+      thresholdLabel: "Umbral de probabilidad",
+      thresholdHint: "Porcentaje mínimo de coincidencia para no mostrar advertencia.",
+      creditsNeeded: (n: number) => `Créditos necesarios: ${n}`,
+    },
+    confirm: {
+      title: "¿Iniciar iteración?",
+      detail: (n: number) =>
+        `Esto consumirá ${n} ${n === 1 ? "crédito" : "créditos"} de tu cuenta. La operación no se puede deshacer.`,
+      confirm: "Sí, iniciar",
+      cancel: "Cancelar",
+    },
+    progress: {
+      title: "Iterando",
+      iterationOf: (current: number, total: number) => `Iteración ${current} de ${total}`,
+      ariaLive: "Estado de la iteración en curso.",
+    },
+    result: {
+      bestStepTitle: "Mejor versión encontrada",
+      scoreLabel: "Compatibilidad",
+      otherStepsTitle: "Ver otros intentos",
+      exportPdf: "Descargar PDF",
+      allFailed: "Mejores resultados requieren mayor compatibilidad",
+    },
+    warning: {
+      compatibility: (score: number, threshold: number) =>
+        `Tu compatibilidad con esta vacante es del ${score}% (umbral: ${threshold}%). Considera mejorar tu CV antes de aplicar o buscar vacantes más afines.`,
+      suggestionsTitle: "Ver sugerencias",
+      suggestions: [
+        "Añade habilidades concretas del texto de la vacante que ya tengas en tu experiencia.",
+        "Reescribe logros con métricas cuantificables (%, tiempo, escala).",
+        "Pide una iteración con una versión ligeramente distinta del CV como entrada.",
+      ],
+      improveCta: "Mejorar mi CV en el editor",
+    },
+    errors: {
+      network: "No pudimos conectar con el servidor. Revisa tu conexión.",
+      insufficient: "Créditos insuficientes para correr esta iteración.",
+      validation: "Revisa el texto: la vacante o el CV están vacíos o son demasiado cortos.",
+      rateLimit: "Has alcanzado el tope de iteraciones (10/hora). Probá de nuevo más tarde.",
+      generic: "Ocurrió un error inesperado. Intenta de nuevo.",
+    },
+  },
 } as const;
 
 export type Copy = typeof copy;
