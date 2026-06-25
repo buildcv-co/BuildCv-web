@@ -28,6 +28,13 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       BUILDCV_LOG_ENDPOINT: "enabled",
+      NEXTAUTH_URL: `http://localhost:${PORT}`,
+      NEXTAUTH_SECRET: "playwright-e2e-secret-that-is-long-enough-for-hs256!",
+      GOOGLE_CLIENT_ID: "playwright-google-client-id",
+      GOOGLE_CLIENT_SECRET: "playwright-google-client-secret",
+      LINKEDIN_CLIENT_ID: "playwright-linkedin-client-id",
+      LINKEDIN_CLIENT_SECRET: "playwright-linkedin-client-secret",
+      JWT_CACHE_TTL_SECONDS: "300",
     },
     stdout: "ignore",
     stderr: "pipe",
