@@ -399,6 +399,12 @@ export const copy = {
       retryLabel: "Reintentar",
     },
   },
+  signIn: {
+    intro: "Iniciá sesión para guardar tu progreso entre sesiones.",
+    errorPrefix: "No pudimos iniciar sesión",
+    continueWithGoogle: "Continuar con Google",
+    continueWithLinkedIn: "Continuar con LinkedIn",
+  },
 } as const;
 
 export type Copy = typeof copy;
