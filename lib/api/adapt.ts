@@ -93,6 +93,14 @@ export async function requestAdapt(req: AdaptRequest): Promise<AdaptationResult>
       message: "Has alcanzado el tope de adaptaciones (5/hora). El análisis determinista sigue disponible.",
     });
   }
+  if (status === 402) {
+    throw new AdaptError({
+      status,
+      code,
+      kind: "payment_required",
+      message: "Sin créditos — comprá más para seguir adaptando tu CV.",
+    });
+  }
   if (status === 503) {
     throw new AdaptError({
       status,

@@ -3,6 +3,7 @@
 import Script from "next/script";
 import { useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils/cn";
+import { fetchBalance } from "@/lib/api/credits";
 import type { WompiEventDetail, WompiInstance, WompiWidgetProps } from "./wompi-types";
 
 const WOMPI_WIDGET_SRC = "https://checkout.wompi.co/widget.js";
@@ -14,9 +15,28 @@ export function WompiWidget({
   onDeclined,
   onEvent,
   locale = "es",
-}: WompiWidgetProps) {
+  onPaymentApproved,
+}: WompiWidgetProps & { onPaymentApproved?: () => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const instanceRef = useRef<WompiInstance | null>(null);
+  const onPaymentApprovedRef = useRef(onPaymentApproved);
+
+  useEffect(() => {
+    onPaymentApprovedRef.current = onPaymentApproved;
+  }, [onPaymentApproved]);
+
+  const handleApproved = useCallback(
+    (detail: WompiEventDetail) => {
+      if (onPaymentApprovedRef.current) {
+        void fetchBalance().then(
+          () => onPaymentApprovedRef.current?.(),
+          () => onPaymentApprovedRef.current?.(),
+        );
+      }
+      onApproved?.(detail);
+    },
+    [onApproved],
+  );
 
   const mount = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -33,10 +53,10 @@ export function WompiWidget({
     });
 
     if (onClose) instanceRef.current.on("onClose", onClose);
-    if (onApproved) instanceRef.current.on("onApproved", onApproved);
+    if (onApproved || onPaymentApproved) instanceRef.current.on("onApproved", handleApproved);
     if (onDeclined) instanceRef.current.on("onDeclined", onDeclined);
     if (onEvent) instanceRef.current.on("onEvent", onEvent as (d: WompiEventDetail) => void);
-  }, [session, onClose, onApproved, onDeclined, onEvent]);
+  }, [session, onClose, onApproved, onPaymentApproved, onDeclined, onEvent, handleApproved]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

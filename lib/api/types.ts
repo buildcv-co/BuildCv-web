@@ -119,6 +119,7 @@ export type AdaptErrorKind =
   | "validation"
   | "invention"
   | "rate_limit"
+  | "payment_required"
   | "unavailable"
   | "unknown";
 

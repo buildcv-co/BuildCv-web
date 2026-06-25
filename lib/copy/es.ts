@@ -100,6 +100,20 @@ export const copy = {
         "El validador detectó {count} invención(es) Hard (entidades que no estaban en tu CV original). El export a PDF está bloqueado por Constitution Art. I hasta que regeneres la adaptación.",
       regenerate: "Regenerar adaptación",
     },
+    paymentRequired: {
+      title: "Créditos insuficientes",
+      detail:
+        "Te quedaste sin créditos. Cada adaptación usa 1 crédito. Comprá más para seguir adaptando tu CV.",
+      buy: "Comprar más créditos",
+      cancel: "Cancelar",
+    },
+  },
+  credits: {
+    singular: "1 crédito = 1 adaptación",
+    plural: "1 crédito = 1 adaptación",
+    remaining: (n: number) => `Te quedan ${n} ${n === 1 ? "crédito" : "créditos"}`,
+    none: "Sin créditos — comprá más para adaptar tu CV",
+    refunded: "Tus créditos fueron reintegrados",
   },
   export: {
     button: "Descargar PDF",

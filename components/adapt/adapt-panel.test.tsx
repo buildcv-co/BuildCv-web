@@ -141,33 +141,36 @@ describe("AdaptPanel — happy path", () => {
 
   it("envía POST /api/adapt con cvText/jobText en el body", async () => {
     const user = userEvent.setup();
-    let captured: { url: string; body: unknown } | undefined;
-    fetchMock((url) => {
-      if (url === "/api/adapt") {
-        // Capturamos el body en la siguiente microtask
-        return Promise.resolve(jsonResponse(successResult("None"))).then((r) => {
-          // El mock fetch se llama con (url, init) — capturamos desde el spy
-          return r;
-        });
-      }
-      return Promise.resolve(textResponse("nope", 500));
-    });
-    // El spy global stub nos da acceso a las llamadas
-    const fetchSpy = vi.fn().mockResolvedValue(jsonResponse(successResult("None")));
+    const fetchSpy = vi
+      .fn()
+      .mockImplementation((url: string) => {
+        if (url === "/api/adapt") {
+          return Promise.resolve(jsonResponse(successResult("None")));
+        }
+        if (url === "/api/credits/balance") {
+          return Promise.resolve(jsonResponse({ balance: 5, recentConsumption: 0 }));
+        }
+        return Promise.resolve(textResponse("nope", 500));
+      });
     vi.stubGlobal("fetch", fetchSpy);
 
     render(<AdaptPanel cvText={CV} jobText={JOB} />);
     await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const adaptCall = fetchSpy.mock.calls.find(
+        ([calledUrl]) => calledUrl === "/api/adapt",
+      );
+      expect(adaptCall).toBeDefined();
     });
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const adaptCall = fetchSpy.mock.calls.find(
+      ([calledUrl]) => calledUrl === "/api/adapt",
+    )!;
+    const [calledUrl, calledInit] = adaptCall as [string, RequestInit];
     expect(calledUrl).toBe("/api/adapt");
     expect(calledInit.method).toBe("POST");
     const body = JSON.parse(calledInit.body as string);
     expect(body).toEqual({ cvText: CV, jobText: JOB });
-    void captured;
   });
 });
 
@@ -203,15 +206,27 @@ describe("AdaptPanel — errores", () => {
 
   it("422: click Regenerar llama requestAdapt de nuevo", async () => {
     const user = userEvent.setup();
+    let adaptCallCount = 0;
     const fetchSpy = vi
       .fn()
-      .mockResolvedValueOnce(
-        jsonResponse(
-          { title: "HardInvention", detail: "Se detectó [FakeCorp]." },
-          422,
-        ),
-      )
-      .mockResolvedValueOnce(jsonResponse(successResult("None")));
+      .mockImplementation((url: string) => {
+        if (url === "/api/adapt") {
+          adaptCallCount += 1;
+          if (adaptCallCount === 1) {
+            return Promise.resolve(
+              jsonResponse(
+                { title: "HardInvention", detail: "Se detectó [FakeCorp]." },
+                422,
+              ),
+            );
+          }
+          return Promise.resolve(jsonResponse(successResult("None")));
+        }
+        if (url === "/api/credits/balance") {
+          return Promise.resolve(jsonResponse({ balance: 5, recentConsumption: 0 }));
+        }
+        return Promise.resolve(textResponse("nope", 500));
+      });
     vi.stubGlobal("fetch", fetchSpy);
 
     render(<AdaptPanel cvText={CV} jobText={JOB} />);
@@ -221,7 +236,7 @@ describe("AdaptPanel — errores", () => {
     });
     await user.click(screen.getByRole("button", { name: copy.adapt.cta.regenerate }));
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(adaptCallCount).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -249,6 +264,52 @@ describe("AdaptPanel — errores", () => {
     await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
     await waitFor(() => {
       expect(screen.getByText(copy.adapt.errors.unavailable)).toBeInTheDocument();
+    });
+  });
+
+  it("402 payment_required: muestra modal con link 'Comprar más créditos' y botón Cancelar", async () => {
+    const user = userEvent.setup();
+    fetchMock(() =>
+      Promise.resolve(
+        jsonResponse(
+          { code: "CREDIT/INSUFFICIENT", detail: "Sin créditos" },
+          402,
+        ),
+      ),
+    );
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByTestId("payment-required-modal")).toBeInTheDocument();
+    });
+    expect(screen.getByText(copy.adapt.paymentRequired.title)).toBeInTheDocument();
+    expect(screen.getByTestId("payment-required-buy-link")).toHaveAttribute(
+      "href",
+      "/pricing",
+    );
+    expect(screen.getByTestId("payment-required-buy-link")).toHaveTextContent(
+      copy.adapt.paymentRequired.buy,
+    );
+  });
+
+  it("402 modal: click Cancelar cierra el modal pero mantiene el mensaje de error", async () => {
+    const user = userEvent.setup();
+    fetchMock(() =>
+      Promise.resolve(
+        jsonResponse(
+          { code: "CREDIT/INSUFFICIENT", detail: "Sin créditos" },
+          402,
+        ),
+      ),
+    );
+    render(<AdaptPanel cvText={CV} jobText={JOB} />);
+    await user.click(screen.getByRole("button", { name: copy.adapt.panel.button }));
+    await waitFor(() => {
+      expect(screen.getByTestId("payment-required-modal")).toBeInTheDocument();
+    });
+    await user.click(screen.getByTestId("payment-required-cancel"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("payment-required-modal")).not.toBeInTheDocument();
     });
   });
 

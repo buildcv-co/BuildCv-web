@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { AdaptError, requestAdapt } from "@/lib/api/adapt";
+import { fetchBalance } from "@/lib/api/credits";
 import type { AdaptationResult } from "@/lib/api/types";
 import { copy } from "@/lib/copy/es";
 import { cn } from "@/lib/utils/cn";
@@ -21,7 +23,6 @@ interface ErrorState {
 
 const REGENERATE_STATUSES = new Set<number>([422]);
 
-/** Constitution Art. I: el export está bloqueado si hay invenciones Hard. */
 function hasHardInvention(
   inventions: ReadonlyArray<{ severity: "Soft" | "Hard" }>,
 ): boolean {
@@ -32,16 +33,23 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<AdaptationResult | null>(null);
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const canRun = cvText.trim().length > 0 && jobText.trim().length > 0;
 
   const run = useCallback(async () => {
     setStatus("loading");
     setErrorState(null);
+    setShowPaymentModal(false);
     try {
       const r = await requestAdapt({ cvText, jobText });
       setResult(r);
       setStatus("success");
+      try {
+        await fetchBalance();
+      } catch {
+        // ignore badge refresh failure — adaptation succeeded
+      }
     } catch (caught) {
       if (caught instanceof AdaptError) {
         const showRegenerate = REGENERATE_STATUSES.has(caught.status);
@@ -50,6 +58,9 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
           message: caught.message,
           showRegenerate,
         });
+        if (caught.kind === "payment_required") {
+          setShowPaymentModal(true);
+        }
       } else {
         setErrorState({
           kind: "unknown",
@@ -60,6 +71,10 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
       setStatus("error");
     }
   }, [cvText, jobText]);
+
+  const dismissPaymentModal = useCallback(() => {
+    setShowPaymentModal(false);
+  }, []);
 
   const isLoading = status === "loading";
 
@@ -125,6 +140,44 @@ export function AdaptPanel({ cvText, jobText }: { cvText: string; jobText: strin
           {errorState.showRegenerate && (
             <RegenerateButton onClick={run} loading={isLoading} />
           )}
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-required-title"
+          data-testid="payment-required-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        >
+          <div
+            className={cn(
+              "w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-xl",
+            )}
+          >
+            <h3 id="payment-required-title" className="font-display text-xl">
+              {copy.adapt.paymentRequired.title}
+            </h3>
+            <p className="text-sm text-muted">{copy.adapt.paymentRequired.detail}</p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/pricing"
+                data-testid="payment-required-buy-link"
+                className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-accent-ink hover:brightness-110"
+              >
+                {copy.adapt.paymentRequired.buy}
+              </Link>
+              <button
+                type="button"
+                onClick={dismissPaymentModal}
+                data-testid="payment-required-cancel"
+                className="rounded-full border border-line bg-surface px-5 py-2 text-sm font-medium text-muted hover:bg-surface-2"
+              >
+                {copy.adapt.paymentRequired.cancel}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
