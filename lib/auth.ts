@@ -4,6 +4,15 @@ import LinkedInProvider from "next-auth/providers/linkedin";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:5080";
 
+export const IS_LOCAL = process.env.NEXT_PUBLIC_LOCAL_MODE === "true";
+
+export const LOCAL_USER_ID = "00000000-0000-0000-0000-000000000001";
+export const LOCAL_USER_EMAIL = "local@buildcv.dev";
+export const LOCAL_USER_NAME = "Local User";
+
+export const NEXT_AUTH_ISSUER = process.env.NEXTAUTH_ISSUER ?? "buildcv-web";
+export const NEXT_AUTH_AUDIENCE = process.env.NEXTAUTH_AUDIENCE ?? "buildcv-api";
+
 type UserWithBackendId = { backendUserId?: string };
 type SessionWithId = { user: { id?: string } };
 

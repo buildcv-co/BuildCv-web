@@ -1,9 +1,10 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { redirect, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { copy } from "@/lib/copy/es";
+import { IS_LOCAL } from "@/lib/auth";
 
 function SignInInner() {
   const searchParams = useSearchParams();
@@ -36,6 +37,9 @@ function SignInInner() {
 }
 
 export default function SignInPage() {
+  if (IS_LOCAL) {
+    redirect("/analizar/iterate");
+  }
   return (
     <Suspense fallback={<div className="mx-auto w-full max-w-md px-6 py-12 text-sm text-muted">Cargando…</div>}>
       <SignInInner />

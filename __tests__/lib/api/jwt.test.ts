@@ -9,6 +9,12 @@ vi.mock("next-auth", () => ({
 
 vi.mock("@/lib/auth", () => ({
   authOptions: { providers: [], session: { strategy: "jwt" } },
+  IS_LOCAL: false,
+  LOCAL_USER_ID: "00000000-0000-0000-0000-000000000001",
+  LOCAL_USER_EMAIL: "local@buildcv.dev",
+  LOCAL_USER_NAME: "Local User",
+  NEXT_AUTH_ISSUER: "buildcv-web",
+  NEXT_AUTH_AUDIENCE: "buildcv-api",
 }));
 
 vi.mock("next/headers", () => ({
