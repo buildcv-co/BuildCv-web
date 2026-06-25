@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Analyzer } from "@/components/analyzer/analyzer";
+import { CreditArea } from "@/components/credits/credit-area";
 import { copy } from "@/lib/copy/es";
 
 export const metadata: Metadata = {
@@ -14,12 +15,15 @@ export default function AnalizarPage() {
         <Link href="/" className="font-display text-xl">
           {copy.appName}
         </Link>
-        <span className="font-mono text-xs text-faint">análisis determinista · sin guardado</span>
+        <div className="flex items-center gap-3">
+          <CreditArea />
+          <span className="font-mono text-xs text-faint">análisis determinista · sin guardado</span>
+        </div>
       </header>
 
-      <main id="contenido">
+      <main id="contenido" className="space-y-6">
         <h1 className="font-display text-3xl sm:text-4xl">{copy.analyze.title}</h1>
-        <p className="mb-8 mt-2 max-w-2xl text-sm italic text-muted">{copy.home.honesty}</p>
+        <p className="max-w-2xl text-sm italic text-muted">{copy.home.honesty}</p>
         <Analyzer />
       </main>
     </div>
