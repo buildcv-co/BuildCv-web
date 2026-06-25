@@ -1,9 +1,19 @@
+import { NextResponse } from "next/server";
 import { BACKEND_URL } from "@/lib/api/backend";
+import { getJwtFromSession } from "@/lib/api/jwt";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const session = await getJwtFromSession();
+  if (!session) {
+    return NextResponse.json(
+      { error: "AUTH/UNAUTHENTICATED" },
+      { status: 401 },
+    );
+  }
+
   const url = new URL(request.url);
   const query = url.searchParams.toString();
   const path = query
@@ -12,9 +22,7 @@ export async function GET(request: Request) {
 
   const upstream = await fetch(path, {
     method: "GET",
-    headers: {
-      cookie: request.headers.get("cookie") ?? "",
-    },
+    headers: { Authorization: `Bearer ${session.jwt}` },
     cache: "no-store",
   });
 
