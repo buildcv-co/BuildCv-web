@@ -26,7 +26,9 @@ Chain strategy: feature-branch-chain
 - [ ] 2.3 GREEN — `SectionDetector.cs` `SectionKind` enum header discriminator
 - [x] 2.b RED — `PdfPigCvParserStructuredTests` (5 spec tests: structured result, inferred confidence, explicit email, engineVersion=2.0.0, no user_confirmed) + 2 triangulation (work/edu/skills extraction, LinkedIn profile) — micro-batch 2b RED
 - [x] 2.b GREEN — `PdfPigCvParser.cs` implementa `IStructuredParser` → `StructuredParseResult` con `CvDocument` + `confidence` markers (`explicit` para regex estricto, `inferred` para heurística, nunca `user_confirmed`); preserva `ICvParser` legacy 1.0.0 — micro-batch 2b GREEN
-- [ ] 2.4 GREEN — Refactor `OpenXmlCvParser.cs` preserve DOCX lists in `work[]`
+- [x] 2.c RED — `OpenXmlCvParserStructuredTests` (6 spec tests: structured result, inferred confidence, bullet list → Highlights, table → Highlights, engineVersion=2.0.0, no user_confirmed, DOCX_NO_SEMANTIC_STRUCTURE warning) — micro-batch 2c RED
+- [x] 2.c GREEN — `OpenXmlCvParser.cs` implementa `IStructuredParser` → `StructuredParseResult` con `CvDocument` + `confidence` markers; walk body preservando estructura (paragraphs + tables + bullets → `ResumeWorkEntry.Highlights[]` con separator ` | `, sin aplanar con `\t`); preserva `ICvParser` legacy 1.0.0; section-header regex duplicada de PdfPigCvParser por atomicidad — micro-batch 2c GREEN
+- [x] 2.4 GREEN — Refactor `OpenXmlCvParser.cs` preserve DOCX lists in `work[]` (subsumido por micro-batch 2c — parser preserva paragraphs + tables + bullets como `Highlights[]` en cada work entry)
 - [ ] 2.5 GREEN — `ParserRouter.cs` returns `{structured: CvDocument} | {raw: {text}}`
 - [ ] 2.6 TDD — `ImportResult` v2 + `ImportResponseMapper` + endpoints
 
