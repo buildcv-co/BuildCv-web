@@ -40,6 +40,20 @@ export const employmentTypeSchema = z.enum([
 
 export type EmploymentType = z.infer<typeof employmentTypeSchema>;
 
+/**
+ * Tupla con los 5 valores válidos de `EmploymentType`, en el orden canónico
+ * que usa el `<select>` del `JobSpecForm` (PR 5a). Iterar este array garantiza
+ * que el orden del dropdown match el orden de la schema Zod (Constitution
+ * Art. V — single source of truth).
+ */
+export const EMPLOYMENT_TYPES: readonly EmploymentType[] = [
+  "full_time",
+  "part_time",
+  "contract",
+  "internship",
+  "temporary",
+] as const;
+
 const freeTextField = (maxLength: number) =>
   z
     .string({ message: "Requerido" })
@@ -74,13 +88,21 @@ export type JobSpec = z.infer<typeof jobSpecSchema>;
 /**
  * Wrapper que devuelve un resultado seguro en vez de lanzar ZodError,
  * alineado con el patrón `isXxx` ya usado en `lib/api/types.ts`.
+ *
+ * En la rama de fallo incluye el `ZodError` para que callers como
+ * `JobSpecForm` (PR 5a) puedan mapear los issues a errores por field
+ * (path → message). Backward-compatible: los callers existentes solo
+ * chequean `result.success` y la union discriminada sigue angostando
+ * correctamente.
  */
 export function validateJobSpec(
   input: unknown,
-): { success: true; data: JobSpec } | { success: false } {
+):
+  | { success: true; data: JobSpec }
+  | { success: false; error: z.ZodError } {
   const result = jobSpecSchema.safeParse(input);
   if (result.success) {
     return { success: true, data: result.data };
   }
-  return { success: false };
+  return { success: false, error: result.error };
 }
