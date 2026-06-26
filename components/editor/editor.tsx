@@ -483,6 +483,7 @@ function StructuredEditor({ initialJobText }: { initialJobText: string }) {
             setJobText(e.target.value);
             setIsDirty(true);
           }}
+          aria-label={copy.analyze.jobLabel}
           className={cn(
             "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none",
           )}
@@ -722,6 +723,7 @@ function LegacyEditor({ initialJobText }: { initialJobText: string }) {
             setJobText(e.target.value);
             setIsDirty(true);
           }}
+          aria-label={copy.analyze.jobLabel}
           className={cn(
             "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none",
           )}

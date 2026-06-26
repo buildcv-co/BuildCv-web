@@ -260,6 +260,7 @@ export function JobSpecForm({
         <button
           type="submit"
           disabled={!isValid}
+          data-testid="job-spec-form-submit"
           className={cn(
             "rounded-full px-7 py-3 font-medium transition",
             isValid
