@@ -168,7 +168,6 @@ test.describe("Mobile menu (375x812)", () => {
     await page.goto("/");
     await page.bringToFront();
     const trigger = page.getByTestId("mobile-nav-trigger");
-    const dialog = page.getByTestId("mobile-nav-dialog");
     await trigger.click();
     await page.waitForFunction(
       () =>
@@ -188,7 +187,6 @@ test.describe("Mobile menu (375x812)", () => {
     await page.goto("/");
     const trigger = page.getByTestId("mobile-nav-trigger");
     await trigger.click();
-    const dialog = page.getByTestId("mobile-nav-dialog");
     await page.waitForFunction(
       () =>
         (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { ALLOWED_MIMES, validateFile } from "@/lib/api/import";
 import type { ValidateFileResult } from "@/lib/api/import";
 import { copy } from "@/lib/copy/es";
@@ -22,9 +22,10 @@ export function FileUpload({
   onFileSelected: (file: File) => void;
   disabled?: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputId = useId();
+  const hintId = "file-upload-hint";
 
   const handleFile = useCallback(
     (file: File | null | undefined) => {
@@ -40,24 +41,8 @@ export function FileUpload({
     [onFileSelected],
   );
 
-  const openPicker = useCallback(() => {
-    if (disabled) return;
-    inputRef.current?.click();
-  }, [disabled]);
-
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (disabled) return;
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        openPicker();
-      }
-    },
-    [disabled, openPicker],
-  );
-
   const onDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    (e: React.DragEvent<HTMLLabelElement>) => {
       e.preventDefault();
       setDragActive(false);
       if (disabled) return;
@@ -67,12 +52,12 @@ export function FileUpload({
     [disabled, handleFile],
   );
 
-  const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
   }, []);
 
   const onDragEnter = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    (e: React.DragEvent<HTMLLabelElement>) => {
       e.preventDefault();
       if (disabled) return;
       setDragActive(true);
@@ -80,58 +65,52 @@ export function FileUpload({
     [disabled],
   );
 
-  const onDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const onDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
     e.preventDefault();
     setDragActive(false);
   }, []);
 
-  const hintId = "file-upload-hint";
-
   return (
     <div className="space-y-3">
-      <div
-        role="button"
-        tabIndex={disabled ? -1 : 0}
-        aria-disabled={disabled}
-        aria-label="Cargar CV en PDF o DOCX"
+      <label
+        htmlFor={inputId}
         aria-describedby={hintId}
-        onClick={openPicker}
-        onKeyDown={onKeyDown}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
         data-testid="file-upload-dropzone"
         data-drag-active={dragActive ? "true" : "false"}
+        aria-disabled={disabled || undefined}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition",
           "border-line bg-surface/30 hover:border-muted",
+          "focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
           dragActive && "border-accent bg-accent/5",
           disabled && "cursor-not-allowed opacity-50",
         )}
       >
-        <p aria-hidden="true" className="font-display text-lg">
+        <span aria-hidden="true" className="font-display text-lg">
           {copy.import.page.dragHere}
-        </p>
-        <p aria-hidden="true" className="text-sm text-muted">
+        </span>
+        <span aria-hidden="true" className="text-sm text-muted">
           {copy.import.page.or}
-        </p>
-        <p aria-hidden="true" className="text-sm text-muted">
+        </span>
+        <span aria-hidden="true" className="text-sm text-muted">
           {copy.import.page.clickToSelect}
-        </p>
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT_ATTR}
-        aria-hidden="true"
-        tabIndex={-1}
-        className="sr-only"
-        onChange={(e) => {
-          handleFile(e.target.files?.[0]);
-          e.target.value = "";
-        }}
-      />
+        </span>
+        <input
+          id={inputId}
+          type="file"
+          accept={ACCEPT_ATTR}
+          className="sr-only"
+          disabled={disabled}
+          onChange={(e) => {
+            handleFile(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+      </label>
       <p id={hintId} className="text-xs text-faint">
         {copy.import.page.dragHereHint}
       </p>

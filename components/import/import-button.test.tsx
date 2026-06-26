@@ -39,7 +39,7 @@ describe("ImportButton — estado inicial", () => {
   it("muestra el FileUpload cuando no hay archivo seleccionado", () => {
     render(<ImportButton />);
     expect(
-      screen.getByRole("button", { name: /cargar cv en pdf o docx/i }),
+      screen.getByTestId("file-upload-dropzone"),
     ).toBeInTheDocument();
   });
 
@@ -219,7 +219,7 @@ describe("ImportButton — estado loading", () => {
     await user.upload(input, makeFile("cv.pdf", "application/pdf"));
 
     await waitFor(() => {
-      const dropZone = screen.getByRole("button", { name: /cargar cv/i });
+      const dropZone = screen.getByTestId("file-upload-dropzone");
       expect(dropZone).toHaveAttribute("aria-disabled", "true");
     });
     // Resolvemos para no dejar promesas pendientes

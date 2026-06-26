@@ -9,6 +9,14 @@ function makeFile(name: string, type: string, sizeBytes: number): File {
   return new File([blob], name, { type });
 }
 
+function getDropzone() {
+  return screen.getByTestId("file-upload-dropzone");
+}
+
+function getFileInput(container: HTMLElement) {
+  return container.querySelector("input[type='file']") as HTMLInputElement;
+}
+
 beforeEach(() => {
   vi.unstubAllGlobals();
 });
@@ -18,16 +26,24 @@ afterEach(() => {
 });
 
 describe("FileUpload — accesibilidad y render inicial", () => {
-  it("renderiza con role='button' y aria-label descriptivo (WCAG 2.2 AA)", () => {
-    render(<FileUpload onFileSelected={vi.fn()} />);
-    const button = screen.getByRole("button", { name: /cargar cv en pdf o docx/i });
-    expect(button).toBeInTheDocument();
+  it("renderiza un <label> con htmlFor apuntando al input (activación nativa, WCAG 2.2 AA)", () => {
+    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
+    const dropzone = getDropzone();
+    expect(dropzone.tagName).toBe("LABEL");
+    const input = getFileInput(container);
+    expect(dropzone.getAttribute("for")).toBe(input.id);
+  });
+
+  it("el input NO tiene aria-hidden (evita warning de focus en elemento oculto)", () => {
+    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
+    const input = getFileInput(container);
+    expect(input.getAttribute("aria-hidden")).toBeNull();
   });
 
   it("tiene aria-describedby apuntando a instrucciones (formato + tamaño)", () => {
     render(<FileUpload onFileSelected={vi.fn()} />);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    const describedById = button.getAttribute("aria-describedby");
+    const dropzone = getDropzone();
+    const describedById = dropzone.getAttribute("aria-describedby");
     expect(describedById).toBeTruthy();
     if (!describedById) return;
     const hint = document.getElementById(describedById);
@@ -43,54 +59,32 @@ describe("FileUpload — accesibilidad y render inicial", () => {
     expect(screen.getByText(copy.import.page.clickToSelect)).toBeInTheDocument();
   });
 
-  it("contiene un <input type='file' sr-only> para activar programáticamente", () => {
+  it("contiene un <input type='file' sr-only>", () => {
     const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const input = container.querySelector("input[type='file']");
+    const input = getFileInput(container);
     expect(input).toBeTruthy();
-    expect(input?.classList.contains("sr-only")).toBe(true);
-    const inputAccept = input?.getAttribute("accept");
+    expect(input.classList.contains("sr-only")).toBe(true);
+    const inputAccept = input.getAttribute("accept");
     expect(inputAccept).toContain("application/pdf");
     expect(inputAccept).toContain("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
   });
 });
 
 describe("FileUpload — interacciones", () => {
-  it("click en el área → abre el file picker (input.click() llamado)", async () => {
+  it("click en el label → activa el input (label control association)", async () => {
     const user = userEvent.setup();
     const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    await user.click(button);
-    expect(clickSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it("teclado: Enter en el área → abre el file picker", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    button.focus();
-    await user.keyboard("{Enter}");
-    expect(clickSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it("teclado: Space en el área → abre el file picker", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    button.focus();
-    await user.keyboard(" ");
-    expect(clickSpy).toHaveBeenCalledTimes(1);
+    const input = getFileInput(container);
+    const dropzone = getDropzone();
+    const focusSpy = vi.spyOn(input, "focus");
+    await user.click(dropzone);
+    expect(focusSpy).toHaveBeenCalled();
   });
 
   it("input.change con archivo válido → llama onFileSelected con el File", async () => {
     const onFileSelected = vi.fn();
     const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const input = getFileInput(container);
     const file = makeFile("cv.pdf", "application/pdf", 1024);
     fireEvent.change(input, { target: { files: [file] } });
     expect(onFileSelected).toHaveBeenCalledTimes(1);
@@ -100,7 +94,7 @@ describe("FileUpload — interacciones", () => {
   it("input.change con archivo inválido (text/plain) → NO llama onFileSelected, muestra error", async () => {
     const onFileSelected = vi.fn();
     const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const input = getFileInput(container);
     const file = makeFile("fake.pdf", "text/plain", 1024);
     fireEvent.change(input, { target: { files: [file] } });
     expect(onFileSelected).not.toHaveBeenCalled();
@@ -110,7 +104,7 @@ describe("FileUpload — interacciones", () => {
   it("input.change con archivo >5MB → NO llama onFileSelected, muestra error de tamaño", async () => {
     const onFileSelected = vi.fn();
     const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const input = getFileInput(container);
     const file = makeFile("big.pdf", "application/pdf", 6 * 1024 * 1024);
     fireEvent.change(input, { target: { files: [file] } });
     expect(onFileSelected).not.toHaveBeenCalled();
@@ -120,7 +114,7 @@ describe("FileUpload — interacciones", () => {
   it("input.change con archivo vacío (size=0) → NO llama onFileSelected, muestra error", async () => {
     const onFileSelected = vi.fn();
     const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    const input = getFileInput(container);
     const file = makeFile("empty.pdf", "application/pdf", 0);
     fireEvent.change(input, { target: { files: [file] } });
     expect(onFileSelected).not.toHaveBeenCalled();
@@ -130,43 +124,39 @@ describe("FileUpload — interacciones", () => {
 
 describe("FileUpload — drag and drop", () => {
   it("dragover NO navega fuera de la página (preventDefault)", () => {
-    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const dropZone = container.querySelector("[data-testid='file-upload-dropzone']");
-    expect(dropZone).toBeTruthy();
+    render(<FileUpload onFileSelected={vi.fn()} />);
+    const dropZone = getDropzone();
     const dragOver = new Event("dragover", { bubbles: true, cancelable: true });
-    fireEvent(dropZone as Element, dragOver);
+    fireEvent(dropZone, dragOver);
     expect(dragOver.defaultPrevented).toBe(true);
   });
 
   it("drop con archivo válido (PDF) → llama onFileSelected", () => {
     const onFileSelected = vi.fn();
-    const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const dropZone = container.querySelector("[data-testid='file-upload-dropzone']");
-    expect(dropZone).toBeTruthy();
+    render(<FileUpload onFileSelected={onFileSelected} />);
+    const dropZone = getDropzone();
     const file = makeFile("cv.pdf", "application/pdf", 1024);
-    fireEvent.drop(dropZone as Element, { dataTransfer: { files: [file] } });
+    fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
     expect(onFileSelected).toHaveBeenCalledTimes(1);
     expect(onFileSelected.mock.calls[0]?.[0]).toBe(file);
   });
 
   it("drop con archivo inválido (.txt) → NO llama onFileSelected, muestra error", () => {
     const onFileSelected = vi.fn();
-    const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const dropZone = container.querySelector("[data-testid='file-upload-dropzone']");
-    expect(dropZone).toBeTruthy();
+    render(<FileUpload onFileSelected={onFileSelected} />);
+    const dropZone = getDropzone();
     const file = makeFile("cv.txt", "text/plain", 1024);
-    fireEvent.drop(dropZone as Element, { dataTransfer: { files: [file] } });
+    fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
     expect(onFileSelected).not.toHaveBeenCalled();
     expect(screen.getByText(copy.import.errors.unsupportedMime)).toBeInTheDocument();
   });
 
   it("drop con archivo >5MB → NO llama onFileSelected, muestra error de tamaño", () => {
     const onFileSelected = vi.fn();
-    const { container } = render(<FileUpload onFileSelected={onFileSelected} />);
-    const dropZone = container.querySelector("[data-testid='file-upload-dropzone']");
-    expect(dropZone).toBeTruthy();
+    render(<FileUpload onFileSelected={onFileSelected} />);
+    const dropZone = getDropzone();
     const file = makeFile("big.pdf", "application/pdf", 6 * 1024 * 1024);
-    fireEvent.drop(dropZone as Element, { dataTransfer: { files: [file] } });
+    fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
     expect(onFileSelected).not.toHaveBeenCalled();
     expect(screen.getByText(copy.import.errors.tooLarge)).toBeInTheDocument();
   });
@@ -174,37 +164,26 @@ describe("FileUpload — drag and drop", () => {
 
 describe("FileUpload — estado 'dragover' visual", () => {
   it("mientras hay dragover, el atributo data-drag-active pasa a true", () => {
-    const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
-    const dropZone = container.querySelector("[data-testid='file-upload-dropzone']");
-    expect(dropZone).toBeTruthy();
-    expect(dropZone?.getAttribute("data-drag-active")).toBe("false");
-    fireEvent.dragEnter(dropZone as Element);
-    expect(dropZone?.getAttribute("data-drag-active")).toBe("true");
-    fireEvent.dragLeave(dropZone as Element);
-    expect(dropZone?.getAttribute("data-drag-active")).toBe("false");
+    render(<FileUpload onFileSelected={vi.fn()} />);
+    const dropZone = getDropzone();
+    expect(dropZone.getAttribute("data-drag-active")).toBe("false");
+    fireEvent.dragEnter(dropZone);
+    expect(dropZone.getAttribute("data-drag-active")).toBe("true");
+    fireEvent.dragLeave(dropZone);
+    expect(dropZone.getAttribute("data-drag-active")).toBe("false");
   });
 });
 
 describe("FileUpload — estado deshabilitado", () => {
-  it("disabled=true → click NO abre el picker", async () => {
-    const user = userEvent.setup();
+  it("disabled=true → el input está disabled (no se puede activar)", () => {
     const { container } = render(<FileUpload onFileSelected={vi.fn()} disabled />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    await user.click(button);
-    expect(clickSpy).not.toHaveBeenCalled();
-    expect(button).toHaveAttribute("aria-disabled", "true");
+    const input = getFileInput(container);
+    expect(input).toBeDisabled();
   });
 
-  it("disabled=true → keyboard Enter NO abre el picker", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<FileUpload onFileSelected={vi.fn()} disabled />);
-    const input = container.querySelector("input[type='file']") as HTMLInputElement;
-    const clickSpy = vi.spyOn(input, "click").mockImplementation(() => undefined);
-    const button = screen.getByRole("button", { name: /cargar cv/i });
-    button.focus();
-    await user.keyboard("{Enter}");
-    expect(clickSpy).not.toHaveBeenCalled();
+  it("disabled=true → aria-disabled en el label", () => {
+    render(<FileUpload onFileSelected={vi.fn()} disabled />);
+    const dropzone = getDropzone();
+    expect(dropzone).toHaveAttribute("aria-disabled", "true");
   });
 });

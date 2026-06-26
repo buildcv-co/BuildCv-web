@@ -29,7 +29,7 @@ test.describe("005-web-cv-import-ui — flujo de import PDF/DOCX", () => {
 
     // El FileUpload está visible
     await expect(
-      page.getByRole("button", { name: /cargar cv en pdf o docx/i }),
+      page.getByTestId("file-upload-dropzone"),
     ).toBeVisible();
     await expect(page.getByText(/tamaño máximo: 5 mb/i)).toBeVisible();
 
