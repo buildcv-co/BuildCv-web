@@ -54,13 +54,13 @@ Chain strategy: feature-branch-chain
   exposes `perSection` + `redFlags` only when v2; legacy v1 path intact
   (commit in BuildCv-api; web consumer `requestScoreV2` discriminated
   response also lands in this micro-batch — see web commit).
-- [ ] **3d** — Property-based determinism test (1000 parallel runs →
+- [x] **3d** — Property-based determinism test (1000 parallel runs →
   byte-identical output, no `DateTime.UtcNow` / `Guid.NewGuid` on calc
   path)
 
 Decomposed from original tasks 3.1–3.6:
 
-- [ ] 3.1 RED — Property determinism test (1000 parallel → byte-identical) → 3d
+- [x] 3.1 RED — Property determinism test (1000 parallel → byte-identical) → 3d
 - [ ] 3.2 RED — Per-section + red-flag tests (gaps > 6mo, job-hop ≥3 <18mo/5y) → 3b
 - [ ] 3.3 GREEN — Bump `ScoringEngine.cs` `Version` to `"2.0.0"`; `ScoreV2(cv, job)` pure → 3b+3c
 - [ ] 3.4 GREEN — Add `PerSectionScore`, `RedFlag`, `SectionId`, `RedFlagSeverity` → 3a (done); `SectionId` deferred to 3b if needed
