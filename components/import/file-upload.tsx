@@ -119,19 +119,19 @@ export function FileUpload({
         <p aria-hidden="true" className="text-sm text-muted">
           {copy.import.page.clickToSelect}
         </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPT_ATTR}
-          aria-hidden="true"
-          tabIndex={-1}
-          className="hidden"
-          onChange={(e) => {
-            handleFile(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
       </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPT_ATTR}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="sr-only"
+        onChange={(e) => {
+          handleFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
       <p id={hintId} className="text-xs text-faint">
         {copy.import.page.dragHereHint}
       </p>

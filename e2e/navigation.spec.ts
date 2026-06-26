@@ -144,7 +144,11 @@ test.describe("Mobile menu (375x812)", () => {
     const trigger = page.getByTestId("mobile-nav-trigger");
     await trigger.click();
     const dialog = page.getByTestId("mobile-nav-dialog");
-    await expect(dialog).toBeVisible();
+    await page.waitForFunction(
+      () =>
+        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
+          ?.open === true,
+    );
     const nav = dialog.getByRole("navigation", { name: /móvil/i });
     await expect(nav.getByRole("link")).toHaveCount(5);
     await expect(
@@ -166,9 +170,17 @@ test.describe("Mobile menu (375x812)", () => {
     const trigger = page.getByTestId("mobile-nav-trigger");
     const dialog = page.getByTestId("mobile-nav-dialog");
     await trigger.click();
-    await expect(dialog).toBeVisible();
+    await page.waitForFunction(
+      () =>
+        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
+          ?.open === true,
+    );
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    await page.waitForFunction(
+      () =>
+        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
+          ?.open === false,
+    );
     await expect(trigger).toBeFocused();
   });
 
@@ -177,7 +189,11 @@ test.describe("Mobile menu (375x812)", () => {
     const trigger = page.getByTestId("mobile-nav-trigger");
     await trigger.click();
     const dialog = page.getByTestId("mobile-nav-dialog");
-    await expect(dialog).toBeVisible();
+    await page.waitForFunction(
+      () =>
+        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
+          ?.open === true,
+    );
 
     const initialInside = await page.evaluate(() => {
       const d = document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null;

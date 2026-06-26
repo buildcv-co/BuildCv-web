@@ -43,11 +43,11 @@ describe("FileUpload — accesibilidad y render inicial", () => {
     expect(screen.getByText(copy.import.page.clickToSelect)).toBeInTheDocument();
   });
 
-  it("contiene un <input type='file' hidden> para activar programáticamente", () => {
+  it("contiene un <input type='file' sr-only> para activar programáticamente", () => {
     const { container } = render(<FileUpload onFileSelected={vi.fn()} />);
     const input = container.querySelector("input[type='file']");
     expect(input).toBeTruthy();
-    expect(input?.classList.contains("hidden")).toBe(true);
+    expect(input?.classList.contains("sr-only")).toBe(true);
     const inputAccept = input?.getAttribute("accept");
     expect(inputAccept).toContain("application/pdf");
     expect(inputAccept).toContain("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
