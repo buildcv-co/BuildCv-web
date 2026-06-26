@@ -24,10 +24,11 @@ Chain strategy: feature-branch-chain
 - [x] 2.1 RED — `ParseResultTests` (10 cases: union variants, engineVersion, throws on cross-variant accessors, IStructuredParser contract via mock) — micro-batch 2a RED
 - [x] 2.2 GREEN — `ParseResult.cs` discriminated union (RawParseResult / StructuredParseResult / ParsingWarning) + `IStructuredParser` + `LegacyParserAdapter` shim wrapping legacy ICvParser — micro-batch 2a GREEN
 - [ ] 2.3 GREEN — `SectionDetector.cs` `SectionKind` enum header discriminator
-- [ ] 2.4 GREEN — Refactor `PdfPigCvParser.cs` emit structured `CvDocument` + `confidence` markers
-- [ ] 2.5 GREEN — Refactor `OpenXmlCvParser.cs` preserve DOCX lists in `work[]`
-- [ ] 2.6 GREEN — `ParserRouter.cs` returns `{structured: CvDocument} | {raw: {text}}`
-- [ ] 2.7 TDD — `ImportResult` v2 + `ImportResponseMapper` + endpoints
+- [x] 2.b RED — `PdfPigCvParserStructuredTests` (5 spec tests: structured result, inferred confidence, explicit email, engineVersion=2.0.0, no user_confirmed) + 2 triangulation (work/edu/skills extraction, LinkedIn profile) — micro-batch 2b RED
+- [x] 2.b GREEN — `PdfPigCvParser.cs` implementa `IStructuredParser` → `StructuredParseResult` con `CvDocument` + `confidence` markers (`explicit` para regex estricto, `inferred` para heurística, nunca `user_confirmed`); preserva `ICvParser` legacy 1.0.0 — micro-batch 2b GREEN
+- [ ] 2.4 GREEN — Refactor `OpenXmlCvParser.cs` preserve DOCX lists in `work[]`
+- [ ] 2.5 GREEN — `ParserRouter.cs` returns `{structured: CvDocument} | {raw: {text}}`
+- [ ] 2.6 TDD — `ImportResult` v2 + `ImportResponseMapper` + endpoints
 
 ### PR 3 — Scoring engine v2.0.0
 - [ ] 3.1 RED — Property determinism test (1000 parallel → byte-identical)
