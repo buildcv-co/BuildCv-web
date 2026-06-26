@@ -1,7 +1,7 @@
 import { CvSectionSchema } from "../schema";
 import { EntityNotAllowedError, SectionValidationFailedError } from "../errors";
 import type {
-  CvDocument,
+  LegacyCvDocument,
   CvSection,
   EntityRef,
   ExperienceSection,
@@ -62,7 +62,7 @@ function newSectionBase(kind: CvSection["kind"], source: "imported" | "user-type
 export function parseCvDocument(
   md: string,
   ctx: ParseContext,
-): CvDocument {
+): LegacyCvDocument {
   const blocks = splitByH2(md);
   const sections: CvSection[] = [];
   const entities: EntityRef[] = [];

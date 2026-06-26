@@ -2,7 +2,7 @@ import { serializeCvDocument } from "./markdown/serialize";
 import { parseCvDocument, type ParseContext } from "./markdown/parse";
 import { CvDocumentSchema } from "./schema";
 import { EntityNotAllowedError, RoundTripMismatchError } from "./errors";
-import type { CvDocument } from "./types";
+import type { LegacyCvDocument } from "./types";
 
 export type RoundTripResult =
   | { readonly ok: true; readonly markdown: string }
@@ -13,11 +13,11 @@ export type RoundTripResult =
     };
 
 export function roundtrip(
-  doc: CvDocument,
+  doc: LegacyCvDocument,
   ctx: ParseContext,
 ): RoundTripResult {
   const md = serializeCvDocument(doc);
-  let reparsed: CvDocument;
+  let reparsed: LegacyCvDocument;
   try {
     reparsed = parseCvDocument(md, ctx);
   } catch (err) {
@@ -57,7 +57,7 @@ export function roundtrip(
   return { ok: true, markdown: md };
 }
 
-function sameStructure(a: CvDocument, b: CvDocument): boolean {
+function sameStructure(a: LegacyCvDocument, b: LegacyCvDocument): boolean {
   if (a.sections.length !== b.sections.length) return false;
   for (let i = 0; i < a.sections.length; i++) {
     const sa = a.sections[i];

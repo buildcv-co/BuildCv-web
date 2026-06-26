@@ -1,4 +1,4 @@
-import type { CvDocument, CvSection } from "../types";
+import type { LegacyCvDocument, CvSection } from "../types";
 
 const KIND_HEADING: Record<CvSection["kind"], string> = {
   profile: "Perfil",
@@ -11,7 +11,7 @@ const KIND_HEADING: Record<CvSection["kind"], string> = {
   other: "Otros",
 };
 
-export function serializeCvDocument(doc: CvDocument): string {
+export function serializeCvDocument(doc: LegacyCvDocument): string {
   const blocks: string[] = [];
   for (const section of doc.sections) {
     const block = serializeSection(section);

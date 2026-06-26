@@ -6,7 +6,7 @@ import { requestScore } from "@/lib/api/score";
 import type { ScoreResponse } from "@/lib/api/types";
 import { CvDocumentSchema, BLANK_DOCUMENT } from "@/lib/editor/schema";
 import type {
-  CvDocument,
+  LegacyCvDocument,
   CvSection,
   CvSectionKind,
   Draft,
@@ -123,7 +123,7 @@ function buildBlankSections(now: string): CvSection[] {
 
 export function Editor({ initialJobText = "" }: { initialJobText?: string }) {
   const { draft, isLoading, isSaving, save, clear } = useDraft();
-  const [document, setDocument] = useState<CvDocument>(BLANK_DOCUMENT);
+  const [document, setDocument] = useState<LegacyCvDocument>(BLANK_DOCUMENT);
   const [jobText, setJobText] = useState<string>(initialJobText);
   const [isDirty, setIsDirty] = useState(false);
   const [isRescoring, setIsRescoring] = useState(false);
@@ -153,7 +153,7 @@ export function Editor({ initialJobText = "" }: { initialJobText?: string }) {
           parsed.sections.length > 0
             ? parsed.sections
             : buildBlankSections(now);
-        const next: CvDocument = {
+        const next: LegacyCvDocument = {
           ...BLANK_DOCUMENT,
           id: `doc_${Math.random().toString(36).slice(2, 10)}`,
           createdAt: now,
@@ -214,7 +214,7 @@ export function Editor({ initialJobText = "" }: { initialJobText?: string }) {
     setErrorMsg(null);
     const next: Draft = {
       id: "default",
-      document: result.data as CvDocument,
+      document: result.data as LegacyCvDocument,
       jobText,
       scoreHistory: draft?.scoreHistory ?? [],
       lastSavedAt: new Date().toISOString(),
