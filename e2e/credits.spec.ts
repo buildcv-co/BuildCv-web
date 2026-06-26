@@ -60,6 +60,54 @@ async function mockAdaptRoute(page: Page, status = 200) {
   });
 }
 
+/**
+ * Dismisses the dev-only `DevErrorOverlay` if it appears. See the
+ * `a11y-structured.spec.ts` for the full rationale.
+ */
+async function dismissDevErrorOverlayIfPresent(page: Page): Promise<void> {
+  const overlay = page.locator('[aria-label="Panel de errores en desarrollo"]');
+  if ((await overlay.count()) === 0) return;
+  const dismiss = overlay.getByRole("button", { name: /descartar panel/i }).first();
+  if ((await dismiss.count()) > 0) {
+    await dismiss.click();
+  }
+}
+
+/**
+ * Fills the JobSpecForm with valid data and submits it. The form's
+ * internal submit calls `onJob(job)` which propagates to `InputPanel`'s
+ * `pendingJob` state — without this, the analyzer-level submit stays
+ * disabled (Constitution Art. V: form schema is the only allowed gate).
+ */
+async function fillAndSubmitJobSpecForm(page: Page): Promise<void> {
+  await dismissDevErrorOverlayIfPresent(page);
+  await page.getByLabel("Título del puesto").fill("Backend Developer");
+  await page.getByLabel("Empresa").fill("Acme Corp");
+  await page.getByLabel("Ubicación").fill("Remoto, Colombia");
+  await page.getByLabel("Tipo de empleo").selectOption("full_time");
+  await page.getByLabel("Descripción de la vacante").fill("Buscamos backend .NET con AWS.");
+  await page.getByLabel("Requisito 1", { exact: true }).fill("3 años de experiencia en .NET");
+  await page.getByTestId("job-spec-form-submit").click();
+}
+
+/**
+ * Mock mínimo de ScoreCvResponseV2 (engineVersion 2.0.0). El BFF
+ * /api/score se mockea con el contrato v2 desde PR 5b — la UI del
+ * analyzer discrimina con `isScoreResponseV2` y renderiza el
+ * `SectionBreakdown` con perSection + redFlags.
+ */
+const SCORE_MOCK_V2 = {
+  overallScore: 75,
+  band: "high",
+  perSection: { experience: 70, education: 60, skills: 80, certifications: 0, contact: 90 },
+  redFlags: [],
+  gatesApplied: [],
+  honestyNotice: "coincidencia con la vacante + legibilidad",
+  engineVersion: "2.0.0",
+  lexiconVersion: "1.0.0",
+  traceId: "ctx-test",
+};
+
 test.describe("013-credit-consumption — UI", () => {
   test("credit badge muestra '3 créditos' después del signup", async ({ page }) => {
     await mockBalanceRoute(page, 3);
@@ -136,28 +184,12 @@ test.describe("013-credit-consumption — UI", () => {
         "buildcv:analizar:cv-preseed",
         "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
       );
-      window.localStorage.setItem(
-        "buildcv:analizar:job-preseed",
-        "Buscamos backend .NET con AWS.\n".repeat(4),
-      );
     });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          overallScore: 75,
-          band: "Buen encaje",
-          honestyNotice: "coincidencia",
-          engineVersion: "1.0.0",
-          lexiconVersion: "1.0.0",
-          contextId: "ctx",
-          components: [],
-          keywordAnalysis: { present: [], partial: [], missing: [] },
-          recommendations: [],
-          formatIssues: [],
-          gatesApplied: [],
-        }),
+        body: JSON.stringify(SCORE_MOCK_V2),
       });
     });
     await mockBalanceRoute(page, 0);
@@ -165,9 +197,8 @@ test.describe("013-credit-consumption — UI", () => {
     await mockAdaptRoute(page, 402);
 
     await page.goto("/analizar");
-    await page.getByLabel("Tu hoja de vida").fill("Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8));
-    await page.getByLabel("La vacante").fill("Buscamos backend .NET con AWS.\n".repeat(4));
-    await page.getByRole("button", { name: "Analizar" }).click();
+    await fillAndSubmitJobSpecForm(page);
+    await page.getByTestId("analyzer-submit").click();
     await expect(page.getByRole("heading", { name: "Adaptar tu CV" })).toBeVisible();
     await page.getByRole("button", { name: /adaptar mi cv/i }).click();
 
@@ -182,28 +213,12 @@ test.describe("013-credit-consumption — UI", () => {
         "buildcv:analizar:cv-preseed",
         "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
       );
-      window.localStorage.setItem(
-        "buildcv:analizar:job-preseed",
-        "Buscamos backend .NET con AWS.\n".repeat(4),
-      );
     });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          overallScore: 75,
-          band: "Buen encaje",
-          honestyNotice: "coincidencia",
-          engineVersion: "1.0.0",
-          lexiconVersion: "1.0.0",
-          contextId: "ctx",
-          components: [],
-          keywordAnalysis: { present: [], partial: [], missing: [] },
-          recommendations: [],
-          formatIssues: [],
-          gatesApplied: [],
-        }),
+        body: JSON.stringify(SCORE_MOCK_V2),
       });
     });
     await mockBalanceRoute(page, 0);
@@ -211,9 +226,8 @@ test.describe("013-credit-consumption — UI", () => {
     await mockAdaptRoute(page, 402);
 
     await page.goto("/analizar");
-    await page.getByLabel("Tu hoja de vida").fill("Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8));
-    await page.getByLabel("La vacante").fill("Buscamos backend .NET con AWS.\n".repeat(4));
-    await page.getByRole("button", { name: "Analizar" }).click();
+    await fillAndSubmitJobSpecForm(page);
+    await page.getByTestId("analyzer-submit").click();
     await expect(page.getByRole("heading", { name: "Adaptar tu CV" })).toBeVisible();
     await page.getByRole("button", { name: /adaptar mi cv/i }).click();
     await expect(page.getByTestId("payment-required-modal")).toBeVisible();
@@ -228,28 +242,12 @@ test.describe("013-credit-consumption — UI", () => {
         "buildcv:analizar:cv-preseed",
         "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
       );
-      window.localStorage.setItem(
-        "buildcv:analizar:job-preseed",
-        "Buscamos backend .NET con AWS.\n".repeat(4),
-      );
     });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          overallScore: 75,
-          band: "Buen encaje",
-          honestyNotice: "coincidencia",
-          engineVersion: "1.0.0",
-          lexiconVersion: "1.0.0",
-          contextId: "ctx",
-          components: [],
-          keywordAnalysis: { present: [], partial: [], missing: [] },
-          recommendations: [],
-          formatIssues: [],
-          gatesApplied: [],
-        }),
+        body: JSON.stringify(SCORE_MOCK_V2),
       });
     });
     await mockBalanceRoute(page, 5);
@@ -257,9 +255,8 @@ test.describe("013-credit-consumption — UI", () => {
     await mockAdaptRoute(page, 200);
 
     await page.goto("/analizar");
-    await page.getByLabel("Tu hoja de vida").fill("Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8));
-    await page.getByLabel("La vacante").fill("Buscamos backend .NET con AWS.\n".repeat(4));
-    await page.getByRole("button", { name: "Analizar" }).click();
+    await fillAndSubmitJobSpecForm(page);
+    await page.getByTestId("analyzer-submit").click();
     await expect(page.getByRole("heading", { name: "Adaptar tu CV" })).toBeVisible();
     await page.getByRole("button", { name: /adaptar mi cv/i }).click();
 
