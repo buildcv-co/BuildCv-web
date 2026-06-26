@@ -162,3 +162,103 @@ test.describe("005-web-cv-import-ui — flujo de import PDF/DOCX", () => {
     expect(lsLength).toBe(0);
   });
 });
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — PR 6a: e2e v2 happy path
+// (mockeado el backend con un ImportResultV2 golden; verifica panel
+// estructurado, click en "Analizar este CV ahora", y localStorage
+// preseed escrito por ImportButton.goToAnalyze).
+// =====================================================================
+
+test.describe("021-structured-cv-import-and-job-input — PR 6a (v2 e2e happy path)", () => {
+  test("upload PDF → backend devuelve ImportResultV2 → v2 panel visible → click Analizar → localStorage preseed", async ({
+    page,
+  }) => {
+    await page.route("**/api/import", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "X-Engine-Version": "2.0.0" },
+        body: JSON.stringify({
+          cv: {
+            basics: {
+              name: "Test User",
+              email: "test@example.com",
+              phone: "+1234567890",
+              profiles: [],
+              confidence: {
+                name: "inferred",
+                email: "inferred",
+                phone: "inferred",
+                location: "inferred",
+                url: "inferred",
+                profiles: "inferred",
+                summary: "inferred",
+                datosPersonales: "inferred",
+              },
+            },
+            work: [
+              {
+                entry: {
+                  name: "Acme",
+                  position: "Senior",
+                  startDate: "2020-01",
+                  endDate: "2023-12",
+                  highlights: ["Built systems"],
+                },
+                confidence: {
+                  name: "inferred",
+                  position: "inferred",
+                  startDate: "inferred",
+                  endDate: "inferred",
+                  summary: "inferred",
+                  highlights: "inferred",
+                },
+              },
+            ],
+            education: [],
+            skills: [],
+            projects: [],
+            certificates: [],
+            languages: [],
+            meta: { engineVersion: "2.0.0" },
+          },
+          warnings: [],
+          engineVersion: "2.0.0",
+          traceId: "e2e-trace-001",
+        }),
+      });
+    });
+
+    await page.goto("/importar");
+
+    const fileInput = page.locator("input[type='file']");
+    await fileInput.setInputFiles({
+      name: "cv.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4\nmock"),
+    });
+
+    // Panel estructurado del camino v2 (PR 2e de 021) renderiza con
+    // data-testid="import-result-structured" + el basics.name visible.
+    await expect(page.getByTestId("import-result-structured")).toBeVisible();
+    await expect(page.getByText(/Test User/)).toBeVisible();
+
+    // Click en "Analizar este CV ahora" → ImportButton.goToAnalyze escribe
+    // buildcv:analizar:cv-preseed y navega a /analizar (full-page nav).
+    const analyzeBtn = page.getByRole("button", { name: /Analizar este CV ahora/i });
+    await expect(analyzeBtn).toBeVisible();
+    await Promise.all([
+      page.waitForURL(/\/analizar(\?|$)/),
+      analyzeBtn.click(),
+    ]);
+
+    // Después de la navegación, localStorage tiene el preseed serializado
+    // (renderCvDocumentAsText produce el texto determinista del CvDocument).
+    const preseed = await page.evaluate(() =>
+      localStorage.getItem("buildcv:analizar:cv-preseed"),
+    );
+    expect(preseed).not.toBeNull();
+    expect(preseed).toContain("Test User");
+  });
+});

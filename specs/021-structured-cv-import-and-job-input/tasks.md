@@ -90,3 +90,6 @@ Decomposed from original tasks 3.1–3.6:
 - [ ] 6.3 Update `web/lib/editor/__tests__/` fixtures; `LocalStorageCvStore` round-trip test
 - [ ] 6.4 Add `NEXT_PUBLIC_STRUCTURED_INPUT` (default `"false"`) to `.env.example`
 - [ ] 6.5 Update `specs/021-.../spec.md` + `constitution.md`; `import-button.tsx` + `web/app/api/{import,score}/route.ts` + BFF handlers
+
+#### Micro-batch 6a — v2 e2e happy path (PR 6.1 slice)
+- [x] **6a** Playwright e2e: v2 happy path slice en `web/e2e/importar.spec.ts` (mockeado backend con `ImportResultV2` golden, verifica `data-testid="import-result-structured"`, click "Analizar este CV ahora" → `buildcv:analizar:cv-preseed` escrito en localStorage + redirect a `/analizar`). Cubre el primer tramo de 6.1 (upload → panel v2 → preseed). El flujo editor → JobSpec → score → breakdown llega en 6b/6c cuando el editor esté cableado al analyzer. Build/lint/test clean (1008 unit + 6 e2e pasar).
