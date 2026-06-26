@@ -3,7 +3,7 @@
 > **Entry point oficial al estado del frontend BuildCv.**
 > Cualquier agente o humano que necesite saber "qué UI está hecha, qué UI está en curso, qué UI falta" debe leer esto primero.
 
-**Última actualización:** 2026-06-09 (v0.5.1: import + editor + diff-viewer + landing + observability shipped; pendiente v1 con auth y payments)
+**Última actualización:** 2026-06-25 (v0.5.2: navigation + onboarding shipped; pendiente v1 con auth y payments)
 
 ## Relación con el backend
 
@@ -40,8 +40,10 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 | 006b | `web-cv-diff-viewer` | v0.5 / M4 | ✅ SHIPPED | (re-usa 003) |
 | 007 | `landing-ui` | v0.5.1 | ✅ SHIPPED | (n/a) |
 | 008 | `observability-web` | v0.5.1 | ✅ SHIPPED | (n/a) |
+| 019 | `navigation-onboarding` | v0.5.2 | ✅ SHIPPED | (n/a) |
 | 009 | `auth-web` | v1 | 📋 PLANEADO | (n/a) |
 | 010 | `payments-web` | v1 | 📋 PLANEADO | (n/a) |
+| 020 | `a11y-automated-audit` | v0.5.3 | 📋 PLANEADO | (n/a) |
 
 ## Leyenda de status
 
@@ -151,6 +153,23 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Path frontend:** `components/observability/` + `lib/observability/`
 - **Commit:** `4168475` (2026-06-09)
 
+### 019-navigation-onboarding (v0.5.2)
+
+- **Spec:** [specs/019-navigation-onboarding/spec.md](./019-navigation-onboarding/spec.md)
+- **Design:** [specs/019-navigation-onboarding/design.md](./019-navigation-onboarding/design.md)
+- **Tasks:** [specs/019-navigation-onboarding/tasks.md](./019-navigation-onboarding/tasks.md)
+- **Verify:** [specs/019-navigation-onboarding/verify-report.md](./019-navigation-onboarding/verify-report.md)
+- **Archive:** [specs/019-navigation-onboarding/archive-report.md](./019-navigation-onboarding/archive-report.md)
+- **Estado:** Promoted `<LandingNav>` to root layout (persistent header on every route); expanded NAV_ITEMS from 2 → 5; added mobile menu with native `<dialog>` (focus trap, Esc-to-close, focus return); added `<EmptyState>` to `/analizar`, `/analizar/iterate`, `/suscripciones` (single primary CTA each); fixed local-mode signin redirect from `/analizar/iterate` → `/analizar`. All routes now have discoverable nav.
+- **Tags:** `019-navigation-onboarding-pr1-v1.0` (`a8193ae`), `019-navigation-onboarding-pr2-v1.0` (`4b72c4a`), `019-navigation-onboarding-v1.0` (combined)
+- **Delivery:** 2 chained PRs, 15 work-unit commits (9 squash-merged on main), +54 automated checks (+35 unit + 19 e2e).
+- **Path frontend:** `components/landing/{site-header,landing-nav,local-mode-pill,mobile-nav}.tsx` + `components/common/{empty-state,icons}.tsx` + `app/layout.tsx:38` + 5 page-level `<header>` strips.
+- **Stack shipped:** native `<dialog>` + Tailwind v4 `sm:hidden` (zero new runtime deps; `@axe-core/playwright` deferred — see WARNING-2 in verify-report).
+- **Constitution compliance:** Art. I ✅ (no IA-generated nav/empty copy), Art. III ✅ (no persistence; nav reads only build-time `IS_LOCAL`), Art. IV ✅ (concrete labels; honest empty-state copy), Art. VI ✅ (nav is pure presentational; auth-aware pieces isolated in extras slot), Art. VIII ✅ (tests-first; 0 suppressions).
+- **A11y:** WCAG 2.2 AA must-haves (lang, title, header landmark, main landmark, focusable, `:focus-visible`, 24×24 target size, focus return on Esc). Automated contrast check deferred to `020-a11y-automated-audit`.
+- **Commits:** `a8193ae` (PR1 head) → `4b72c4a` (PR2 head, current `main`).
+- **Date:** 2026-06-25.
+
 ## Features PLANEADAS (v1 backlog)
 
 ### 009-auth-web (v1)
@@ -163,6 +182,13 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Estado:** 📋 PLANEADO. Spec aún no escrita.
 - **Bloqueado por:** gates Art. IX (ZDR + Habeas Data) + Wompi integration.
 
+### 020-a11y-automated-audit (v0.5.3) — seguimiento de 019
+
+- **Estado:** 📋 PLANEADO. Spec aún no escrita.
+- **Bloqueado por:** WARNING-2 del verify-report de 019 — REQ-A11Y-002 (contraste WCAG 4.5:1) no se puede verificar automáticamente porque `@axe-core/playwright` no está instalado.
+- **Objetivo:** instalar `@axe-core/playwright` (o alternativamente Lighthouse CI), reemplazar el in-house axe-core rule set, y cubrir REQ-A11Y-002 + advanced ARIA checks. **Cierra WARNING-1 también** (bajar branches de `<EmptyState>` ≥ 90% agregando 1 test del secondary CTA o removerlo — decision al spec).
+- **Tamaño:** M (1-2 horas).
+
 ## Features ARCHIVADAS
 
 ### 001-web-mvp-original
@@ -171,11 +197,12 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 - **Archive:** [specs/_archive/001-web-mvp-original/](./_archive/001-web-mvp-original/)
 - **Razón del archivo:** scope demasiado grande, specs pequeñas son más testeables.
 
-## Próximos pasos (v1 backlog, en orden de desbloqueo)
+## Próximos pasos (backlog, en orden de desbloqueo)
 
-1. **009-auth-web** — bloqueado por gate Habeas Data (Art. IX). Habilita cuentas, historial, sync entre devices.
-2. **010-payments-web** — bloqueado por gates Art. IX (ZDR + Habeas Data) + Wompi integration. Monetización.
-3. **v1 polish sprints** (opcional) — agregar Tiptap al editor (deuda documentada en `006-web-cv-editor/tasks.md`), i18n (en/pt), 008-observability-api (backend), accessibility audit WCAG 2.2 AAA.
+1. **020-a11y-automated-audit (v0.5.3)** — desbloqueado. Cierra WARNING-2 de 019 (instalar `@axe-core/playwright` o Lighthouse CI para verificar REQ-A11Y-002 contraste + advanced ARIA). Effort M (1-2 h). **Recomendado como próximo feature**.
+2. **009-auth-web (v1)** — bloqueado por gate Habeas Data (Art. IX). Habilita cuentas, historial, sync entre devices. Sugerencia: extraer `<CreditArea>` de `/analizar` a `<HeaderExtras>` slot (SUGGESTION-1 del verify-report de 019) durante PR1 de 009.
+3. **010-payments-web (v1)** — bloqueado por gates Art. IX (ZDR + Habeas Data) + Wompi integration. Monetización.
+4. **v1 polish sprints** (opcional) — agregar Tiptap al editor (deuda documentada en `006-web-cv-editor/tasks.md`), i18n (en/pt), 008-observability-api (backend), accessibility audit WCAG 2.2 AAA.
 
 ## Reglas de mantenimiento
 
