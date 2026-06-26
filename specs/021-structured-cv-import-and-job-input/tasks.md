@@ -70,11 +70,11 @@ Decomposed from original tasks 3.1–3.6:
 ## Phase 3: Web Editor + Analyzer (PR 4, PR 5)
 
 ### PR 4 — Web editor migration to JSON Resume
-- [ ] 4.1 TDD — `web/lib/editor/schema/jsonresume.ts` Zod schemas `.strict()`
-- [ ] 4.2 TDD — `web/lib/editor/types.ts` → JSON Resume compatible; keep legacy for v1
-- [ ] 4.3 TDD — Section forms `BasicsForm`/`WorkList`/`EducationList`/`SkillsByCategory` + RTL tests
-- [ ] 4.4 TDD — Confidence-promotion flow (only editor sets `user_confirmed` on blur)
-- [ ] 4.5 Update `editor.tsx` + `editor-toolbar.tsx` + `section-node.tsx` for `NEXT_PUBLIC_STRUCTURED_INPUT`
+- [x] 4.1 TDD — `web/lib/editor/schema/jsonresume.ts` Zod schemas `.strict()` — **PR 4a done** (commit pending). 12 spec scenarios + 18 hardening cases across 1 test file. Sections covered: basics, work, education, skills, projects, certificates, languages, awards, interests, references, meta. Colombian `datosPersonales` extension under basics (cedula, nacionalidad, estadoCivil, libretaMilitar, rh). `ConfidenceMarker` re-defined here as `z.enum(['inferred', 'explicit', 'user_confirmed'])` to keep this module self-contained. Types exported: `Basics`, `Work`, `Education`, `Skills`, `Projects`, `Certificates`, `Languages`, `CvDocument` (all inferred via `z.infer`). `endDate` accepts `YYYY-MM | "Present" | null`. Work temporal logic: `startDate <= endDate` (refined) when endDate is a date; skipped when `"Present"`/`null`. Phone regex `^\+?\d{7,15}$`. URL helper `urlOrEmpty = "" | url()`. `cvDocumentSchema` requires `meta.engineVersion === "2.0.0"` (SemVer seal).
+- [ ] 4.2 TDD — `web/lib/editor/types.ts` → JSON Resume compatible; keep legacy for v1 (PR 4b)
+- [ ] 4.3 TDD — Section forms `BasicsForm`/`WorkList`/`EducationList`/`SkillsByCategory` + RTL tests (PR 4c)
+- [ ] 4.4 TDD — Confidence-promotion flow (only editor sets `user_confirmed` on blur) (PR 4d)
+- [ ] 4.5 Update `editor.tsx` + `editor-toolbar.tsx` + `section-node.tsx` for `NEXT_PUBLIC_STRUCTURED_INPUT` (PR 4e)
 
 ### PR 5 — Web analyzer + JobSpec form + observability
 - [ ] 5.1 TDD — `web/components/analyzer/job-spec-form.tsx` mandatory (Zod validation) + RTL tests
