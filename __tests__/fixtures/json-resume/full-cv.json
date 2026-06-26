@@ -1,0 +1,302 @@
+{
+  "basics": {
+    "name": "Carlos Ramírez",
+    "email": "carlos.ramirez@example.com",
+    "phone": "+14155551234",
+    "location": "San Francisco, CA, USA",
+    "url": "https://carlosramirez.io",
+    "profiles": [
+      {
+        "network": "LinkedIn",
+        "username": "carlosramirez",
+        "url": "https://linkedin.com/in/carlosramirez"
+      },
+      {
+        "network": "GitHub",
+        "username": "carlosramirez",
+        "url": "https://github.com/carlosramirez"
+      },
+      {
+        "network": "Twitter",
+        "username": "carlosramirez",
+        "url": "https://twitter.com/carlosramirez"
+      }
+    ],
+    "summary": "Staff engineer with 12+ years of experience across fintech, edtech, and developer tooling. Passionate about typed languages, deterministic systems, and product-engineering collaboration.",
+    "confidence": {
+      "name": "user_confirmed",
+      "email": "user_confirmed",
+      "phone": "user_confirmed",
+      "location": "user_confirmed",
+      "url": "user_confirmed",
+      "profiles": "user_confirmed",
+      "summary": "user_confirmed",
+      "datosPersonales": "user_confirmed"
+    }
+  },
+  "work": [
+    {
+      "name": "Stripe",
+      "position": "Staff Engineer",
+      "location": "South San Francisco, CA",
+      "url": "https://stripe.com",
+      "startDate": "2021-06",
+      "endDate": "Present",
+      "summary": "Tech-lead for the fraud-detection platform.",
+      "highlights": [
+        "Designed real-time risk scoring pipeline (Kafka + Flink)",
+        "Mentored 6 senior engineers across two teams"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "user_confirmed",
+        "highlights": "user_confirmed"
+      }
+    },
+    {
+      "name": "Plaid",
+      "position": "Senior Engineer",
+      "location": "San Francisco, CA",
+      "startDate": "2018-03",
+      "endDate": "2021-05",
+      "summary": "Backend on the bank-link ingestion team.",
+      "highlights": [
+        "Owned the OAuth flow for 4000+ financial institutions",
+        "Cut ingestion failures by 60% via retry pipeline"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "inferred",
+        "highlights": "inferred"
+      }
+    },
+    {
+      "name": "Coursera",
+      "position": "Software Engineer",
+      "location": "Mountain View, CA",
+      "startDate": "2015-08",
+      "endDate": "2018-02",
+      "summary": "Full-stack on the learner dashboard.",
+      "highlights": [
+        "Built the certificate-verification service",
+        "Migrated dashboard from Angular to React"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "inferred",
+        "highlights": "inferred"
+      }
+    }
+  ],
+  "education": [
+    {
+      "institution": "Stanford University",
+      "url": "https://stanford.edu",
+      "area": "Computer Science",
+      "studyType": "MSc",
+      "startDate": "2013-09",
+      "endDate": "2015-06",
+      "score": "3.9/4.0",
+      "confidence": {
+        "institution": "user_confirmed",
+        "area": "user_confirmed",
+        "studyType": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "score": "user_confirmed"
+      }
+    },
+    {
+      "institution": "UC Berkeley",
+      "url": "https://berkeley.edu",
+      "area": "EECS",
+      "studyType": "BSc",
+      "startDate": "2009-09",
+      "endDate": "2013-05",
+      "score": "3.8/4.0",
+      "confidence": {
+        "institution": "user_confirmed",
+        "area": "user_confirmed",
+        "studyType": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "score": "user_confirmed"
+      }
+    }
+  ],
+  "skills": [
+    {
+      "name": "Languages",
+      "level": "Expert",
+      "keywords": ["TypeScript", "Python", "Rust", "Go", "SQL"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Frameworks",
+      "level": "Expert",
+      "keywords": ["Next.js", "React", "FastAPI", "Django", "Axum"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Data",
+      "level": "Advanced",
+      "keywords": ["PostgreSQL", "Redis", "Kafka", "Flink", "Snowflake"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Cloud",
+      "level": "Advanced",
+      "keywords": ["AWS", "GCP", "Terraform", "Kubernetes"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    }
+  ],
+  "projects": [
+    {
+      "name": "openresume-fmt",
+      "description": "Open-source formatter/validator for the JSON Resume schema.",
+      "highlights": [
+        "500+ GitHub stars",
+        "Used in 3 production ATS-adjacent tools"
+      ],
+      "keywords": ["TypeScript", "Zod", "JSON Schema"],
+      "startDate": "2022-01",
+      "endDate": "2024-04",
+      "url": "https://github.com/carlosramirez/openresume-fmt",
+      "roles": ["Author", "Maintainer"],
+      "entity": "Personal",
+      "type": "open-source",
+      "confidence": {
+        "name": "user_confirmed",
+        "description": "user_confirmed",
+        "highlights": "user_confirmed",
+        "keywords": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "url": "user_confirmed",
+        "roles": "user_confirmed"
+      }
+    }
+  ],
+  "certificates": [
+    {
+      "name": "AWS Solutions Architect — Professional",
+      "date": "2022-11",
+      "issuer": "Amazon Web Services",
+      "url": "https://aws.amazon.com/certification/",
+      "confidence": {
+        "name": "user_confirmed",
+        "date": "user_confirmed",
+        "issuer": "user_confirmed",
+        "url": "user_confirmed"
+      }
+    },
+    {
+      "name": "Certified Kubernetes Administrator",
+      "date": "2020-06",
+      "issuer": "Cloud Native Computing Foundation",
+      "url": "https://www.cncf.io/certification/cka/",
+      "confidence": {
+        "name": "user_confirmed",
+        "date": "user_confirmed",
+        "issuer": "user_confirmed",
+        "url": "user_confirmed"
+      }
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "fluency": "Native",
+      "confidence": {
+        "language": "user_confirmed",
+        "fluency": "user_confirmed"
+      }
+    },
+    {
+      "language": "Spanish",
+      "fluency": "Professional working",
+      "confidence": {
+        "language": "user_confirmed",
+        "fluency": "user_confirmed"
+      }
+    },
+    {
+      "language": "Portuguese",
+      "fluency": "Limited working",
+      "confidence": {
+        "language": "user_confirmed",
+        "fluency": "user_confirmed"
+      }
+    }
+  ],
+  "awards": [
+    {
+      "title": "Engineering Excellence Award",
+      "date": "2023-05",
+      "awarder": "Stripe",
+      "summary": "Top 5% of engineers company-wide for cross-team impact.",
+      "confidence": {
+        "title": "user_confirmed",
+        "date": "user_confirmed",
+        "awarder": "user_confirmed",
+        "summary": "user_confirmed"
+      }
+    }
+  ],
+  "interests": [
+    {
+      "name": "Functional programming",
+      "keywords": ["Haskell", "OCaml", "Elixir"],
+      "confidence": {
+        "name": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Climbing",
+      "keywords": ["bouldering", "sport", "trad"],
+      "confidence": {
+        "name": "user_confirmed",
+        "keywords": "user_confirmed"
+      }
+    }
+  ],
+  "references": [
+    {
+      "name": "Jane Doe, Engineering Manager at Stripe",
+      "reference": "Carlos is one of the most thoughtful staff engineers I've worked with. He pairs deep technical judgment with clear written communication.",
+      "confidence": {
+        "name": "user_confirmed",
+        "reference": "user_confirmed"
+      }
+    }
+  ],
+  "meta": {
+    "engineVersion": "2.0.0"
+  }
+}

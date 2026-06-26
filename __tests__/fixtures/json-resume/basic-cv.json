@@ -1,0 +1,106 @@
+{
+  "basics": {
+    "name": "María González",
+    "email": "maria.gonzalez@example.co",
+    "phone": "+573001234567",
+    "location": "Bogotá, Colombia",
+    "url": "https://maria-gonzalez.dev",
+    "profiles": [
+      {
+        "network": "LinkedIn",
+        "username": "mariagonzalez",
+        "url": "https://linkedin.com/in/mariagonzalez"
+      },
+      {
+        "network": "GitHub",
+        "username": "mariagonzalez",
+        "url": "https://github.com/mariagonzalez"
+      }
+    ],
+    "summary": "Senior backend engineer with 6+ years building distributed systems.",
+    "confidence": {
+      "name": "user_confirmed",
+      "email": "user_confirmed",
+      "phone": "user_confirmed",
+      "location": "user_confirmed",
+      "url": "user_confirmed",
+      "profiles": "user_confirmed",
+      "summary": "inferred",
+      "datosPersonales": "inferred"
+    }
+  },
+  "work": [
+    {
+      "name": "Acme Corp",
+      "position": "Senior Backend Engineer",
+      "location": "Remote",
+      "url": "https://acme.example.com",
+      "startDate": "2020-01",
+      "endDate": "Present",
+      "summary": "Led team of 5 engineers building payment processing platform.",
+      "highlights": [
+        "Reduced p99 latency by 40% via caching layer",
+        "Migrated monolith to event-driven services"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "inferred",
+        "highlights": "inferred"
+      }
+    }
+  ],
+  "education": [
+    {
+      "institution": "Universidad Nacional de Colombia",
+      "url": "https://unal.edu.co",
+      "area": "Systems Engineering",
+      "studyType": "Bachelor",
+      "startDate": "2014-01",
+      "endDate": "2019-12",
+      "score": "4.2/5.0",
+      "confidence": {
+        "institution": "user_confirmed",
+        "area": "user_confirmed",
+        "studyType": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "score": "inferred"
+      }
+    }
+  ],
+  "skills": [
+    {
+      "name": "Languages",
+      "keywords": ["TypeScript", "Python", "Go"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "inferred",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Frameworks",
+      "keywords": ["Next.js", "FastAPI", "Gin"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "inferred",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Infrastructure",
+      "keywords": ["PostgreSQL", "Redis", "Kafka"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "inferred",
+        "keywords": "user_confirmed"
+      }
+    }
+  ],
+  "meta": {
+    "engineVersion": "2.0.0"
+  }
+}

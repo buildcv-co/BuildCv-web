@@ -1,0 +1,150 @@
+{
+  "basics": {
+    "name": "Andrés Felipe Pérez",
+    "email": "andres.perez@example.co",
+    "phone": "+573156789012",
+    "location": "Medellín, Antioquia, Colombia",
+    "url": "https://andresperez.co",
+    "profiles": [
+      {
+        "network": "LinkedIn",
+        "username": "andresperez",
+        "url": "https://linkedin.com/in/andresperez"
+      }
+    ],
+    "summary": "Ingeniero de software con 8 años de experiencia en banca y fintech. Apasionado por sistemas deterministas y arquitectura limpia.",
+    "datosPersonales": {
+      "cedula": "1234567890",
+      "nacionalidad": "CO",
+      "estadoCivil": "casado",
+      "libretaMilitar": "no_aplica",
+      "rh": "O+"
+    },
+    "confidence": {
+      "name": "user_confirmed",
+      "email": "user_confirmed",
+      "phone": "user_confirmed",
+      "location": "user_confirmed",
+      "url": "user_confirmed",
+      "profiles": "user_confirmed",
+      "summary": "user_confirmed",
+      "datosPersonales": "user_confirmed"
+    }
+  },
+  "work": [
+    {
+      "name": "Bancolombia",
+      "position": "Senior Software Engineer",
+      "location": "Medellín, Colombia",
+      "startDate": "2019-08",
+      "endDate": "Present",
+      "summary": "Tech-lead en el equipo de pagos digitales.",
+      "highlights": [
+        "Lideré la migración del core de transferencias a arquitectura hexagonal",
+        "Reduje el tiempo de procesamiento de pagos en 35%"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "user_confirmed",
+        "highlights": "user_confirmed"
+      }
+    },
+    {
+      "name": "Rappi",
+      "position": "Software Engineer",
+      "location": "Bogotá, Colombia",
+      "startDate": "2016-02",
+      "endDate": "2019-07",
+      "summary": "Backend en el equipo de pagos.",
+      "highlights": [
+        "Construí el servicio de antifraude en tiempo real",
+        "Migré el sistema de comisiones a un event-driven pipeline"
+      ],
+      "confidence": {
+        "name": "user_confirmed",
+        "position": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "summary": "inferred",
+        "highlights": "inferred"
+      }
+    }
+  ],
+  "education": [
+    {
+      "institution": "Universidad de Antioquia",
+      "url": "https://udea.edu.co",
+      "area": "Ingeniería de Sistemas",
+      "studyType": "Pregrado",
+      "startDate": "2011-01",
+      "endDate": "2016-11",
+      "score": "4.5/5.0",
+      "confidence": {
+        "institution": "user_confirmed",
+        "area": "user_confirmed",
+        "studyType": "user_confirmed",
+        "startDate": "user_confirmed",
+        "endDate": "user_confirmed",
+        "score": "user_confirmed"
+      }
+    }
+  ],
+  "skills": [
+    {
+      "name": "Lenguajes",
+      "keywords": ["TypeScript", "Java", "Kotlin"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "inferred",
+        "keywords": "user_confirmed"
+      }
+    },
+    {
+      "name": "Frameworks",
+      "keywords": ["Spring Boot", "Next.js", "Ktor"],
+      "confidence": {
+        "name": "user_confirmed",
+        "level": "inferred",
+        "keywords": "user_confirmed"
+      }
+    }
+  ],
+  "certificates": [
+    {
+      "name": "AWS Solutions Architect — Associate",
+      "date": "2021-09",
+      "issuer": "Amazon Web Services",
+      "url": "https://aws.amazon.com/certification/",
+      "confidence": {
+        "name": "user_confirmed",
+        "date": "user_confirmed",
+        "issuer": "user_confirmed",
+        "url": "user_confirmed"
+      }
+    }
+  ],
+  "languages": [
+    {
+      "language": "Español",
+      "fluency": "Nativo",
+      "confidence": {
+        "language": "user_confirmed",
+        "fluency": "user_confirmed"
+      }
+    },
+    {
+      "language": "Inglés",
+      "fluency": "B2",
+      "confidence": {
+        "language": "user_confirmed",
+        "fluency": "user_confirmed"
+      }
+    }
+  ],
+  "meta": {
+    "engineVersion": "2.0.0"
+  }
+}
