@@ -160,6 +160,8 @@ export const copy = {
       manualFallbackDescription: "Pegá el texto de tu CV acá y continuamos igual.",
       manualFallbackCta: "Pegar texto manualmente",
       manualFallbackContinue: "Continuar con este texto",
+      metaDescription:
+        "Subí tu CV en PDF o DOCX y extraemos el texto para que no tengas que copiar a mano. Sin garantías, sin guardado: se procesa y se descarta.",
       dragHere: "Arrastra tu CV aquí",
       dragHereHint: "Arrastra o selecciona un archivo PDF o DOCX. Tamaño máximo: 5 MB.",
       or: "o",

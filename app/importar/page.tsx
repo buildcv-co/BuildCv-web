@@ -5,8 +5,7 @@ import { copy } from "@/lib/copy/es";
 
 export const metadata: Metadata = {
   title: `Cargar CV — ${copy.appName}`,
-  description:
-    "Sube tu CV en PDF o DOCX y extraemos el texto para que no tengas que copiar a mano. Tamaño máximo: 5 MB.",
+  description: copy.import.page.metaDescription,
 };
 
 export default function ImportarPage() {
