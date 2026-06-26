@@ -33,12 +33,37 @@ Chain strategy: feature-branch-chain
 - [x] 2.6 TDD — `ImportResult` v2 + `ImportResponseMapper` + endpoints (micro-batch 2e) — `ImportResult` ahora es discriminated union (`LegacyImportResult` para v1, `StructuredImportResult` con `Cv: CvDocument` para v2); `ImportEndpoints` acepta `?engineVersion=` / `X-Engine-Version` (default `2.0.0`, 400 si desconocido con código `IMPORT_UNSUPPORTED_ENGINE_VERSION`); `ImportResponseMapper.Map` retorna `object` mapeando por variante; shim `AdaptToLegacy` retirado del handler; web consumer (BFF + import button) negocia v2 por header y discrimina con `isImportResultV2`.
 
 ### PR 3 — Scoring engine v2.0.0
-- [ ] 3.1 RED — Property determinism test (1000 parallel → byte-identical)
-- [ ] 3.2 RED — Per-section + red-flag tests (gaps > 6mo, job-hop ≥3 <18mo/5y)
-- [ ] 3.3 GREEN — Bump `ScoringEngine.cs` `Version` to `"2.0.0"`; `ScoreV2(cv, job)` pure
-- [ ] 3.4 GREEN — Add `PerSectionScore`, `RedFlag`, `SectionId`, `RedFlagSeverity` to `ScoreResult.cs`
-- [ ] 3.5 Modify `ScoreCvHandler.cs` accept discriminated union; bypass regex when structured
-- [ ] 3.6 Update `ScoreResponseMapper.cs` + `ScoringEndpoints.cs`
+> **Decomposed into micro-batches 3a–3d** for reviewable scope. Each
+> micro-batch is one atomic commit; no endpoint touched until 3c.
+
+- [x] **3a** — Domain types `PerSectionScore`, `RedFlag`, `RedFlagSeverity`,
+  `ScoreResultV2` with sealed `CurrentEngineVersion = "2.0.0"`. Pure
+  factory `ScoreResultV2.FromLegacy(...)` returns zero PerSection +
+  empty RedFlags (real scoring in 3b). 6 tests RED→GREEN on
+  `tests/BuildCv.Domain.Tests/Scoring/ScoreResultV2Tests.cs`. Commit
+  `1628a5f`. **Deviation**: types live in their own files (not appended
+  to `ScoreResult.cs`) — better separation; `RedFlag` uses non-positional
+  record + explicit ctor to work around Roslyn regression on
+  SDK 10.0.108/Linux that rejects executable statements inside the
+  primary-constructor body of positional records (same call-site
+  signature `(string, RedFlagSeverity, string)` preserved).
+- [x] **3b** — Per-section scoring pure function in `ScoringEngine.ScoreV2`
+  (renormalization on missing section, contact hard-gate)
+- [ ] **3c** — `ScoringEngine.Version` bump to `"2.0.0"` + SemVer seal;
+  `ScoreCvHandler` switches on `engineVersion`; `ScoreResponseMapper`
+  exposes `perSection` + `redFlags` only when v2; legacy v1 path intact
+- [ ] **3d** — Property-based determinism test (1000 parallel runs →
+  byte-identical output, no `DateTime.UtcNow` / `Guid.NewGuid` on calc
+  path)
+
+Decomposed from original tasks 3.1–3.6:
+
+- [ ] 3.1 RED — Property determinism test (1000 parallel → byte-identical) → 3d
+- [ ] 3.2 RED — Per-section + red-flag tests (gaps > 6mo, job-hop ≥3 <18mo/5y) → 3b
+- [ ] 3.3 GREEN — Bump `ScoringEngine.cs` `Version` to `"2.0.0"`; `ScoreV2(cv, job)` pure → 3b+3c
+- [ ] 3.4 GREEN — Add `PerSectionScore`, `RedFlag`, `SectionId`, `RedFlagSeverity` → 3a (done); `SectionId` deferred to 3b if needed
+- [ ] 3.5 Modify `ScoreCvHandler.cs` accept discriminated union; bypass regex when structured → 3c
+- [ ] 3.6 Update `ScoreResponseMapper.cs` + `ScoringEndpoints.cs` → 3c
 
 ## Phase 3: Web Editor + Analyzer (PR 4, PR 5)
 
