@@ -7,6 +7,22 @@ export const copy = {
   appName: "BuildCv",
   nav: {
     analyze: "Analizar mi CV",
+    global: {
+      home: "Inicio",
+      analyze: "Analizar",
+      import: "Importar CV",
+      subscriptions: "Suscripciones",
+      account: "Iniciar sesión",
+    },
+    mobileMenu: {
+      openLabel: "Abrir menú",
+      closeLabel: "Cerrar menú",
+      dialogLabel: "Menú principal",
+    },
+  },
+  localModePill: {
+    label: "Modo local",
+    description: "Modo local activo, sin autenticación requerida.",
   },
   home: {
     kicker: "Asistente de CV con IA · Colombia",
