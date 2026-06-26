@@ -1,5 +1,8 @@
 // Tipos que reflejan el contrato JSON de POST /api/v1/score (formato congelado).
 
+import type { CvDocument } from "@/lib/job/cv-document";
+import type { JobSpec } from "@/lib/job/job-spec";
+
 export type Confidence = "low" | "medium" | "high";
 
 export type ComponentId =
@@ -301,5 +304,210 @@ export function isImportResult(value: unknown): value is ImportResult {
   if (!SEMVER_RE.test(value.engineVersion)) return false;
   if (typeof value.traceId !== "string" || value.traceId.length === 0) return false;
   if (value.traceId.length > 100) return false;
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 021-structured-cv-import-and-job-input — ScoreCvRequest discriminated
+// union + ScoreResponse v2 (PR1).
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Request al backend con discriminador `kind` + `engineVersion`. Mezclar
+ * `kind: "structured"` con `engineVersion: "1.0.0"` (o viceversa) es
+ * VERSION_MISMATCH y debe rechazarse antes de abrir conexión server-side
+ * (Constitution Art. V).
+ */
+export type StructuredScoreRequest = {
+  kind: "structured";
+  cv: CvDocument;
+  job: JobSpec;
+  engineVersion: "2.0.0";
+};
+
+export type LegacyScoreRequest = {
+  kind: "legacy";
+  cvText: string;
+  jobText: string;
+  engineVersion: "1.0.0";
+};
+
+export type ScoreCvRequest = StructuredScoreRequest | LegacyScoreRequest;
+
+export type ScoreBand = "low" | "mid" | "high" | "top";
+
+export type RedFlagSeverity = "low" | "medium" | "high";
+
+export interface PerSectionScore {
+  experience: number | null;
+  education: number | null;
+  skills: number | null;
+  certifications: number | null;
+  contact: number | null;
+}
+
+export interface RedFlag {
+  code: string;
+  severity: RedFlagSeverity;
+  message: string;
+}
+
+export interface ScoreCvResponseV2 {
+  overallScore: number;
+  band: ScoreBand;
+  perSection: PerSectionScore;
+  redFlags: RedFlag[];
+  honestyNotice: string;
+  gatesApplied: string[];
+  engineVersion: "2.0.0";
+  lexiconVersion: string;
+  traceId: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Type guards — defienden contra respuestas malformadas del BFF.
+// ─────────────────────────────────────────────────────────────────────
+
+const SCORE_BANDS: ReadonlySet<ScoreBand> = new Set(["low", "mid", "high", "top"]);
+const RED_FLAG_SEVERITIES: ReadonlySet<RedFlagSeverity> = new Set([
+  "low",
+  "medium",
+  "high",
+]);
+const CONFIDENCE_MARKERS: ReadonlySet<string> = new Set([
+  "inferred",
+  "explicit",
+  "user_confirmed",
+]);
+
+export function isScoreBand(value: unknown): value is ScoreBand {
+  return typeof value === "string" && SCORE_BANDS.has(value as ScoreBand);
+}
+
+export function isRedFlagSeverity(value: unknown): value is RedFlagSeverity {
+  return typeof value === "string" && RED_FLAG_SEVERITIES.has(value as RedFlagSeverity);
+}
+
+function isBoundedScore(value: unknown): value is number | null {
+  return value === null || (typeof value === "number" && value >= 0 && value <= 100);
+}
+
+function isConfidenceMarker(value: unknown): value is string {
+  return typeof value === "string" && CONFIDENCE_MARKERS.has(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+function isPerSectionConfidence(
+  value: unknown,
+): value is Record<string, unknown> {
+  if (!isRecord(value)) return false;
+  const required = [
+    "name",
+    "email",
+    "phone",
+    "location",
+    "url",
+    "profiles",
+    "summary",
+    "datosPersonales",
+  ];
+  return required.every((k) => isConfidenceMarker(value[k]));
+}
+
+function isBasics(value: unknown): value is CvDocument["basics"] {
+  if (!isRecord(value)) return false;
+  if (typeof value.name !== "string" || value.name.length === 0) return false;
+  if (typeof value.email !== "string" || value.email.length === 0) return false;
+  if (!Array.isArray(value.profiles)) return false;
+  if (!isPerSectionConfidence(value.confidence)) return false;
+  return true;
+}
+
+function isTaggedArray<T>(
+  value: unknown,
+  entryGuard: (v: unknown) => boolean,
+): value is T[] {
+  return Array.isArray(value) && value.every(entryGuard);
+}
+
+export function isCvDocument(value: unknown): value is CvDocument {
+  if (!isRecord(value)) return false;
+  if (!isBasics(value.basics)) return false;
+  if (!isTaggedArray(value.work, (v) => isRecord(v) && isRecord(v.entry) && isRecord(v.confidence))) {
+    return false;
+  }
+  if (!isTaggedArray(value.education, (v) => isRecord(v))) return false;
+  if (!isTaggedArray(value.skills, (v) => isRecord(v))) return false;
+  if (!isTaggedArray(value.projects, (v) => isRecord(v))) return false;
+  if (!isTaggedArray(value.certificates, (v) => isRecord(v))) return false;
+  if (!isTaggedArray(value.languages, (v) => isRecord(v))) return false;
+  if (!isRecord(value.meta)) return false;
+  if (value.meta.engineVersion !== "2.0.0") return false;
+  return true;
+}
+
+export function isStructuredScoreRequest(
+  value: unknown,
+): value is StructuredScoreRequest {
+  if (!isRecord(value)) return false;
+  if (value.kind !== "structured") return false;
+  if (value.engineVersion !== "2.0.0") return false;
+  if (!isCvDocument(value.cv)) return false;
+  if (!isRecord(value.job)) return false;
+  if (typeof value.job.title !== "string") return false;
+  return true;
+}
+
+export function isLegacyScoreRequest(value: unknown): value is LegacyScoreRequest {
+  if (!isRecord(value)) return false;
+  if (value.kind !== "legacy") return false;
+  if (value.engineVersion !== "1.0.0") return false;
+  if (typeof value.cvText !== "string") return false;
+  if (typeof value.jobText !== "string") return false;
+  return true;
+}
+
+export function isPerSectionScore(value: unknown): value is PerSectionScore {
+  if (!isRecord(value)) return false;
+  const required = ["experience", "education", "skills", "certifications", "contact"];
+  if (!required.every((k) => k in value)) return false;
+  return (
+    isBoundedScore(value.experience) &&
+    isBoundedScore(value.education) &&
+    isBoundedScore(value.skills) &&
+    isBoundedScore(value.certifications) &&
+    isBoundedScore(value.contact)
+  );
+}
+
+export function isRedFlag(value: unknown): value is RedFlag {
+  if (!isRecord(value)) return false;
+  if (typeof value.code !== "string" || value.code.length === 0) return false;
+  if (value.code.length > 80) return false;
+  if (!isRedFlagSeverity(value.severity)) return false;
+  if (typeof value.message !== "string" || value.message.length === 0) return false;
+  if (value.message.length > 500) return false;
+  return true;
+}
+
+export function isScoreResponseV2(value: unknown): value is ScoreCvResponseV2 {
+  if (!isRecord(value)) return false;
+  if (typeof value.overallScore !== "number" || value.overallScore < 0 || value.overallScore > 100) {
+    return false;
+  }
+  if (!isScoreBand(value.band)) return false;
+  if (!isPerSectionScore(value.perSection)) return false;
+  if (!Array.isArray(value.redFlags)) return false;
+  if (value.redFlags.length > 50) return false;
+  if (!value.redFlags.every(isRedFlag)) return false;
+  if (typeof value.honestyNotice !== "string" || value.honestyNotice.length === 0) return false;
+  if (!isStringArray(value.gatesApplied)) return false;
+  if (value.gatesApplied.length > 20) return false;
+  if (value.engineVersion !== "2.0.0") return false;
+  if (typeof value.lexiconVersion !== "string" || value.lexiconVersion.length === 0) return false;
+  if (typeof value.traceId !== "string" || value.traceId.length === 0) return false;
   return true;
 }

@@ -6,6 +6,12 @@ import {
   isDetectedSection,
   isImportWarning,
   isImportResult,
+  isStructuredScoreRequest,
+  isLegacyScoreRequest,
+  isScoreResponseV2,
+  isScoreBand,
+  isPerSectionScore,
+  isRedFlag,
   type AdaptationResult,
   type ValidationReport,
   type EntityInvention,
@@ -17,6 +23,11 @@ import {
   type ExportErrorKind,
   type ExportErrorCode,
   type ExportErrorShape,
+  type StructuredScoreRequest,
+  type LegacyScoreRequest,
+  type ScoreBand,
+  type PerSectionScore,
+  type RedFlag,
 } from "./types";
 
 const validInvention: EntityInvention = {
@@ -418,5 +429,259 @@ describe("ImportErrorKind union", () => {
     expect(kinds).toHaveLength(8);
     expect(kinds[0]).toBe("network");
     expect(kinds[7]).toBe("unknown");
+  });
+});
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — ScoreCvRequest discriminated
+// union + ScoreResponse v2 (PR1)
+// =====================================================================
+
+const validStructuredRequest: StructuredScoreRequest = {
+  kind: "structured",
+  // CvDocument se completa en PR2; para PR1 basta con shape estable.
+  cv: {
+    basics: {
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      profiles: [],
+      confidence: {
+        name: "inferred",
+        email: "explicit",
+        phone: "inferred",
+        location: "inferred",
+        url: "inferred",
+        profiles: "inferred",
+        summary: "inferred",
+        datosPersonales: "inferred",
+      },
+    },
+    work: [],
+    education: [],
+    skills: [],
+    projects: [],
+    certificates: [],
+    languages: [],
+    meta: { engineVersion: "2.0.0" },
+  },
+  job: {
+    title: "Senior Backend Engineer",
+    company: "Acme S.A.",
+    description: "Buscamos ingeniero backend con .NET 10.",
+    location: "Bogotá, Colombia",
+    employmentType: "full_time",
+    requirements: ["5 años de experiencia en C#"],
+  },
+  engineVersion: "2.0.0",
+};
+
+const validLegacyRequest: LegacyScoreRequest = {
+  kind: "legacy",
+  cvText: "Curriculum extenso con experiencia en backend y frontend...",
+  jobText: "Vacante con requisitos de .NET 10, PostgreSQL y Redis.",
+  engineVersion: "1.0.0",
+};
+
+describe("ScoreCvRequest — discriminada por `kind` + `engineVersion`", () => {
+  it("acepta un request structured (kind='structured', engineVersion='2.0.0')", () => {
+    expect(isStructuredScoreRequest(validStructuredRequest)).toBe(true);
+  });
+
+  it("acepta un request legacy (kind='legacy', engineVersion='1.0.0')", () => {
+    expect(isLegacyScoreRequest(validLegacyRequest)).toBe(true);
+  });
+
+  it("rechaza structured con engineVersion distinto de '2.0.0' (parity con backend)", () => {
+    const mismatch = {
+      ...validStructuredRequest,
+      engineVersion: "1.0.0" as const,
+    };
+    expect(isStructuredScoreRequest(mismatch)).toBe(false);
+  });
+
+  it("rechaza legacy con engineVersion distinto de '1.0.0' (parity con backend)", () => {
+    const mismatch = {
+      ...validLegacyRequest,
+      engineVersion: "2.0.0" as const,
+    };
+    expect(isLegacyScoreRequest(mismatch)).toBe(false);
+  });
+
+  it("rechaza payloads sin `kind`", () => {
+    const noKind = { ...validStructuredRequest };
+    delete (noKind as { kind?: string }).kind;
+    expect(isStructuredScoreRequest(noKind)).toBe(false);
+    expect(isLegacyScoreRequest(noKind)).toBe(false);
+  });
+
+  it("rechaza null y primitivos", () => {
+    expect(isStructuredScoreRequest(null)).toBe(false);
+    expect(isStructuredScoreRequest(undefined)).toBe(false);
+    expect(isStructuredScoreRequest("foo")).toBe(false);
+    expect(isStructuredScoreRequest(42)).toBe(false);
+    expect(isLegacyScoreRequest(null)).toBe(false);
+    expect(isLegacyScoreRequest("foo")).toBe(false);
+  });
+});
+
+describe("ScoreBand — bandas cualitativas (FR-010, Constitution Art. IV)", () => {
+  it("acepta exactamente las 4 bandas: low, mid, high, top", () => {
+    const bands: ScoreBand[] = ["low", "mid", "high", "top"];
+    expect(bands).toHaveLength(4);
+    expect(isScoreBand("low")).toBe(true);
+    expect(isScoreBand("mid")).toBe(true);
+    expect(isScoreBand("high")).toBe(true);
+    expect(isScoreBand("top")).toBe(true);
+  });
+
+  it("rechaza bandas fuera del enum cerrado", () => {
+    expect(isScoreBand("excelente")).toBe(false);
+    expect(isScoreBand("")).toBe(false);
+    expect(isScoreBand("Low")).toBe(false);
+  });
+});
+
+describe("PerSectionScore — 5 secciones (FR score-section-breakdown)", () => {
+  it("acepta perSection con los 5 campos requeridos (cada uno 0-100 o null)", () => {
+    const perSection: PerSectionScore = {
+      experience: 85,
+      education: 70,
+      skills: 100,
+      certifications: null,
+      contact: 90,
+    };
+    expect(isPerSectionScore(perSection)).toBe(true);
+  });
+
+  it("acepta perSection con todos null (sección ausente → renormalizado)", () => {
+    const allNull: PerSectionScore = {
+      experience: null,
+      education: null,
+      skills: null,
+      certifications: null,
+      contact: null,
+    };
+    expect(isPerSectionScore(allNull)).toBe(true);
+  });
+
+  it("rechaza perSection con score > 100", () => {
+    expect(
+      isPerSectionScore({ experience: 101, education: 0, skills: 0, certifications: 0, contact: 0 }),
+    ).toBe(false);
+  });
+
+  it("rechaza perSection con score < 0", () => {
+    expect(
+      isPerSectionScore({ experience: -1, education: 0, skills: 0, certifications: 0, contact: 0 }),
+    ).toBe(false);
+  });
+
+  it("rechaza perSection sin uno de los campos requeridos", () => {
+    expect(
+      isPerSectionScore({ experience: 50, education: 50, skills: 50, certifications: 50 }),
+    ).toBe(false);
+  });
+});
+
+describe("RedFlag — señal sin deducción (Art. I)", () => {
+  it("acepta redFlag completo (code, severity, message)", () => {
+    const flag: RedFlag = {
+      code: "EMPLOYMENT_GAP_6M",
+      severity: "medium",
+      message: "Hueco laboral de 8 meses entre 2022-01 y 2022-09.",
+    };
+    expect(isRedFlag(flag)).toBe(true);
+  });
+
+  it("rechaza redFlag con severity inválida", () => {
+    expect(
+      isRedFlag({ code: "X", severity: "critical", message: "y" }),
+    ).toBe(false);
+  });
+
+  it("rechaza redFlag con code vacío", () => {
+    expect(isRedFlag({ code: "", severity: "low", message: "y" })).toBe(false);
+  });
+
+  it("rechaza redFlag con message vacío", () => {
+    expect(isRedFlag({ code: "X", severity: "low", message: "" })).toBe(false);
+  });
+});
+
+describe("ScoreResponseV2 — respuesta del motor 2.0.0", () => {
+  it("acepta una respuesta v2 con perSection y redFlags", () => {
+    const ok = isScoreResponseV2({
+      overallScore: 82,
+      band: "high",
+      perSection: {
+        experience: 80,
+        education: 70,
+        skills: 100,
+        certifications: null,
+        contact: 90,
+      },
+      redFlags: [
+        {
+          code: "EMPLOYMENT_GAP_6M",
+          severity: "medium",
+          message: "Hueco laboral de 8 meses.",
+        },
+      ],
+      honestyNotice:
+        "Coincidencia con la vacante + legibilidad para sistemas automáticos.",
+      gatesApplied: ["score.min_words", "score.contact.present"],
+      engineVersion: "2.0.0",
+      lexiconVersion: "tech-co-v3",
+      traceId: "0HMVD9F2E5Q2P:00000001",
+    });
+    expect(ok).toBe(true);
+  });
+
+  it("rechaza una respuesta sin overallScore o con band inválida", () => {
+    expect(
+      isScoreResponseV2({
+        overallScore: "x",
+        band: "excelente",
+        perSection: null,
+        redFlags: [],
+        honestyNotice: "x",
+        gatesApplied: [],
+        engineVersion: "2.0.0",
+        lexiconVersion: "v1",
+        traceId: "t",
+      }),
+    ).toBe(false);
+  });
+
+  it("rechaza engineVersion distinto de '2.0.0'", () => {
+    expect(
+      isScoreResponseV2({
+        overallScore: 50,
+        band: "mid",
+        perSection: null,
+        redFlags: [],
+        honestyNotice: "x",
+        gatesApplied: [],
+        engineVersion: "1.0.0",
+        lexiconVersion: "v1",
+        traceId: "t",
+      }),
+    ).toBe(false);
+  });
+
+  it("rechaza perSection inválido", () => {
+    expect(
+      isScoreResponseV2({
+        overallScore: 50,
+        band: "mid",
+        perSection: { experience: 999 },
+        redFlags: [],
+        honestyNotice: "x",
+        gatesApplied: [],
+        engineVersion: "2.0.0",
+        lexiconVersion: "v1",
+        traceId: "t",
+      }),
+    ).toBe(false);
   });
 });
