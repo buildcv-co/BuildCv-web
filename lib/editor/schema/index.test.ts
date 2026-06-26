@@ -14,7 +14,7 @@ import {
   CvSectionSchema,
   EntityRefSchema,
 } from "./index";
-import type { CvDocument, Draft, ProfileSection, ExperienceSection } from "../types";
+import type { LegacyCvDocument, Draft, ProfileSection, ExperienceSection } from "../types";
 
 const ISO_NOW = "2026-06-08T14:30:00.000Z";
 
@@ -56,7 +56,7 @@ function makeExperience(
   };
 }
 
-function makeDoc(overrides: Partial<CvDocument> = {}): CvDocument {
+function makeDoc(overrides: Partial<LegacyCvDocument> = {}): LegacyCvDocument {
   return {
     id: "doc_01",
     version: "0.5.0",

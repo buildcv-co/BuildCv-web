@@ -3,7 +3,7 @@
 > **Entry point oficial al estado del frontend BuildCv.**
 > Cualquier agente o humano que necesite saber "qué UI está hecha, qué UI está en curso, qué UI falta" debe leer esto primero.
 
-**Última actualización:** 2026-06-25 (v0.5.2: navigation + onboarding shipped; pendiente v1 con auth y payments)
+**Última actualización:** 2026-06-26 (v0.5.3: **021-structured-cv-import-and-job-input** 🚧 EN CURSO — final atomic micro-batch PR 6d shipped on `feature/021-structured-cv-import-and-job-input`; JSON Resume `CvDocument` + `ConfidenceMarker` en parsers; `JobSpec` mandatory con Zod; editor open-resume-inspired (`BasicsForm`/`WorkList`/`EducationList`/`SkillsByCategory`); `promoteConfidence` solo en editor on blur (Constitution Art. I); `engineVersion: "2.0.0"` (Art. II seal, response observation tagging via `engineVersion` en `lib/observability`); feature flag `NEXT_PUBLIC_STRUCTURED_INPUT=true` (default en `.env.example` + `.env.local`); 6 chained PRs on feature branch; pending sdd-verify → sdd-archive)
 
 ## Relación con el backend
 
@@ -44,6 +44,7 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 | 009 | `auth-web` | v1 | 📋 PLANEADO | (n/a) |
 | 010 | `payments-web` | v1 | 📋 PLANEADO | (n/a) |
 | 020 | `a11y-automated-audit` | v0.5.3 | 📋 PLANEADO | (n/a) |
+| 021 | `structured-cv-import-and-job-input` (cross-repo: web frontend + api backend) | v0.5.3 | 🚧 EN CURSO (feature-branch-chain, PR 6d final micro-batch shipped; JSON Resume `CvDocument` + `ConfidenceMarker`; `JobSpec` mandatory con Zod; editor open-resume-inspired; `promoteConfidence` solo en editor on blur; `NEXT_PUBLIC_STRUCTURED_INPUT=true` (default); pending sdd-verify → sdd-archive) | (n/a, wires via `/api/{score,import}`) |
 
 ## Leyenda de status
 

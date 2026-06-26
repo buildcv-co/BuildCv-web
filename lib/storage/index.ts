@@ -1,9 +1,9 @@
-import type { CvDocument } from "@/lib/editor/types";
+import type { LegacyCvDocument } from "@/lib/editor/types";
 import { LocalStorageCvStore, type ICvStore } from "./icv-store";
 
 const ISO_EPOCH = new Date(0).toISOString();
 
-export const BLANK_DOCUMENT: CvDocument = {
+export const BLANK_DOCUMENT: LegacyCvDocument = {
   id: "blank",
   version: "0.5.0",
   locale: "es-CO",

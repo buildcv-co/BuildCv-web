@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CvDocument } from "../types";
+import type { LegacyCvDocument } from "../types";
 import { ProfileSectionSchema } from "./profile";
 import { ExperienceSectionSchema } from "./experience";
 import { EducationSectionSchema } from "./education";
@@ -74,11 +74,11 @@ export const DraftSchema = z.object({
   engineVersions: EngineVersionsSchema,
 });
 
-export const CvDocumentLikeSchema = CvDocumentSchema;
+export const LegacyCvDocumentLikeSchema = CvDocumentSchema;
 
 const ISO_EPOCH = new Date(0).toISOString();
 
-export const BLANK_DOCUMENT: CvDocument = Object.freeze({
+export const BLANK_DOCUMENT: LegacyCvDocument = Object.freeze({
   id: "blank",
   version: "0.5.0",
   locale: "es-CO",
@@ -87,4 +87,4 @@ export const BLANK_DOCUMENT: CvDocument = Object.freeze({
   createdAt: ISO_EPOCH,
   updatedAt: ISO_EPOCH,
   source: "blank",
-}) as CvDocument;
+}) as LegacyCvDocument;

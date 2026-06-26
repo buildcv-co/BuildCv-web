@@ -3,7 +3,7 @@ import { parseCvDocument, type ParseContext } from "./parse";
 import { serializeCvDocument } from "./serialize";
 import { CvDocumentSchema } from "../schema";
 import { EntityNotAllowedError } from "../errors";
-import type { CvDocument } from "../types";
+import type { LegacyCvDocument } from "../types";
 
 const EMPTY_CTX: ParseContext = {
   originalEntities: new Set<string>(),
@@ -152,7 +152,7 @@ describe("parseCvDocument — entity rejection (defense in depth Art. I FR-029a)
 
 describe("parseCvDocument — round-trip", () => {
   it("document serializado por serialize() se parsea al mismo CvDocument estructuralmente", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       id: "doc_01",
       version: "0.5.0",
       locale: "es-CO",

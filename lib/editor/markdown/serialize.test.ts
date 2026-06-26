@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { serializeCvDocument } from "./serialize";
 import { BLANK_DOCUMENT } from "../schema";
-import type { CvDocument, CvSection } from "../types";
+import type { LegacyCvDocument, CvSection } from "../types";
 
 const ISO = "2026-06-08T14:30:00.000Z";
 
@@ -67,12 +67,12 @@ describe("serializeCvDocument", () => {
   });
 
   it("documento sin sections ([]) → string vacío", () => {
-    const doc: CvDocument = { ...BLANK_DOCUMENT, sections: [] };
+    const doc: LegacyCvDocument = { ...BLANK_DOCUMENT, sections: [] };
     expect(serializeCvDocument(doc)).toBe("");
   });
 
   it("profile con datos genera heading '## Perfil'", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [profile()],
     };
@@ -81,7 +81,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("incluye fullName, headline, location del profile", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [profile()],
     };
@@ -92,7 +92,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("incluye email y teléfono", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [profile()],
     };
@@ -102,7 +102,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("profile con un link genera [label](url)", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [profile()],
     };
@@ -111,7 +111,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("profile con summary vacío omite bloque summary (no genera 'Resumen:')", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [emptyProfile()],
     };
@@ -120,7 +120,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("profile sin datos significativos se omite (no exporta heading vacío)", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [emptyProfile()],
     };
@@ -129,7 +129,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("experience con bullets genera líneas '- '", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [experience()],
     };
@@ -138,7 +138,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("experience sin bullets ni techStack omite la sección", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         experience({
@@ -164,7 +164,7 @@ describe("serializeCvDocument", () => {
       "languages",
       "other",
     ];
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: allKinds.map((kind, i) => {
         const base = {
@@ -273,7 +273,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("skills con grupos genera '- **Backend**: Node.js'", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -291,7 +291,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("languages genera '- Español · Nativo'", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -309,7 +309,7 @@ describe("serializeCvDocument", () => {
   });
 
   it("es determinista (mismo input → mismo output)", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [profile()],
     };

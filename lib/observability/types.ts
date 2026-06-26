@@ -15,6 +15,14 @@ export interface LogContext {
   readonly appVersion: string;
   readonly buildSha: string;
   readonly locale: string;
+  /**
+   * Tag every observability event with the scoring engine version that
+   * produced the request/response (Constitution Art. II). Lets dashboards
+   * segment v1 (legacy text) vs v2 (structured) score events. Optional
+   * because not every log entry is a score event (e.g. web-vitals, generic
+   * errors). When present, MUST be a non-empty SemVer string.
+   */
+  readonly engineVersion?: string;
 }
 
 export interface LogEntry {
@@ -26,6 +34,13 @@ export interface LogEntry {
   readonly componentStack?: string;
   readonly dedupeKey?: string;
   readonly dedupeCount?: number;
+  /**
+   * Top-level engineVersion tag for score events (Constitution Art. II).
+   * Mirrors `context.engineVersion` so dashboards can filter on a single
+   * field without traversing the context. Use
+   * <see cref="resolveEngineVersion"/> to compute this from a response.
+   */
+  readonly engineVersion?: string;
 }
 
 export type WebVitalName = "LCP" | "FID" | "CLS" | "INP" | "TTFB" | "FCP";

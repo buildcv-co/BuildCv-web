@@ -1,4 +1,4 @@
-import { isImportResult, type ImportErrorKind, type ImportResult } from "./types";
+import { isImportResult, isImportResultV2, type ImportErrorKind, type ImportResult, type ImportResultV2 } from "./types";
 
 export class ImportError extends Error {
   readonly status: number;
@@ -32,6 +32,24 @@ export const ALLOWED_MIMES = [
 type AllowedMime = (typeof ALLOWED_MIMES)[number];
 
 const BFF_PATH = "/api/import";
+
+/**
+ * Versión del motor de import que este cliente negocia con el backend.
+ * El header `X-Engine-Version` viaja en cada request y el backend devuelve
+ * `ImportResultV2` (engineVersion 2.0.0 con `cv: CvDocument` tipado) por
+ * defecto, o `ImportResult` legacy (engineVersion 1.0.0 con `text` + `sections`)
+ * si el cliente envía explícitamente `1.0.0`. PR 2e de 021.
+ */
+export const ENGINE_VERSION = "2.0.0";
+const ENGINE_VERSION_HEADER = "X-Engine-Version";
+
+/**
+ * Respuesta discriminada por `engineVersion`. El import button (005) consume
+ * directamente la variante v2 (`cv: CvDocument`) sin pasar por
+ * `parseCvDocument(text)` — Constitution Art. I: cero invención, el parser del
+ * backend ya marcó cada campo con su ConfidenceMarker.
+ */
+export type ImportResponse = ImportResultV2 | ImportResult;
 
 interface ProblemDetails {
   code?: string;
@@ -69,7 +87,7 @@ export function validateFile(file: File): ValidateFileResult {
 }
 
 /** Llama al BFF same-origin (/api/import). Lanza ImportError si falla. */
-export async function requestImport(file: File): Promise<ImportResult> {
+export async function requestImport(file: File): Promise<ImportResponse> {
   const validation = validateFile(file);
   if (!validation.ok) {
     throw new ImportError({
@@ -89,6 +107,7 @@ export async function requestImport(file: File): Promise<ImportResult> {
       method: "POST",
       body: formData,
       cache: "no-store",
+      headers: { [ENGINE_VERSION_HEADER]: ENGINE_VERSION },
     });
   } catch {
     throw new ImportError({
@@ -181,16 +200,20 @@ export async function requestImport(file: File): Promise<ImportResult> {
     });
   }
 
-  if (!isImportResult(raw)) {
-    throw new ImportError({
-      status: response.status,
-      code: "INVALID_RESPONSE",
-      kind: "validation",
-      message: "Respuesta inválida del servidor. Intenta de nuevo.",
-    });
+  if (isImportResultV2(raw)) {
+    return raw;
   }
 
-  return raw;
+  if (isImportResult(raw)) {
+    return raw;
+  }
+
+  throw new ImportError({
+    status: response.status,
+    code: "INVALID_RESPONSE",
+    kind: "validation",
+    message: "Respuesta inválida del servidor. Intenta de nuevo.",
+  });
 }
 
 function readProblem(raw: unknown): ProblemDetails {

@@ -53,6 +53,82 @@ export const copy = {
     clear: "Limpiar",
     reset: "Analizar otro",
     privacy: "Procesamos en memoria y descartamos el texto al responder.",
+    jobSpec: {
+      title: "Título del puesto",
+      titleHint: "máx. 200 caracteres",
+      company: "Empresa",
+      companyHint: "máx. 200 caracteres",
+      description: "Descripción de la vacante",
+      descriptionHint: "máx. 5000 caracteres",
+      location: "Ubicación",
+      locationHint: "máx. 200 caracteres",
+      employmentType: "Tipo de empleo",
+      employmentTypeHint: "Selecciona la modalidad",
+      employmentTypeOptions: {
+        full_time: "Tiempo completo",
+        part_time: "Medio tiempo",
+        contract: "Contrato",
+        internship: "Práctica / Pasantía",
+        temporary: "Temporal",
+      },
+      requirements: "Requisitos",
+      requirementsHint: "Mínimo 1. Cada uno, una línea.",
+      requirementLabel: (index: number) => `Requisito ${index + 1}`,
+      requirementPlaceholder: "Ej. 3 años de experiencia en React",
+      addRequirement: "+ Agregar requisito",
+      removeRequirement: (index: number) => `Eliminar requisito ${index + 1}`,
+    },
+    // ─────────────────────────────────────────────────────────────
+    // 021 — PR 5c `<SectionBreakdown>` (perSection bars + red flags).
+    // Las keys de `result.v2.*` (PR 5b) se mantienen para el fallback
+    // inline en `Analyzer` mientras V2ResultSections conviva con el
+    // nuevo componente; las de `analyze.sections.*` y
+    // `analyze.redFlags.*` son el copy canónico del componente nuevo.
+    // ─────────────────────────────────────────────────────────────
+    sections: {
+      title: "Desglose por sección",
+      subtitle:
+        "Cómo se reparte tu puntaje entre las cinco secciones de tu CV.",
+      sectionLabels: {
+        experience: "Experiencia",
+        education: "Educación",
+        skills: "Habilidades técnicas",
+        certifications: "Certificaciones",
+        contact: "Contacto",
+      } as const,
+      sectionDescriptions: {
+        experience: "Años y relevancia de experiencia vs. la vacante",
+        education: "Nivel educativo vs. los requisitos del rol",
+        skills: "Cobertura de habilidades técnicas requeridas",
+        certifications: "Certificaciones relevantes para el puesto",
+        contact: "Completitud de datos de contacto",
+      } as const,
+      // Marcadores para los casos extremos del spec — el componente los
+      // muestra en lugar del número crudo para que el usuario entienda
+      // el estado de la sección de un vistazo.
+      empty: "Vacío",
+      noData: "Sin datos",
+      full: "Completo",
+      scoreUnit: "/ 100",
+    },
+    redFlags: {
+      title: "Señales a revisar",
+      empty: "No se detectaron señales. ✅",
+      severity: {
+        low: "leve",
+        medium: "media",
+        high: "alta",
+      },
+      // aria-labels descriptivos para screen readers (el color no es
+      // accesible; la palabra transmite la urgencia).
+      severityAriaLabel: {
+        low: "Severidad leve",
+        medium: "Severidad media",
+        high: "Advertencia: severidad alta",
+      },
+      warningIconLabel: "Ícono de advertencia",
+      codeLabel: (code: string) => `código: ${code}`,
+    },
   },
   result: {
     scoreLabel: "Coincidencia y legibilidad",
@@ -72,6 +148,25 @@ export const copy = {
     sealedWith: "Sellado con",
     engine: "motor",
     lexicon: "léxico",
+    // ─────────────────────────────────────────────────────────────
+    // 021 — v2 (perSection + redFlags). PR 5b agrega el shell básico;
+    // PR 5c introduce `<SectionBreakdown>` con copy por-severidad.
+    // ─────────────────────────────────────────────────────────────
+    v2: {
+      sectionTitle: "Desglose por sección",
+      sectionLabels: {
+        experience: "Experiencia",
+        education: "Educación",
+        skills: "Habilidades",
+        certifications: "Certificaciones",
+        contact: "Contacto",
+      } as const,
+      scoreOutOf: " / 100",
+      noScore: "—",
+      redFlagsTitle: "Señales a revisar",
+      redFlagSeverity: (severity: string) => `severidad: ${severity}`,
+      redFlagCode: (code: string) => `código: ${code}`,
+    },
   },
   confidence: {
     low: "confianza baja",

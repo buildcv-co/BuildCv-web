@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { roundtrip } from "./roundtrip";
 import { type ParseContext } from "./markdown/parse";
 import { BLANK_DOCUMENT } from "./schema";
-import type { CvDocument } from "./types";
+import type { LegacyCvDocument } from "./types";
 
 const ISO = "2026-06-08T14:30:00.000Z";
 
@@ -15,7 +15,7 @@ function ctxFor(...tokens: string[]): ParseContext {
 
 describe("roundtrip", () => {
   it("doc simple con profile + experience → ok true", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -85,7 +85,7 @@ describe("roundtrip", () => {
   });
 
   it("doc con skills genera markdown de round-trip válido", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -110,7 +110,7 @@ describe("roundtrip", () => {
   });
 
   it("ENTITY_NOT_ALLOWED cuando hay token que no está en ctx", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -140,7 +140,7 @@ describe("roundtrip", () => {
   });
 
   it("user-typed entities son aceptadas (whitelist runtime)", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -167,7 +167,7 @@ describe("roundtrip", () => {
   });
 
   it("es determinista (mismo input → mismo output)", () => {
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {
@@ -196,7 +196,7 @@ describe("roundtrip", () => {
     // Construimos un doc con un profile válido Y un experience que tras
     // roundtrip se va a omitir (no genera tokens). El roundtrip detecta
     // el mismatch de número de secciones.
-    const doc: CvDocument = {
+    const doc: LegacyCvDocument = {
       ...BLANK_DOCUMENT,
       sections: [
         {

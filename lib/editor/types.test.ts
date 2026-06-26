@@ -1,6 +1,6 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import type {
-  CvDocument,
+  LegacyCvDocument,
   CvSection,
   EntityRef,
   Draft,
@@ -298,9 +298,9 @@ describe("types — ScoreHistoryEntry y EngineVersions", () => {
   });
 });
 
-describe("types — CvDocument", () => {
+describe("types — LegacyCvDocument", () => {
   it("shape completo readonly", () => {
-    const d: CvDocument = {
+    const d: LegacyCvDocument = {
       id: "doc_01",
       version: "0.5.0",
       locale: "es-CO",
@@ -310,12 +310,12 @@ describe("types — CvDocument", () => {
       updatedAt: ISO,
       source: "blank",
     };
-    expectTypeOf(d).toMatchTypeOf<CvDocument>();
+    expectTypeOf(d).toMatchTypeOf<LegacyCvDocument>();
   });
 });
 
 describe("types — Draft", () => {
-  it("envuelve CvDocument + metadata", () => {
+  it("envuelve LegacyCvDocument + metadata", () => {
     const d: Draft = {
       id: "default",
       document: {
