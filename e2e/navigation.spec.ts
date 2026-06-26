@@ -222,12 +222,15 @@ test.describe("Mobile menu (375x812)", () => {
     test.skip(browserName !== "chromium", "reduced-motion emulation is chromium-only");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
+    await page.waitForLoadState("networkidle");
     const trigger = page.getByTestId("mobile-nav-trigger");
+    await expect(trigger).toBeVisible();
     await trigger.click();
     await page.waitForFunction(
       () =>
         (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
           ?.open === true,
+      { timeout: 10000 },
     );
     const animationDuration = await page.evaluate(() => {
       const d = document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null;
@@ -247,6 +250,7 @@ test.describe("Mobile menu (375x812)", () => {
       () =>
         (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
           ?.open !== true,
+      { timeout: 10000 },
     );
   });
 });

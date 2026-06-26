@@ -13,12 +13,17 @@ type Preseed = { cv: string; job: string };
 
 const emptyPreseed: Preseed = { cv: "", job: "" };
 
+let cachedPreseed: Preseed | null = null;
+
 function readPreseed(): Preseed {
   if (typeof window === "undefined") return emptyPreseed;
-  return {
-    cv: window.localStorage.getItem(STORAGE_KEY_CV) ?? "",
-    job: window.localStorage.getItem(STORAGE_KEY_JOB) ?? "",
-  };
+  const cv = window.localStorage.getItem(STORAGE_KEY_CV) ?? "";
+  const job = window.localStorage.getItem(STORAGE_KEY_JOB) ?? "";
+  if (cachedPreseed && cachedPreseed.cv === cv && cachedPreseed.job === job) {
+    return cachedPreseed;
+  }
+  cachedPreseed = { cv, job };
+  return cachedPreseed;
 }
 
 function subscribe() {
