@@ -82,14 +82,14 @@ CV and Job flow as structured JSON end-to-end. Backend parsers emit JSON Resume 
 
 ## Success Criteria
 
-- [ ] `POST /api/v1/score` accepts `{cv: CvDocument, job: JobSpec}`, returns `perSection` + `redFlags` + `overallScore`, `engineVersion === "2.0.0"`.
-- [ ] `POST /api/v1/import` returns `{cv: CvDocument, warnings[], engineVersion, traceId}`; every field carries `confidence`.
-- [ ] Backend tests: golden JSON Resume fixtures, DOCX lists/tables, PDF without semantic structure, JobSpec validation (happy + 5 rejection paths incl. prompt-injection-shape), per-section determinism.
-- [ ] Web tests: open-resume-inspired editor forms, Zod `JobSpec`, confidence visualization, `LocalStorageCvStore` round-trip.
-- [ ] **Determinism property test**: same `CvDocument + JobSpec + engineVersion="2.0.0"` → byte-identical `ScoreResponse` (Art. II).
-- [ ] `pnpm lint/build/test/test:e2e` + `dotnet build/test` green; **zero suppressions**.
-- [ ] Docs: `spec.md` + `design.md` + `tasks.md` (chained 4–6 PRs); Constitution impact declared (none required, Art. II sealed by SemVer bump).
-- [ ] A11y: editor passes WCAG 2.2 AA via `axe-playwright` (per 019 CI gate).
+- [x] `POST /api/v1/score` accepts `{cv: CvDocument, job: JobSpec}`, returns `perSection` + `redFlags` + `overallScore`, `engineVersion === "2.0.0"`.
+- [x] `POST /api/v1/import` returns `{cv: CvDocument, warnings[], engineVersion, traceId}`; every field carries `confidence`.
+- [x] Backend tests: golden JSON Resume fixtures, DOCX lists/tables, PDF without semantic structure, JobSpec validation (happy + 5 rejection paths incl. prompt-injection-shape), per-section determinism.
+- [x] Web tests: open-resume-inspired editor forms, Zod `JobSpec`, confidence visualization, `LocalStorageCvStore` round-trip.
+- [x] **Determinism property test**: same `CvDocument + JobSpec + engineVersion="2.0.0"` → byte-identical `ScoreResponse` (Art. II).
+- [x] `pnpm lint/build/test/test:e2e` + `dotnet build/test` green; **zero suppressions**.
+- [x] Docs: `spec.md` + `design.md` + `tasks.md` (chained 4–6 PRs); Constitution impact declared (none required, Art. II sealed by SemVer bump).
+- [x] A11y: editor passes WCAG 2.2 AA via `axe-playwright` (per 019 CI gate).
 
 ## Constitution Compliance
 
