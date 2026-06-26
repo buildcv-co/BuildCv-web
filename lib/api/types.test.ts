@@ -813,3 +813,55 @@ describe("isImportResult (legacy) y isImportResultV2 son mutuamente excluyentes"
     expect(isImportResultV2(validImportV2)).toBe(true);
   });
 });
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — PR 3c: isScoreResponseV2
+// discriminator (engineVersion=2.0.0) vs legacy ScoreResponse.
+// =====================================================================
+
+describe("isScoreResponseV2 — PR 3c: discriminador v2 vs legacy", () => {
+  it("isScoreResponseV2_Returns_True_For_V2_Response_With_EngineVersion_2_0_0", () => {
+    const v2 = {
+      overallScore: 82,
+      band: "high",
+      perSection: {
+        experience: 80,
+        education: 70,
+        skills: 100,
+        certifications: null,
+        contact: 90,
+      },
+      redFlags: [
+        {
+          code: "EMPLOYMENT_GAP_6M",
+          severity: "medium",
+          message: "Hueco laboral de 8 meses.",
+        },
+      ],
+      honestyNotice:
+        "Coincidencia con la vacante + legibilidad para sistemas automáticos.",
+      gatesApplied: ["StructuredInputV2"],
+      engineVersion: "2.0.0",
+      lexiconVersion: "tech-co-v3",
+      traceId: "0HMVD9F2E5Q2P:00000042",
+    };
+    expect(isScoreResponseV2(v2)).toBe(true);
+  });
+
+  it("isScoreResponseV2_Returns_False_For_Legacy_Response", () => {
+    const legacy = {
+      overallScore: 75,
+      band: "Coincidencia alta",
+      honestyNotice: "Este puntaje mide coincidencia...",
+      engineVersion: "1.0.0",
+      lexiconVersion: "tech-co-v3",
+      contextId: "ctx-legacy",
+      components: [],
+      keywordAnalysis: { present: [], missing: [], partial: [] },
+      recommendations: [],
+      formatIssues: [],
+      gatesApplied: [],
+    };
+    expect(isScoreResponseV2(legacy)).toBe(false);
+  });
+});
