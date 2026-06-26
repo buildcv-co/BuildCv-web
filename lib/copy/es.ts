@@ -154,6 +154,12 @@ export const copy = {
       subtitle:
         "Sube un PDF o DOCX y extraemos el texto para que no tengas que copiar a mano.",
       maxSize: "Tamaño máximo: 5 MB.",
+      supportedFormats:
+        "PDF o DOCX, máx. 5 MB. El PDF debe tener texto seleccionable (no una foto o escaneo).",
+      manualFallbackTitle: "¿Tu CV es un escaneo o imagen?",
+      manualFallbackDescription: "Pegá el texto de tu CV acá y continuamos igual.",
+      manualFallbackCta: "Pegar texto manualmente",
+      manualFallbackContinue: "Continuar con este texto",
       dragHere: "Arrastra tu CV aquí",
       dragHereHint: "Arrastra o selecciona un archivo PDF o DOCX. Tamaño máximo: 5 MB.",
       or: "o",
@@ -186,6 +192,8 @@ export const copy = {
       validation: "El backend rechazó el archivo. Revisa el detalle del error.",
       engine:
         "El servicio de import no está disponible temporalmente. Intenta de nuevo en unos minutos.",
+      scannedPdfDetailed:
+        "Este PDF parece una imagen o escaneo: no podemos extraer texto automáticamente. Probá con un PDF que tenga texto seleccionable, o pegá el texto manualmente.",
       rateLimit:
         "Has alcanzado el tope de importaciones (30/hora). El análisis determinista y la adaptación siguen disponibles.",
       unknown: "Ocurrió un error al procesar el archivo. Intenta de nuevo.",

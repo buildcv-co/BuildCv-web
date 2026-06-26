@@ -49,12 +49,31 @@ describe("ImportErrorPanel — mapeo por kind", () => {
     expect(screen.getByText(copy.import.errors.unsupportedMime)).toBeInTheDocument();
   });
 
-  it("kind=validation: muestra el message del ImportError (viene del backend, e.g. PDF escaneado)", () => {
-    const backendMsg =
-      "Este PDF parece un escaneo. No podemos extraer texto. Pega el contenido manualmente o usa un PDF con texto seleccionable.";
-    const err = makeError(422, "validation", backendMsg, "IMPORT_SCANNED_PDF");
-    render(<ImportErrorPanel error={err} onRetry={vi.fn()} />);
-    expect(screen.getByText(backendMsg)).toBeInTheDocument();
+  it("kind=validation + IMPORT_SCANNED_PDF: muestra mensaje detallado y CTA de pegar texto manualmente", async () => {
+    const err = makeError(
+      422,
+      "validation",
+      "PDF escaneado",
+      "IMPORT_SCANNED_PDF",
+    );
+    const onManualFallback = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <ImportErrorPanel
+        error={err}
+        onRetry={vi.fn()}
+        onManualFallback={onManualFallback}
+      />,
+    );
+    expect(
+      screen.getByText(copy.import.errors.scannedPdfDetailed),
+    ).toBeInTheDocument();
+    const cta = screen.getByRole("button", {
+      name: copy.import.page.manualFallbackCta,
+    });
+    expect(cta).toBeInTheDocument();
+    await user.click(cta);
+    expect(onManualFallback).toHaveBeenCalledTimes(1);
   });
 
   it("kind=rate_limit: muestra mensaje '30/hora' honesto, SIN botón retry (Constitution Art. VII)", () => {

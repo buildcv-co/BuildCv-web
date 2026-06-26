@@ -16,8 +16,11 @@ export default function ImportarPage() {
         <h1 className="font-display text-3xl sm:text-4xl">
           {copy.import.page.title}
         </h1>
-        <p className="mb-8 mt-2 max-w-2xl text-sm text-muted">
+        <p className="mb-2 mt-2 max-w-2xl text-sm text-muted">
           {copy.import.page.subtitle}
+        </p>
+        <p className="mb-8 text-xs text-faint">
+          {copy.import.page.supportedFormats}
         </p>
         <ClientWrapper>
           <ImportButton editorAvailable={false} />
