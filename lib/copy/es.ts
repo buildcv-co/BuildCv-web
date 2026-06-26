@@ -78,6 +78,57 @@ export const copy = {
       addRequirement: "+ Agregar requisito",
       removeRequirement: (index: number) => `Eliminar requisito ${index + 1}`,
     },
+    // ─────────────────────────────────────────────────────────────
+    // 021 — PR 5c `<SectionBreakdown>` (perSection bars + red flags).
+    // Las keys de `result.v2.*` (PR 5b) se mantienen para el fallback
+    // inline en `Analyzer` mientras V2ResultSections conviva con el
+    // nuevo componente; las de `analyze.sections.*` y
+    // `analyze.redFlags.*` son el copy canónico del componente nuevo.
+    // ─────────────────────────────────────────────────────────────
+    sections: {
+      title: "Desglose por sección",
+      subtitle:
+        "Cómo se reparte tu puntaje entre las cinco secciones de tu CV.",
+      sectionLabels: {
+        experience: "Experiencia",
+        education: "Educación",
+        skills: "Habilidades técnicas",
+        certifications: "Certificaciones",
+        contact: "Contacto",
+      } as const,
+      sectionDescriptions: {
+        experience: "Años y relevancia de experiencia vs. la vacante",
+        education: "Nivel educativo vs. los requisitos del rol",
+        skills: "Cobertura de habilidades técnicas requeridas",
+        certifications: "Certificaciones relevantes para el puesto",
+        contact: "Completitud de datos de contacto",
+      } as const,
+      // Marcadores para los casos extremos del spec — el componente los
+      // muestra en lugar del número crudo para que el usuario entienda
+      // el estado de la sección de un vistazo.
+      empty: "Vacío",
+      noData: "Sin datos",
+      full: "Completo",
+      scoreUnit: "/ 100",
+    },
+    redFlags: {
+      title: "Señales a revisar",
+      empty: "No se detectaron señales. ✅",
+      severity: {
+        low: "leve",
+        medium: "media",
+        high: "alta",
+      },
+      // aria-labels descriptivos para screen readers (el color no es
+      // accesible; la palabra transmite la urgencia).
+      severityAriaLabel: {
+        low: "Severidad leve",
+        medium: "Severidad media",
+        high: "Advertencia: severidad alta",
+      },
+      warningIconLabel: "Ícono de advertencia",
+      codeLabel: (code: string) => `código: ${code}`,
+    },
   },
   result: {
     scoreLabel: "Coincidencia y legibilidad",

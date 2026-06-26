@@ -5,7 +5,6 @@ import { requestScoreV2, type ScoreError, type ScoreOutcome } from "@/lib/api/sc
 import {
   isScoreResponseV2,
   type ScoreResponse,
-  type ScoreCvResponseV2,
 } from "@/lib/api/types";
 import type { CvDocument } from "@/lib/job/cv-document";
 import type { JobSpec } from "@/lib/job/job-spec";
@@ -18,6 +17,7 @@ import { HonestyNote } from "./honesty-note";
 import { InputPanel } from "./input-panel";
 import { KeywordCloud } from "./keyword-cloud";
 import { ScoreGauge } from "./score-gauge";
+import { SectionBreakdown } from "./section-breakdown";
 
 const ghostButton =
   "w-full rounded-full border border-line px-5 py-3 text-sm text-ink transition hover:border-muted hover:bg-surface";
@@ -89,7 +89,7 @@ interface AnalyzerProps {
 
 /**
  * Analyzer — orquestador del flujo "pegar CV → pegar vacante → analizar"
- * (PR 5b).
+ * (PR 5b + PR 5c).
  *
  * Migración PR 5b:
  *  - `jobText: string` → `job: JobSpec | null` (typed, validado por Zod en
@@ -101,6 +101,13 @@ interface AnalyzerProps {
  *    entonces, los `perSection` del response vendrán mayormente `null`).
  *  - El response ahora se discrimina por `engineVersion` (`isScoreResponseV2`)
  *    para leer `perSection` + `redFlags` (v2) además del shape legacy (v1).
+ *
+ * Migración PR 5c:
+ *  - Cuando el response es v2, se renderiza `<SectionBreakdown>` (barras
+ *    por sección 0–100 + lista de red flags con badge de severidad) en
+ *    lugar del render inline anterior (`V2ResultSections` se retira).
+ *    El componente vive en `components/analyzer/section-breakdown.tsx` y
+ *    tiene su propio coverage de tests RTL.
  *
  * `AdaptPanel` sigue consumiendo `{ cvText, jobText }` legacy — la
  * serialización JobSpec → text es transitoria (helper local arriba).
@@ -202,7 +209,12 @@ export function Analyzer({ cvText, job, onCv, onJob }: AnalyzerProps) {
                 </>
               )}
 
-              {v2 && <V2ResultSections response={v2} />}
+              {v2 && (
+                <SectionBreakdown
+                  perSection={v2.perSection}
+                  redFlags={v2.redFlags}
+                />
+              )}
             </div>
           </div>
           {job && (
@@ -233,76 +245,5 @@ export function Analyzer({ cvText, job, onCv, onJob }: AnalyzerProps) {
         />
       )}
     </div>
-  );
-}
-
-/**
- * V2ResultSections — secciones del response v2 (perSection + redFlags).
- *
- * PR 5b lo renderiza con un layout mínimo (heading + lista de items).
- * PR 5c introduce el componente `<SectionBreakdown>` con UI rica (barras
- * animadas, íconos por severidad de red flag, etc.). Mientras tanto,
- * el render acá es funcional — el response llega, los datos se muestran.
- *
- * Copy centralizado en `lib/copy/es.ts` bajo `result.v2.*` (Constitution
- * Art. IV — sin hardcode de strings de UI).
- */
-function V2ResultSections({ response }: { response: ScoreCvResponseV2 }) {
-  const sections = Object.entries(copy.result.v2.sectionLabels) as Array<
-    [keyof ScoreCvResponseV2["perSection"], string]
-  >;
-
-  return (
-    <>
-      <section data-testid="v2-per-section">
-        <h2 className="mb-5 font-display text-2xl">
-          {copy.result.v2.sectionTitle}
-        </h2>
-        <ul className="space-y-2">
-          {sections.map(([key, label]) => {
-            const value = response.perSection[key];
-            return (
-              <li
-                key={key}
-                className="flex items-baseline justify-between rounded-lg border border-line bg-surface/40 px-4 py-2 text-sm"
-              >
-                <span className="font-medium text-ink">{label}</span>
-                <span className="font-mono text-ink" data-section={key}>
-                  {value === null
-                    ? copy.result.v2.noScore
-                    : `${value}${copy.result.v2.scoreOutOf}`}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      {response.redFlags.length > 0 && (
-        <section data-testid="v2-red-flags">
-          <h2 className="mb-5 font-display text-2xl">
-            {copy.result.v2.redFlagsTitle}
-          </h2>
-          <ul className="space-y-2">
-            {response.redFlags.map((flag) => (
-              <li
-                key={flag.code}
-                className="rounded-lg border border-line bg-surface/40 px-4 py-2 text-sm"
-              >
-                <div className="flex items-baseline justify-between">
-                  <span className="font-medium text-ink">{flag.message}</span>
-                  <span className="font-mono text-xs text-faint">
-                    {copy.result.v2.redFlagSeverity(flag.severity)}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-faint">
-                  {copy.result.v2.redFlagCode(flag.code)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-    </>
   );
 }

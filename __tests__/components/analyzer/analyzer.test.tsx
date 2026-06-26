@@ -159,14 +159,18 @@ describe("Analyzer", () => {
       expect(screen.getByTestId("adapt-panel-stub")).toBeInTheDocument();
     });
     // Verificamos que la UI discriminó correctamente el v2 response:
-    // las secciones `perSection` se renderizan vía `<V2ResultSections>`
-    // (testid estable; el contenido del ScoreGauge es animado por rAF
-    // y no es estable para asserts determinísticos).
+    // las secciones `perSection` se renderizan vía `<SectionBreakdown>`
+    // (PR 5c). El testid estable es del componente nuevo; el contenido
+    // del ScoreGauge es animado por rAF y no es estable para asserts
+    // determinísticos.
     await waitFor(() => {
-      expect(screen.getByTestId("v2-per-section")).toBeInTheDocument();
+      expect(screen.getByTestId("section-breakdown")).toBeInTheDocument();
     });
     await waitFor(() => {
-      expect(screen.getByTestId("v2-red-flags")).toBeInTheDocument();
+      expect(screen.getByTestId("section-breakdown-bars")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("section-breakdown-flags")).toBeInTheDocument();
     });
     // El código del red flag del response v2 (mockeado) debe estar en el DOM.
     expect(
