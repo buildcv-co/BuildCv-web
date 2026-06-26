@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImportError, MAX_FILE_SIZE_BYTES, requestImport, validateFile } from "./import";
-import type { ImportResult } from "./types";
+import type { ImportResult, ImportResultV2 } from "./types";
 
 const successPayload: ImportResult = {
   text: "Juan Pérez\nBackend Developer con 5 años de experiencia en C# y .NET.",
@@ -396,5 +396,98 @@ describe("requestImport", () => {
       message: "msg",
     });
     expect(err.details).toBeUndefined();
+  });
+});
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — PR 2e: v2 path
+// (engineVersion=2.0.0 → ImportResultV2 con CvDocument)
+// =====================================================================
+
+const successPayloadV2: ImportResultV2 = {
+  cv: {
+    basics: {
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      profiles: [],
+      confidence: {
+        name: "inferred",
+        email: "inferred",
+        phone: "inferred",
+        location: "inferred",
+        url: "inferred",
+        profiles: "inferred",
+        summary: "inferred",
+        datosPersonales: "inferred",
+      },
+    },
+    work: [],
+    education: [],
+    skills: [],
+    projects: [],
+    certificates: [],
+    languages: [],
+    meta: { engineVersion: "2.0.0" },
+  },
+  warnings: [
+    { code: "IMAGE_OMITTED", message: "Se omitieron 1 imagen(es).", severity: "Info" },
+  ],
+  engineVersion: "2.0.0",
+  traceId: "0HMVD9F2E5Q2P:00000100",
+};
+
+describe("requestImport — v2 path (PR 2e)", () => {
+  it("envía POST a /api/import con header X-Engine-Version: 2.0.0 (negocia v2 con el backend)", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(successPayloadV2));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const file = makeFile("cv.pdf", "application/pdf", 1024);
+    await requestImport(file);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/import");
+    expect(init.method).toBe("POST");
+    const headers = (init.headers ?? {}) as Record<string, string>;
+    expect(headers["X-Engine-Version"]).toBe("2.0.0");
+  });
+
+  it("happy path v2: 200 + ImportResultV2 → devuelve CvDocument estructurado", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successPayloadV2)));
+    const file = makeFile("cv.pdf", "application/pdf", 1024);
+    const result = await requestImport(file);
+    // Discriminador engineVersion=2.0.0 garantiza shape ImportResultV2
+    expect(result).toEqual(successPayloadV2);
+    if ("cv" in result) {
+      expect(result.cv.basics.name).toBe("Ada Lovelace");
+      expect(result.cv.meta.engineVersion).toBe("2.0.0");
+      expect(result.engineVersion).toBe("2.0.0");
+      expect(result.warnings).toHaveLength(1);
+    } else {
+      throw new Error("Se esperaba ImportResultV2 con `cv: CvDocument`");
+    }
+  });
+
+  it("discriminación: respuesta v1 (legacy text/sections) se sigue aceptando (back-compat)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successPayload)));
+    const file = makeFile("cv.pdf", "application/pdf", 1024);
+    const result = await requestImport(file);
+    expect(result).toEqual(successPayload);
+    expect("text" in result).toBe(true);
+    expect("cv" in result).toBe(false);
+  });
+
+  it("payload NO conforme a ningún shape (ni v1 ni v2) → ImportError kind=validation", async () => {
+    const invalidPayload = {
+      foo: "bar",
+      baz: 42,
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(invalidPayload)));
+    const file = makeFile("cv.pdf", "application/pdf", 1024);
+    await expect(requestImport(file)).rejects.toMatchObject({
+      name: "ImportError",
+      kind: "validation",
+      code: "INVALID_RESPONSE",
+    });
   });
 });

@@ -6,6 +6,7 @@ import {
   isDetectedSection,
   isImportWarning,
   isImportResult,
+  isImportResultV2,
   isStructuredScoreRequest,
   isLegacyScoreRequest,
   isScoreResponseV2,
@@ -18,6 +19,8 @@ import {
   type DetectedSection,
   type ImportWarning,
   type ImportResult,
+  type ImportResultV2,
+  type ParsingWarning,
   type ImportErrorKind,
   type ExportRequest,
   type ExportErrorKind,
@@ -683,5 +686,130 @@ describe("ScoreResponseV2 — respuesta del motor 2.0.0", () => {
         traceId: "t",
       }),
     ).toBe(false);
+  });
+});
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — PR 2e: ImportResultV2 (engineVersion 2.0.0)
+// discriminated union consumed by the import button (drops MD round-trip for v2 path).
+// =====================================================================
+
+const minimalCvForImport = {
+  basics: {
+    name: "Ada Lovelace",
+    email: "ada@example.com",
+    profiles: [],
+    confidence: {
+      name: "inferred",
+      email: "inferred",
+      phone: "inferred",
+      location: "inferred",
+      url: "inferred",
+      profiles: "inferred",
+      summary: "inferred",
+      datosPersonales: "inferred",
+    },
+  },
+  work: [],
+  education: [],
+  skills: [],
+  projects: [],
+  certificates: [],
+  languages: [],
+  meta: { engineVersion: "2.0.0" },
+};
+
+const validImportV2: ImportResultV2 = {
+  cv: minimalCvForImport,
+  warnings: [
+    { code: "IMAGE_OMITTED", message: "Se omitieron 2 imágenes.", severity: "Info" },
+  ],
+  engineVersion: "2.0.0",
+  traceId: "0HMVD9F2E5Q2P:00000099",
+};
+
+describe("isImportResultV2 — type guard para ImportResultV2 (PR 2e)", () => {
+  it("acepta un ImportResultV2 válido (engineVersion='2.0.0' + CvDocument + warnings)", () => {
+    expect(isImportResultV2(validImportV2)).toBe(true);
+  });
+
+  it("rechaza un ImportResult legacy (engineVersion='1.0.0' con text/sections)", () => {
+    const legacy: ImportResult = {
+      text: "Juan Pérez\nBackend dev",
+      sections: [],
+      warnings: [],
+      engineVersion: "1.0.0",
+      traceId: "x",
+    };
+    expect(isImportResultV2(legacy)).toBe(false);
+  });
+
+  it("rechaza engineVersion distinto de '2.0.0' (parity con backend)", () => {
+    const wrong = { ...validImportV2, engineVersion: "1.0.0" as const };
+    expect(isImportResultV2(wrong)).toBe(false);
+  });
+
+  it("rechaza si falta cv", () => {
+    const { cv: _cv, ...rest } = validImportV2;
+    void _cv;
+    expect(isImportResultV2(rest)).toBe(false);
+  });
+
+  it("rechaza si cv no es un CvDocument válido (falta basics.confidence)", () => {
+    const broken = {
+      ...validImportV2,
+      cv: { ...minimalCvForImport, basics: { ...minimalCvForImport.basics, confidence: undefined } },
+    };
+    expect(isImportResultV2(broken)).toBe(false);
+  });
+
+  it("rechaza si warnings contiene un item inválido (severity no canónica)", () => {
+    const broken: ImportResultV2 = {
+      ...validImportV2,
+      warnings: [{ code: "X", message: "y", severity: "Critical" } as unknown as ParsingWarning],
+    };
+    expect(isImportResultV2(broken)).toBe(false);
+  });
+
+  it("rechaza si warnings > 20 items (defense in depth, contract limit)", () => {
+    const tooMany = Array.from({ length: 21 }, () => ({
+      code: "X",
+      message: "y",
+      severity: "Info" as const,
+    }));
+    const broken: ImportResultV2 = { ...validImportV2, warnings: tooMany };
+    expect(isImportResultV2(broken)).toBe(false);
+  });
+
+  it("rechaza traceId vacío o > 100 chars (defense in depth)", () => {
+    expect(isImportResultV2({ ...validImportV2, traceId: "" })).toBe(false);
+    expect(isImportResultV2({ ...validImportV2, traceId: "x".repeat(101) })).toBe(false);
+  });
+
+  it("rechaza null, undefined, primitivos", () => {
+    expect(isImportResultV2(null)).toBe(false);
+    expect(isImportResultV2(undefined)).toBe(false);
+    expect(isImportResultV2("foo")).toBe(false);
+    expect(isImportResultV2(42)).toBe(false);
+    expect(isImportResultV2([])).toBe(false);
+  });
+});
+
+describe("isImportResult (legacy) y isImportResultV2 son mutuamente excluyentes", () => {
+  it("ImportResult legacy NO es ImportResultV2 (discriminador engineVersion)", () => {
+    const legacy: ImportResult = {
+      text: "x",
+      sections: [],
+      warnings: [],
+      engineVersion: "1.0.0",
+      traceId: "t",
+    };
+    expect(isImportResult(legacy)).toBe(true);
+    expect(isImportResultV2(legacy)).toBe(false);
+  });
+
+  it("ImportResultV2 NO es ImportResult legacy (no tiene text/sections)", () => {
+    expect(isImportResult(validImportV2)).toBe(false);
+    expect(isImportResultV2(validImportV2)).toBe(true);
   });
 });

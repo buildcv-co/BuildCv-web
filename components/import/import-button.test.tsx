@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ImportButton } from "./import-button";
-import type { ImportResult } from "@/lib/api/types";
+import type { ImportResult, ImportResultV2 } from "@/lib/api/types";
 import { copy } from "@/lib/copy/es";
 
 function makeFile(name: string, type: string, sizeBytes = 1024): File {
@@ -276,5 +276,143 @@ describe("ImportButton — reset tras éxito", () => {
 
     // El resultado se preserva (no se borra automáticamente)
     expect(screen.getByTestId("import-result-text")).toBeInTheDocument();
+  });
+});
+
+// =====================================================================
+// 021-structured-cv-import-and-job-input — PR 2e: v2 path (ImportResultV2)
+// =====================================================================
+
+const successResultV2: ImportResultV2 = {
+  cv: {
+    basics: {
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      profiles: [],
+      confidence: {
+        name: "inferred",
+        email: "inferred",
+        phone: "inferred",
+        location: "inferred",
+        url: "inferred",
+        profiles: "inferred",
+        summary: "inferred",
+        datosPersonales: "inferred",
+      },
+    },
+    work: [],
+    education: [],
+    skills: [],
+    projects: [],
+    certificates: [],
+    languages: [],
+    meta: { engineVersion: "2.0.0" },
+  },
+  warnings: [
+    { code: "IMAGE_OMITTED", message: "Se omitieron 2 imágenes.", severity: "Info" },
+  ],
+  engineVersion: "2.0.0",
+  traceId: "0HMVD9F2E5Q2P:00000200",
+};
+
+describe("ImportButton — v2 path (PR 2e)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("renderiza panel estructurado (NO muestra el <pre> con texto plano) cuando el backend devuelve ImportResultV2", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successResultV2)));
+    const { container } = render(<ImportButton editorAvailable />);
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    await user.upload(input, makeFile("cv.pdf", "application/pdf"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("import-result-structured")).toBeInTheDocument();
+    });
+    // En el camino v2 NO se renderiza el preview de texto plano heredado.
+    expect(screen.queryByTestId("import-result-text")).not.toBeInTheDocument();
+    expect(screen.getByText(/Ada Lovelace/)).toBeInTheDocument();
+  });
+
+  it("click en 'Analizar este CV' escribe el CvDocument serializado en localStorage (cv-preseed)", async () => {
+    const user = userEvent.setup();
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { ...originalLocation, href: "" },
+    });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successResultV2)));
+    const { container } = render(<ImportButton editorAvailable />);
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    await user.upload(input, makeFile("cv.pdf", "application/pdf"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: copy.import.buttonAnalyze }),
+      ).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: copy.import.buttonAnalyze }));
+
+    const preseed = window.localStorage.getItem("buildcv:analizar:cv-preseed");
+    expect(preseed).not.toBeNull();
+    expect(preseed).toContain("Ada Lovelace");
+    expect(preseed).toContain("ada@example.com");
+
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: originalLocation,
+    });
+  });
+
+  it("click en 'Analizar este CV' (v2) escribe el CvDocument estructurado en localStorage (cv-document) para el editor (PR 4)", async () => {
+    const user = userEvent.setup();
+    const originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: { ...originalLocation, href: "" },
+    });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successResultV2)));
+    const { container } = render(<ImportButton editorAvailable />);
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    await user.upload(input, makeFile("cv.pdf", "application/pdf"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("import-result-structured")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: copy.import.buttonAnalyze }));
+
+    const stored = window.localStorage.getItem("buildcv:editor:cv-document");
+    expect(stored).not.toBeNull();
+    const parsed = JSON.parse(stored as string);
+    expect(parsed.basics.name).toBe("Ada Lovelace");
+    expect(parsed.basics.email).toBe("ada@example.com");
+    expect(parsed.meta.engineVersion).toBe("2.0.0");
+
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: originalLocation,
+    });
+  });
+
+  it("camino legacy (v1) NO escribe el CvDocument estructurado (preserva comportamiento original)", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successResult)));
+    const { container } = render(<ImportButton editorAvailable />);
+
+    const input = container.querySelector("input[type='file']") as HTMLInputElement;
+    await user.upload(input, makeFile("cv.pdf", "application/pdf"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("import-result-text")).toBeInTheDocument();
+    });
+
+    const stored = window.localStorage.getItem("buildcv:editor:cv-document");
+    expect(stored).toBeNull();
   });
 });

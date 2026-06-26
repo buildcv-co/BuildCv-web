@@ -308,6 +308,38 @@ export function isImportResult(value: unknown): value is ImportResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// 021-structured-cv-import-and-job-input — ImportResultV2 + isImportResultV2
+// (PR 2e — engineVersion 2.0.0 devuelve el CvDocument tipado en lugar del
+// texto crudo + secciones heurísticas).
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Aviso de parseo estructurado (Constitution Art. I — sin invención). Renombrado
+ * localmente para evitar colisión con el `ImportWarning` legacy que se mantiene
+ * por compat con clientes v1.0.0.
+ */
+export interface ParsingWarning {
+  code: string;
+  message: string;
+  severity: "Info" | "Warning" | "Error";
+}
+
+/**
+ * Respuesta del endpoint /api/v1/import cuando el cliente negocia `engineVersion
+ * = "2.0.0"` (o no envía header/query — default 2.0.0). Contiene el CV ya
+ * estructurado en formato JSON Resume (Constitution Art. I: cada campo lleva su
+ * ConfidenceMarker) en lugar del texto crudo + secciones heurísticas. El editor
+ * (006) consume este shape directamente y omite el round-trip
+ * `parseCvDocument(text)` que solo se mantiene como fallback para paste manual.
+ */
+export interface ImportResultV2 {
+  cv: CvDocument;
+  warnings: ParsingWarning[];
+  engineVersion: "2.0.0";
+  traceId: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // 021-structured-cv-import-and-job-input — ScoreCvRequest discriminated
 // union + ScoreResponse v2 (PR1).
 // ─────────────────────────────────────────────────────────────────────
@@ -509,5 +541,42 @@ export function isScoreResponseV2(value: unknown): value is ScoreCvResponseV2 {
   if (value.engineVersion !== "2.0.0") return false;
   if (typeof value.lexiconVersion !== "string" || value.lexiconVersion.length === 0) return false;
   if (typeof value.traceId !== "string" || value.traceId.length === 0) return false;
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// 021-structured-cv-import-and-job-input — PR 2e — isImportResultV2
+// (type guard para ImportResultV2). Discrimina por engineVersion === "2.0.0"
+// + shape { cv, warnings, traceId }. Defensa contra respuestas malformadas
+// del BFF (validamos el shape del CvDocument, no solo la presencia).
+// ─────────────────────────────────────────────────────────────────────
+
+const PARSING_WARNING_SEVERITIES: ReadonlySet<ParsingWarning["severity"]> = new Set([
+  "Info",
+  "Warning",
+  "Error",
+]);
+
+function isParsingWarning(value: unknown): value is ParsingWarning {
+  if (!isRecord(value)) return false;
+  if (typeof value.code !== "string" || value.code.length === 0) return false;
+  if (value.code.length > 50) return false;
+  if (typeof value.message !== "string" || value.message.length === 0) return false;
+  if (value.message.length > 500) return false;
+  if (!PARSING_WARNING_SEVERITIES.has(value.severity as ParsingWarning["severity"])) {
+    return false;
+  }
+  return true;
+}
+
+export function isImportResultV2(value: unknown): value is ImportResultV2 {
+  if (!isRecord(value)) return false;
+  if (!isCvDocument(value.cv)) return false;
+  if (!Array.isArray(value.warnings)) return false;
+  if (value.warnings.length > 20) return false;
+  if (!value.warnings.every(isParsingWarning)) return false;
+  if (value.engineVersion !== "2.0.0") return false;
+  if (typeof value.traceId !== "string" || value.traceId.length === 0) return false;
+  if (value.traceId.length > 100) return false;
   return true;
 }
