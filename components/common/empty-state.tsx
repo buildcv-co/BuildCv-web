@@ -11,17 +11,14 @@ interface EmptyStateProps {
   readonly ctaHref?: string;
   /** Optional decorative SVG. Marked aria-hidden — the title is the accessible name. */
   readonly icon?: React.ReactNode;
-  /** Optional secondary CTA. */
-  readonly secondaryCtaLabel?: string;
-  readonly secondaryCtaHref?: string;
 }
 
 /**
  * EmptyState — generic, props-driven, zero business logic.
  * Wraps content in <section aria-labelledby='empty-state-title-{id}'>
  * so screen readers announce the title when the user tabs into it.
- * The CTA is a single <Link>; secondary CTA is optional. The icon is
- * decorative (aria-hidden) — the title remains the accessible name.
+ * The CTA is a single optional <Link>. The icon is decorative
+ * (aria-hidden) — the title remains the accessible name.
  */
 export function EmptyState({
   title,
@@ -29,8 +26,6 @@ export function EmptyState({
   ctaLabel,
   ctaHref,
   icon,
-  secondaryCtaLabel,
-  secondaryCtaHref,
 }: EmptyStateProps) {
   const titleId = `empty-state-title-${useId()}`;
 
@@ -57,15 +52,6 @@ export function EmptyState({
           className="rounded-full bg-accent px-6 py-3 text-sm font-medium text-accent-ink transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {ctaLabel}
-        </Link>
-      ) : null}
-      {secondaryCtaLabel && secondaryCtaHref ? (
-        <Link
-          href={secondaryCtaHref}
-          data-testid="empty-state-secondary-cta"
-          className="text-sm text-muted underline-offset-4 transition hover:text-ink hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {secondaryCtaLabel}
         </Link>
       ) : null}
     </section>
