@@ -339,7 +339,26 @@ export const copy = {
       storage: "No pudimos leer la adaptación de este navegador. Vuelve a solicitarla.",
     },
   },
-  landing: {
+  emptyStates: {
+  analyze: {
+    title: "Empezá pegando tu CV y la vacante",
+    description:
+      "Solo texto. No guardamos nada; se procesa en memoria y se descarta al responder.",
+    primaryCta: "Ver cómo importar un CV",
+  },
+  iterate: {
+    title: "Necesitamos tu CV y la vacante para iterar",
+    description:
+      "Importá un CV o pegá el texto directamente junto con la descripción de la vacante.",
+    primaryCta: "Importar CV",
+  },
+  subscriptions: {
+    title: "Iniciá sesión para ver tu plan",
+    description: "Las suscripciones y los créditos están vinculados a tu cuenta.",
+    primaryCta: "Iniciar sesión",
+  },
+},
+landing: {
     faqs: [
       {
         q: "¿BuildCv guarda mi CV o la vacante?",
