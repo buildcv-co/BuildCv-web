@@ -16,10 +16,14 @@ import type { LogEntry } from "@/lib/observability/types";
 export const dynamic = "force-dynamic";
 
 function isLogEndpointEnabled(): boolean {
-  return (
-    typeof process !== "undefined" &&
-    process.env["BUILDCV_LOG_ENDPOINT"] === "enabled"
-  );
+  // E2E tests run against the dev server, which Playwright may reuse
+  // (reuseExistingServer: true). In that case the env var injected by the
+  // webServer config is not present, so requiring it makes local test runs
+  // flaky. Always enable in dev/test; keep production gated explicitly.
+  if (process.env.NODE_ENV === "production") {
+    return process.env["BUILDCV_LOG_ENDPOINT"] === "enabled";
+  }
+  return true;
 }
 
 const LogContextSchema = z.object({

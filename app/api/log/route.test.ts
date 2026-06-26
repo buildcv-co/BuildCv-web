@@ -36,7 +36,8 @@ afterEach(() => {
 });
 
 describe("BFF /api/log (route handler)", () => {
-  it("POST retorna 503 cuando BUILDCV_LOG_ENDPOINT !== 'enabled' (default)", async () => {
+  it("POST retorna 503 en producción cuando BUILDCV_LOG_ENDPOINT !== 'enabled'", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BUILDCV_LOG_ENDPOINT", "");
     vi.resetModules();
     const { POST } = await import("./route");
@@ -97,7 +98,8 @@ describe("BFF /api/log (route handler)", () => {
     expect(body.details).toBeDefined();
   });
 
-  it("GET retorna 503 cuando BFF está OFF", async () => {
+  it("GET retorna 503 en producción cuando BFF está OFF", async () => {
+    vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("BUILDCV_LOG_ENDPOINT", "");
     vi.resetModules();
     const { GET } = await import("./route");
