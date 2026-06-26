@@ -38,7 +38,7 @@ function SignInInner() {
 
 export default function SignInPage() {
   if (IS_LOCAL) {
-    redirect("/analizar/iterate");
+    redirect("/analizar");
   }
   return (
     <Suspense fallback={<div className="mx-auto w-full max-w-md px-6 py-12 text-sm text-muted">Cargando…</div>}>
