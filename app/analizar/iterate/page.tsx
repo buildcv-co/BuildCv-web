@@ -141,14 +141,14 @@ export default function IteratePage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
       <main id="contenido" className="space-y-6">
-        <header className="space-y-2">
-          <h1 className="font-display text-3xl sm:text-4xl">
+        <section aria-labelledby="iterate-heading" className="space-y-2">
+          <h1 id="iterate-heading" className="font-display text-3xl sm:text-4xl">
             {copy.iteration.title}
           </h1>
           <p className="max-w-2xl text-sm italic text-muted">
             {copy.iteration.subtitle}
           </p>
-        </header>
+        </section>
 
         <section className="grid gap-4 lg:grid-cols-2">
           <label className="space-y-2">

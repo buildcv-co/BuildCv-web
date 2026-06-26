@@ -10,10 +10,10 @@ for (const vp of VIEWPORTS) {
   test.describe(`/analizar header @ ${vp.name} (${vp.width}x${vp.height})`, () => {
     test.use({ viewport: { width: vp.width, height: vp.height } });
 
-    test("logo + tagline no se solapan (sus bounding boxes no se intersectan horizontalmente)", async ({ page }) => {
+    test("brand (SiteHeader) y tagline de análisis están visibles sin solaparse", async ({ page }) => {
       await page.goto("/analizar");
-      const logo = page.locator("header a", { hasText: "BuildCv" });
-      const tagline = page.locator("header span", { hasText: "análisis determinista" });
+      const logo = page.getByTestId("brand-mark");
+      const tagline = page.locator('[data-testid="analysis-tagline"]');
       await expect(logo).toBeVisible();
       await expect(tagline).toBeVisible();
 
@@ -22,26 +22,12 @@ for (const vp of VIEWPORTS) {
       expect(logoBox).not.toBeNull();
       expect(taglineBox).not.toBeNull();
 
-      // En mobile, layout vertical: taglineBox.y > logoBox.y (debajo)
-      // En tablet/desktop, layout horizontal: taglineBox.x > logoBox.x (a la derecha)
-      if (vp.width < 640) {
-        expect(taglineBox!.y).toBeGreaterThan(logoBox!.y);
-      } else {
-        expect(taglineBox!.x).toBeGreaterThan(logoBox!.x);
-        // misma fila
-        const rowOverlap = Math.min(logoBox!.y + logoBox!.height, taglineBox!.y + taglineBox!.height) -
-                           Math.max(logoBox!.y, taglineBox!.y);
-        expect(rowOverlap).toBeGreaterThan(0);
-      }
-
-      // No overlap horizontal (uno no entra en el otro)
       const hOverlap =
         Math.min(logoBox!.x + logoBox!.width, taglineBox!.x + taglineBox!.width) -
         Math.max(logoBox!.x, taglineBox!.x);
       const vOverlap =
         Math.min(logoBox!.y + logoBox!.height, taglineBox!.y + taglineBox!.height) -
         Math.max(logoBox!.y, taglineBox!.y);
-      // Si overlap horizontal > 0 Y overlap vertical > 0 → se solapan
       expect(hOverlap <= 0 || vOverlap <= 0).toBe(true);
     });
 

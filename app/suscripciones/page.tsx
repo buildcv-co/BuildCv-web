@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 export default function SubscriptionsPage() {
   return (
     <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col gap-6 px-6 py-12">
-      <header>
-        <h1 className="font-display text-3xl text-fg">{copy.subscription.activeTitle}</h1>
+      <section aria-labelledby="subscriptions-heading">
+        <h1 id="subscriptions-heading" className="font-display text-3xl text-fg">{copy.subscription.activeTitle}</h1>
         <p className="mt-1 text-sm text-fg/70">{copy.subscription.renewsAutomatically}</p>
-      </header>
+      </section>
       <SubscriptionDashboard />
     </main>
   );

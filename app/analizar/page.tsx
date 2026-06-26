@@ -16,7 +16,7 @@ export default function AnalizarPage() {
         </p>
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <CreditArea />
-          <span className="font-mono text-xs text-faint">análisis determinista · sin guardado</span>
+          <span data-testid="analysis-tagline" className="font-mono text-xs text-faint">análisis determinista · sin guardado</span>
         </div>
         <Analyzer />
       </main>
