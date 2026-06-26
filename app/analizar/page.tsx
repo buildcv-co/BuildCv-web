@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Analyzer } from "@/components/analyzer/analyzer";
+import { AnalizarScreen } from "@/components/analyzer/analizar-screen";
 import { CreditArea } from "@/components/credits/credit-area";
 import { copy } from "@/lib/copy/es";
 
@@ -18,7 +18,7 @@ export default function AnalizarPage() {
           <CreditArea />
           <span data-testid="analysis-tagline" className="font-mono text-xs text-faint">análisis determinista · sin guardado</span>
         </div>
-        <Analyzer />
+        <AnalizarScreen />
       </main>
     </div>
   );

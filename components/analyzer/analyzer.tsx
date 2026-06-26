@@ -16,9 +16,14 @@ import { ScoreGauge } from "./score-gauge";
 const ghostButton =
   "w-full rounded-full border border-line px-5 py-3 text-sm text-ink transition hover:border-muted hover:bg-surface";
 
-export function Analyzer() {
-  const [cvText, setCvText] = useState("");
-  const [jobText, setJobText] = useState("");
+interface AnalyzerProps {
+  readonly cvText: string;
+  readonly jobText: string;
+  readonly onCv: (next: string) => void;
+  readonly onJob: (next: string) => void;
+}
+
+export function Analyzer({ cvText, jobText, onCv, onJob }: AnalyzerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScoreResponse | null>(null);
@@ -83,16 +88,16 @@ export function Analyzer() {
         <InputPanel
           cvText={cvText}
           jobText={jobText}
-          onCv={setCvText}
-          onJob={setJobText}
+          onCv={onCv}
+          onJob={onJob}
           onSubmit={analyze}
           onExample={() => {
-            setCvText(demoCv);
-            setJobText(demoJob);
+            onCv(demoCv);
+            onJob(demoJob);
           }}
           onClear={() => {
-            setCvText("");
-            setJobText("");
+            onCv("");
+            onJob("");
             setError(null);
           }}
           loading={loading}

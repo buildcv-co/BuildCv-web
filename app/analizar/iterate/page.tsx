@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/common/empty-state";
+import { DocumentIcon } from "@/components/common/icons";
 import { copy } from "@/lib/copy/es";
 import {
   IterationResultCard,
@@ -137,6 +139,7 @@ export default function IteratePage() {
 
   const cvEmpty = cvText.trim().length === 0;
   const jobEmpty = vacancyText.trim().length === 0;
+  const bothEmpty = cvEmpty && jobEmpty;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
@@ -150,80 +153,92 @@ export default function IteratePage() {
           </p>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <label className="space-y-2">
-            <span className="block text-sm font-medium text-fg">
-              CV (texto plano)
-            </span>
-            <textarea
-              data-testid="iterate-cv-input"
-              value={cvText}
-              onChange={(e) => setCvText(e.target.value)}
-              maxLength={50_000}
-              rows={10}
-              className="w-full rounded-2xl border border-line bg-surface/30 p-3 text-sm"
-            />
-          </label>
-          <label className="space-y-2">
-            <span className="block text-sm font-medium text-fg">
-              Vacante (texto plano)
-            </span>
-            <textarea
-              data-testid="iterate-vacancy-input"
-              value={vacancyText}
-              onChange={(e) => setVacancyText(e.target.value)}
-              maxLength={20_000}
-              rows={10}
-              className="w-full rounded-2xl border border-line bg-surface/30 p-3 text-sm"
-            />
-          </label>
-        </section>
-
-        <IterationSettings
-          iterationCount={iterationCount}
-          threshold={threshold}
-          creditsAvailable={null}
-          onIterationCountChange={setIterationCount}
-          onThresholdChange={setThreshold}
-        />
-
-        <button
-          type="button"
-          data-testid="iterate-submit"
-          onClick={() => void onSubmit()}
-          disabled={loading || cvEmpty || jobEmpty}
-          className="w-full rounded-full bg-accent px-5 py-3 text-sm font-medium text-bg transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {copy.iteration.confirm.confirm}
-        </button>
-
-        {loading && (
-          <IterationProgress
-            current={Math.min(iterationCount, 1)}
-            total={iterationCount}
+        {bothEmpty ? (
+          <EmptyState
+            icon={<DocumentIcon />}
+            title={copy.emptyStates.iterate.title}
+            description={copy.emptyStates.iterate.description}
+            ctaLabel={copy.emptyStates.iterate.primaryCta}
+            ctaHref="/importar"
           />
-        )}
-
-        {error && (
-          <p
-            data-testid="iterate-error"
-            role="alert"
-            className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200"
-          >
-            {error}
-          </p>
-        )}
-
-        {result && (
+        ) : (
           <>
-            <IterationResultCard
-              result={toResultViewModel(result)}
-              onExportPdf={result.bestStep ? onExportPdf : undefined}
-              onImprove={onImprove}
+            <section className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2">
+                <span className="block text-sm font-medium text-fg">
+                  CV (texto plano)
+                </span>
+                <textarea
+                  data-testid="iterate-cv-input"
+                  value={cvText}
+                  onChange={(e) => setCvText(e.target.value)}
+                  maxLength={50_000}
+                  rows={10}
+                  className="w-full rounded-2xl border border-line bg-surface/30 p-3 text-sm"
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-sm font-medium text-fg">
+                  Vacante (texto plano)
+                </span>
+                <textarea
+                  data-testid="iterate-vacancy-input"
+                  value={vacancyText}
+                  onChange={(e) => setVacancyText(e.target.value)}
+                  maxLength={20_000}
+                  rows={10}
+                  className="w-full rounded-2xl border border-line bg-surface/30 p-3 text-sm"
+                />
+              </label>
+            </section>
+
+            <IterationSettings
+              iterationCount={iterationCount}
+              threshold={threshold}
+              creditsAvailable={null}
+              onIterationCountChange={setIterationCount}
+              onThresholdChange={setThreshold}
             />
-            <IterationStepList
-              steps={result.allSteps.map(toStepViewModel)}
-            />
+
+            <button
+              type="button"
+              data-testid="iterate-submit"
+              onClick={() => void onSubmit()}
+              disabled={loading || cvEmpty || jobEmpty}
+              className="w-full rounded-full bg-accent px-5 py-3 text-sm font-medium text-bg transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {copy.iteration.confirm.confirm}
+            </button>
+
+            {loading && (
+              <IterationProgress
+                current={Math.min(iterationCount, 1)}
+                total={iterationCount}
+              />
+            )}
+
+            {error && (
+              <p
+                data-testid="iterate-error"
+                role="alert"
+                className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200"
+              >
+                {error}
+              </p>
+            )}
+
+            {result && (
+              <>
+                <IterationResultCard
+                  result={toResultViewModel(result)}
+                  onExportPdf={result.bestStep ? onExportPdf : undefined}
+                  onImprove={onImprove}
+                />
+                <IterationStepList
+                  steps={result.allSteps.map(toStepViewModel)}
+                />
+              </>
+            )}
           </>
         )}
       </main>
