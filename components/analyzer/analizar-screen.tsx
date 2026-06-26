@@ -63,5 +63,5 @@ export function AnalizarScreen() {
     );
   }
 
-  return <Analyzer cvText={preseed.cv} jobText={preseed.job} onCv={() => undefined} onJob={() => undefined} />;
+  return <Analyzer cvText={preseed.cv} job={null} onCv={() => undefined} onJob={() => undefined} />;
 }

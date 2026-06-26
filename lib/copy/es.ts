@@ -97,6 +97,25 @@ export const copy = {
     sealedWith: "Sellado con",
     engine: "motor",
     lexicon: "léxico",
+    // ─────────────────────────────────────────────────────────────
+    // 021 — v2 (perSection + redFlags). PR 5b agrega el shell básico;
+    // PR 5c introduce `<SectionBreakdown>` con copy por-severidad.
+    // ─────────────────────────────────────────────────────────────
+    v2: {
+      sectionTitle: "Desglose por sección",
+      sectionLabels: {
+        experience: "Experiencia",
+        education: "Educación",
+        skills: "Habilidades",
+        certifications: "Certificaciones",
+        contact: "Contacto",
+      } as const,
+      scoreOutOf: " / 100",
+      noScore: "—",
+      redFlagsTitle: "Señales a revisar",
+      redFlagSeverity: (severity: string) => `severidad: ${severity}`,
+      redFlagCode: (code: string) => `código: ${code}`,
+    },
   },
   confidence: {
     low: "confianza baja",
