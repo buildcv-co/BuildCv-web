@@ -37,14 +37,14 @@ for (const route of ROUTES) {
   }) => {
     const response = await page.goto(route);
     expect(response, `route ${route} should respond`).not.toBeNull();
-    expect(
-      await page.locator("header").count(),
+    await expect(
+      page.locator("header"),
       `route ${route} should render exactly one <header>`,
-    ).toBe(1);
-    expect(
-      await page.locator('nav[aria-label*="principal"]').count(),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('nav[aria-label*="principal"]'),
       `route ${route} should render exactly one <nav aria-label*="principal">`,
-    ).toBe(1);
+    ).toHaveCount(1);
   });
 }
 
