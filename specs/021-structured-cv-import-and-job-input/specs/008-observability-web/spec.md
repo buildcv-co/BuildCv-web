@@ -122,3 +122,13 @@ The system MUST treat `engineVersion` as a strictly additive observability field
 
 - Sending `engineVersion` to a third-party observability backend — none integrated (Art. III).
 - Auto-alerting on `ENGINE_VERSION_DOWNGRADE` — out of scope; the event is logged, not alerted.
+
+---
+
+## Status
+
+**MERGED** into `BuildCv-web/specs/008-observability-web/spec.md` at 2026-06-26 (sdd-archive, change 021-structured-cv-import-and-job-input).
+
+The complete delta (ADDED + MODIFIED + Rollback Plan) was appended as a new section `## v2.0.0 Changes (delta from change 021-structured-cv-import-and-job-input, archived 2026-06-26)` at the bottom of the main spec. The `engineVersion` observability field (additive, default `"n/a"`, version-mismatch warnings) is now the source of truth in `BuildCv-web/specs/008-observability-web/spec.md`.
+
+See `BuildCv-web/specs/021-structured-cv-import-and-job-input/archive-report.md` for full archive summary.

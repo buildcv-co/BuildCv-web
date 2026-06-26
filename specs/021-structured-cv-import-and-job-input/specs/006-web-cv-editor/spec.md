@@ -186,3 +186,13 @@ The system MUST ship both editor variants (legacy + JSON Resume) in the same bun
 - LLM-suggested skills or rewording — Art. I violation.
 - Multi-device sync — v1.
 - Per-field validation that consults the backend (`POST /validate-cv`) — local Zod is the source of truth.
+
+---
+
+## Status
+
+**MERGED** into `BuildCv-web/specs/006-web-cv-editor/spec.md` at 2026-06-26 (sdd-archive, change 021-structured-cv-import-and-job-input).
+
+The complete delta (ADDED + MODIFIED + REMOVED + Rollback Plan) was appended as a new section `## v2.0.0 Changes (delta from change 021-structured-cv-import-and-job-input, archived 2026-06-26)` at the bottom of the main spec. The v2 editor (JSON Resume shape, section-based forms `BasicsForm` / `WorkList` / `EducationList` / `SkillsByCategory`, `promoteConfidence` on save, `NEXT_PUBLIC_STRUCTURED_INPUT` flag) is now the source of truth in `BuildCv-web/specs/006-web-cv-editor/spec.md`.
+
+See `BuildCv-web/specs/021-structured-cv-import-and-job-input/archive-report.md` for full archive summary.

@@ -168,3 +168,13 @@ The system MUST NOT introduce persistence of CV, job, or score responses on the 
 - Multi-language analyzers beyond Spanish/English (deferred to v1+).
 - Scoring against `jobText` (free-text) on the v2 path — only `JobSpec` is accepted.
 - New recommendation engine — covered in 003-adapt-ia.
+
+---
+
+## Status
+
+**MERGED** into `BuildCv-api/specs/002-score-engine/spec.md` at 2026-06-26 (sdd-archive, change 021-structured-cv-import-and-job-input).
+
+The complete delta (ADDED + MODIFIED + REMOVED + Rollback Plan) was appended as a new section `## v2.0.0 Changes (delta from change 021-structured-cv-import-and-job-input, archived 2026-06-26)` at the bottom of the main spec. The v2 contract (engineVersion "2.0.0", discriminated-union ScoreCvCommand, perSection + redFlags in ScoreResponse, determinism property test) is now the source of truth in `BuildCv-api/specs/002-score-engine/spec.md`.
+
+See `BuildCv-web/specs/021-structured-cv-import-and-job-input/archive-report.md` for full archive summary.
