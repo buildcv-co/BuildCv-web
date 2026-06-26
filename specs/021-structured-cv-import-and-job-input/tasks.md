@@ -18,8 +18,11 @@ Chain strategy: feature-branch-chain
 ## Phase 2: Backend Parsers + Scoring (PR 2, PR 3)
 
 ### PR 2 — Backend parser restructure
-- [ ] 2.1 RED — Golden JSON Resume (5+) + DOCX fixtures
-- [ ] 2.2 GREEN — `Import/CvDocument.cs` JSON Resume + Colombian extension
+
+> Micro-batch 2a (PR 2a) — IStructuredParser + ParseResult discriminated union — done; legacy parsers untouched. Tasks 2.1/2.2 are marked as the RED/GREEN slots for this micro-batch per the orchestrator brief. The full scope of the original 2.1 (golden fixtures) and 2.2 (`Import/CvDocument.cs` — superseded by `Domain/Resumes/CvDocument.cs` from PR 1) is captured in the apply-progress and split across micro-batches 2b/2c/2d.
+
+- [x] 2.1 RED — `ParseResultTests` (10 cases: union variants, engineVersion, throws on cross-variant accessors, IStructuredParser contract via mock) — micro-batch 2a RED
+- [x] 2.2 GREEN — `ParseResult.cs` discriminated union (RawParseResult / StructuredParseResult / ParsingWarning) + `IStructuredParser` + `LegacyParserAdapter` shim wrapping legacy ICvParser — micro-batch 2a GREEN
 - [ ] 2.3 GREEN — `SectionDetector.cs` `SectionKind` enum header discriminator
 - [ ] 2.4 GREEN — Refactor `PdfPigCvParser.cs` emit structured `CvDocument` + `confidence` markers
 - [ ] 2.5 GREEN — Refactor `OpenXmlCvParser.cs` preserve DOCX lists in `work[]`
