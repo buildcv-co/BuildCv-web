@@ -2,6 +2,7 @@ import Link from "next/link";
 import { copy } from "@/lib/copy/es";
 import { LandingNav, NAV_ITEMS, type NavItem } from "./landing-nav";
 import { LocalModePill } from "./local-mode-pill";
+import { MobileNav } from "./mobile-nav";
 
 interface SiteHeaderProps {
   /**
@@ -16,10 +17,10 @@ interface SiteHeaderProps {
 /**
  * SiteHeader — composition root for the persistent site header.
  * Renders <header role='banner'> with the brand mark, the inline
- * <LandingNav>, the <LocalModePill> (when IS_LOCAL), and an
- * optional <HeaderExtras> slot. The mobile menu (<MobileNav>) is
- * mounted here in PR2; in PR1 the slot is reserved but unused.
- * Server component (no client state). `min-h-16` reserves CLS space.
+ * <LandingNav> (≥sm), the <MobileNav> (<sm, hamburger + dialog),
+ * the <LocalModePill> (when IS_LOCAL), and an optional <HeaderExtras>
+ * slot. Server component shell; MobileNav is the only client island.
+ * `min-h-16` reserves CLS space.
  */
 export function SiteHeader({ extras }: SiteHeaderProps) {
   return (
@@ -37,7 +38,10 @@ export function SiteHeader({ extras }: SiteHeaderProps) {
           {copy.appName}
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <LandingNav />
+          <div className="hidden sm:flex">
+            <LandingNav />
+          </div>
+          <MobileNav items={NAV_ITEMS} />
           <LocalModePill />
           {extras ? (
             <div data-testid="header-extras" className="flex items-center gap-3">

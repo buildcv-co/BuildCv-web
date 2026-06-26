@@ -91,4 +91,20 @@ describe("SiteHeader", () => {
     const banner = container.querySelector("header");
     expect(banner?.className ?? "").toMatch(/min-h-16/);
   });
+
+  it("monta <MobileNav> con los mismos items que <LandingNav> consume de NAV_ITEMS", () => {
+    render(<SiteHeader />);
+    expect(screen.getByTestId("mobile-nav-trigger")).toBeInTheDocument();
+    expect(screen.getByTestId("mobile-nav-dialog")).toBeInTheDocument();
+  });
+
+  it("MobileNav y LandingNav conviven en el DOM (hidden sm:flex + sm:hidden hacen el switch responsive)", () => {
+    const { container } = render(<SiteHeader />);
+    expect(
+      container.querySelector('[data-testid="mobile-nav-trigger"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: /principal/i }),
+    ).toBeInTheDocument();
+  });
 });
