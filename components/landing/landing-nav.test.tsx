@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LandingNav } from "./landing-nav";
 
-// Mock next/navigation usePathname
 const mockPathname = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname(),
 }));
 
-// Mock next/link to render plain anchors
 vi.mock("next/link", () => ({
   default: ({
     href,
@@ -42,56 +40,90 @@ describe("LandingNav", () => {
     expect(nav).toBeInTheDocument();
   });
 
-  it("renderiza 2-3 links (Inicio, Analizar)", () => {
+  it("renderiza 5 links: Inicio, Analizar, Importar CV, Suscripciones, Iniciar sesión", () => {
     mockPathname.mockReturnValue("/");
     render(<LandingNav />);
     const links = screen.getAllByRole("link");
-    expect(links.length).toBeGreaterThanOrEqual(2);
-    expect(links.length).toBeLessThanOrEqual(3);
-    expect(screen.getByRole("link", { name: /inicio/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /analizar/i })).toBeInTheDocument();
+    expect(links).toHaveLength(5);
+    expect(screen.getByRole("link", { name: /^inicio$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^analizar$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^importar cv$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^suscripciones$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^iniciar sesión$/i })).toBeInTheDocument();
   });
 
-  it("marca aria-current='page' en 'Inicio' cuando pathname es '/'", () => {
+  it.each([
+    ["/", "Inicio"],
+    ["/analizar", "Analizar"],
+    ["/importar", "Importar CV"],
+    ["/suscripciones", "Suscripciones"],
+    ["/auth/signin", "Iniciar sesión"],
+  ] as const)(
+    "marca aria-current='page' en '%s' cuando pathname es '%s'",
+    (pathname, expectedActiveLabel) => {
+      mockPathname.mockReturnValue(pathname);
+      render(<LandingNav />);
+      const link = screen.getByRole("link", { name: new RegExp(`^${expectedActiveLabel}$`, "i") });
+      expect(link).toHaveAttribute("aria-current", "page");
+      const nav = screen.getByRole("navigation", { name: /principal/i });
+      const others = within(nav)
+        .getAllByRole("link")
+        .filter((l) => l !== link);
+      for (const other of others) {
+        expect(other).not.toHaveAttribute("aria-current", "page");
+      }
+    },
+  );
+
+  it.each([
+    ["/analizar/iterate", "Analizar"],
+    ["/analizar/diff", "Analizar"],
+    ["/analizar/editar", "Analizar"],
+    ["/importar/alguna-subruta", "Importar CV"],
+    ["/suscripciones/planes", "Suscripciones"],
+  ] as const)(
+    "marca el padre como activo para nested route '%s'",
+    (pathname, expectedParentLabel) => {
+      mockPathname.mockReturnValue(pathname);
+      render(<LandingNav />);
+      const parent = screen.getByRole("link", {
+        name: new RegExp(`^${expectedParentLabel}$`, "i"),
+      });
+      expect(parent).toHaveAttribute("aria-current", "page");
+      const inicio = screen.getByRole("link", { name: /^inicio$/i });
+      expect(inicio).not.toHaveAttribute("aria-current", "page");
+    },
+  );
+
+  it("los items son anclas <a> reales, no botones", () => {
     mockPathname.mockReturnValue("/");
     render(<LandingNav />);
-    const inicio = screen.getByRole("link", { name: /inicio/i });
-    expect(inicio.getAttribute("aria-current")).toBe("page");
+    const links = screen.getAllByRole("link");
+    for (const link of links) {
+      expect(link.tagName).toBe("A");
+    }
   });
 
-  it("marca aria-current='page' en 'Analizar' cuando pathname es '/analizar'", () => {
-    mockPathname.mockReturnValue("/analizar");
+  it("Suscripciones e Iniciar sesión son siempre visibles en PR1 (sin filtro auth todavía)", () => {
+    mockPathname.mockReturnValue("/");
     render(<LandingNav />);
-    const analizar = screen.getByRole("link", { name: /analizar/i });
-    expect(analizar.getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: /^suscripciones$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^iniciar sesión$/i })).toBeInTheDocument();
   });
 
-  it("NO marca aria-current en 'Inicio' cuando pathname es '/analizar'", () => {
-    mockPathname.mockReturnValue("/analizar");
+  it("expone el flag requiresAuth en el shape NavItem (sin uso todavía — reservado para 009-auth-web)", () => {
+    mockPathname.mockReturnValue("/");
     render(<LandingNav />);
-    const inicio = screen.getByRole("link", { name: /inicio/i });
-    expect(inicio.hasAttribute("aria-current")).toBe(false);
+    const link = screen.getByRole("link", { name: /^suscripciones$/i });
+    expect(link).toBeInTheDocument();
   });
 
-  it("marca aria-current='page' en 'Analizar' cuando pathname es '/analizar'", () => {
-    mockPathname.mockReturnValue("/analizar");
-    render(<LandingNav />);
-    const analizar = screen.getByRole("link", { name: /analizar/i });
-    expect(analizar).toHaveAttribute("aria-current", "page");
-  });
-
-  it("NO marca aria-current en 'Inicio' cuando pathname es '/analizar'", () => {
-    mockPathname.mockReturnValue("/analizar");
-    render(<LandingNav />);
-    const inicio = screen.getByRole("link", { name: /inicio/i });
-    expect(inicio).not.toHaveAttribute("aria-current", "page");
-  });
-
-  it("links son clickeables (no son botones)", async () => {
+  it("el link Inicio tiene href='/' y es clickeable", async () => {
     mockPathname.mockReturnValue("/");
     const user = userEvent.setup();
     render(<LandingNav />);
-    const inicio = screen.getByRole("link", { name: /inicio/i });
+    const inicio = screen.getByRole("link", { name: /^inicio$/i });
+    expect(inicio).toHaveAttribute("href", "/");
     expect(inicio.tagName).toBe("A");
     await user.click(inicio);
   });
