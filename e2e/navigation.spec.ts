@@ -163,20 +163,16 @@ test.describe("Mobile menu (375x812)", () => {
   }) => {
     await page.goto("/");
     const trigger = page.getByTestId("mobile-nav-trigger");
+    const dialog = page.getByTestId("mobile-nav-dialog");
     await trigger.click();
-    const isOpen = await page.evaluate(
-      () =>
-        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
-          ?.open === true,
-    );
-    expect(isOpen).toBe(true);
+    await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
     await page.waitForFunction(
       () =>
-        (document.querySelector('[data-testid="mobile-nav-dialog"]') as HTMLDialogElement | null)
-          ?.open !== true,
+        document.activeElement?.getAttribute("data-testid") === "mobile-nav-trigger",
+      { timeout: 5000 },
     );
-    await expect(trigger).toBeFocused();
   });
 
   test("Mobile_TabCyclesInsideDialog_FocusNeverEscapes", async ({ page }) => {
