@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 
 if (typeof HTMLDialogElement !== "undefined") {
   if (!HTMLDialogElement.prototype.showModal) {
@@ -19,4 +19,7 @@ if (typeof HTMLDialogElement !== "undefined") {
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
+  sessionStorage.clear();
+  vi.unstubAllGlobals();
 });
