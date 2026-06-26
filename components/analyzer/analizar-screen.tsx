@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Analyzer } from "@/components/analyzer/analyzer";
 import { EmptyState } from "@/components/common/empty-state";
 import { DocumentIcon } from "@/components/common/icons";
@@ -9,12 +9,20 @@ import { copy } from "@/lib/copy/es";
 const STORAGE_KEY_CV = "buildcv:analizar:cv-preseed";
 const STORAGE_KEY_JOB = "buildcv:analizar:job-preseed";
 
-function readPreseed(): { cv: string; job: string } {
-  if (typeof window === "undefined") return { cv: "", job: "" };
+type Preseed = { cv: string; job: string };
+
+const emptyPreseed: Preseed = { cv: "", job: "" };
+
+function readPreseed(): Preseed {
+  if (typeof window === "undefined") return emptyPreseed;
   return {
     cv: window.localStorage.getItem(STORAGE_KEY_CV) ?? "",
     job: window.localStorage.getItem(STORAGE_KEY_JOB) ?? "",
   };
+}
+
+function subscribe() {
+  return () => undefined;
 }
 
 /**
@@ -27,12 +35,16 @@ function readPreseed(): { cv: string; job: string } {
  * Si localStorage tiene 'buildcv:analizar:cv-preseed' o
  * 'buildcv:analizar:job-preseed' pre-poblado (e.g., por un e2e test
  * o por el flujo de import que escribe el texto extraído), el
- * Analyzer se renderiza directamente con ese texto inicial.
+ * Analyzer se renderiza con ese texto inicial.
+ *
+ * useSyncExternalStore garantiza que el snapshot server-side coincida
+ * con el primer render del cliente (getServerSnapshot), evitando
+ * hydration mismatch al leer localStorage.
  */
 export function AnalizarScreen() {
-  const [{ cv: cvText, job: jobText }] = useState(readPreseed);
+  const preseed = useSyncExternalStore<Preseed>(subscribe, readPreseed, () => emptyPreseed);
 
-  const bothEmpty = cvText.trim() === "" && jobText.trim() === "";
+  const bothEmpty = preseed.cv.trim() === "" && preseed.job.trim() === "";
 
   if (bothEmpty) {
     return (
@@ -46,5 +58,5 @@ export function AnalizarScreen() {
     );
   }
 
-  return <Analyzer cvText={cvText} jobText={jobText} onCv={() => undefined} onJob={() => undefined} />;
+  return <Analyzer cvText={preseed.cv} jobText={preseed.job} onCv={() => undefined} onJob={() => undefined} />;
 }
