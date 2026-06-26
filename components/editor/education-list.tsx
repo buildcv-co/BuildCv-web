@@ -1,15 +1,19 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import type { Education } from "@/lib/editor/types";
 import { Field, inputClass } from "./_shared/form-field";
 import { AddItemButton, ListCard, StatusLive } from "./_shared/list-card";
+import { ConfidenceBadge } from "./_shared/confidence-badge";
 
 /**
  * EducationList — shell presentacional para la sección `education` del
  * editor JSON Resume. Mismo patrón que `WorkList`: ListCard collapsible
  * por item, add/remove con estado de confianza `user_confirmed` para los
  * items nuevos, status live para anunciar cambios (WCAG 4.1.3).
+ *
+ * `ConfidenceBadge` por item (PR 4d) refleja el `ConfidenceMarker` de
+ * `institution` — la cara más visible del item.
  */
 export function EducationList({
   items,
@@ -74,7 +78,15 @@ export function EducationList({
             <li key={idx}>
               <ListCard
                 title={`${ed.studyType || "Estudio"} — ${ed.institution || "Institución"}`}
-                subtitle={formatEduDateRange(ed)}
+                subtitle={
+                  <Fragment>
+                    <span>{formatEduDateRange(ed)}</span>
+                    <ConfidenceBadge
+                      marker={ed.confidence.institution}
+                      value={ed.institution}
+                    />
+                  </Fragment>
+                }
                 removeLabel={`Eliminar educación ${idx + 1}`}
                 onRemove={() => {
                   removeAt(idx);

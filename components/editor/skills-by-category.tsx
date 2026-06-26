@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import type { Skills } from "@/lib/editor/types";
 import { Field, inputClass } from "./_shared/form-field";
 import { AddItemButton, ListCard, StatusLive } from "./_shared/list-card";
+import { ConfidenceBadge } from "./_shared/confidence-badge";
 
 /**
  * SkillsByCategory — shell presentacional para la sección `skills` del
@@ -19,6 +20,8 @@ import { AddItemButton, ListCard, StatusLive } from "./_shared/list-card";
  *  - Items nuevos arrancan con `confidence: "user_confirmed"` (regla
  *    "el usuario lo está creando activamente" — ver WorkList para el
  *    rationale; PR 4d extiende la regla).
+ *  - `ConfidenceBadge` por categoría (PR 4d) refleja el `ConfidenceMarker
+ *    ` de `name` — la cara más visible de la categoría.
  */
 export function SkillsByCategory({
   items,
@@ -77,7 +80,10 @@ export function SkillsByCategory({
               <ListCard
                 title={s.name || "Categoría sin nombre"}
                 subtitle={
-                  s.level ? `Nivel: ${s.level}` : undefined
+                  <Fragment>
+                    {s.level ? <span>Nivel: {s.level}</span> : null}
+                    <ConfidenceBadge marker={s.confidence.name} value={s.name} />
+                  </Fragment>
                 }
                 removeLabel={`Eliminar habilidad ${idx + 1}`}
                 onRemove={() => {

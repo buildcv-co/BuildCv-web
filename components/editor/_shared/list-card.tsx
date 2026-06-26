@@ -26,7 +26,12 @@ export function ListCard({
   children,
 }: {
   title: string;
-  subtitle?: string;
+  /**
+   * Texto secundario debajo del título (ej: rango de fechas, nivel).
+   * Acepta `ReactNode` para que cada sección pueda añadir un badge u
+   * otra decoración (PR 4d — `ConfidenceBadge` por item).
+   */
+  subtitle?: React.ReactNode;
   removeLabel: string;
   onRemove: () => void;
   defaultOpen?: boolean;

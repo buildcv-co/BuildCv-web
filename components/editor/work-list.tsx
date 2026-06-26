@@ -1,9 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import type { Work } from "@/lib/editor/types";
 import { Field, inputClass } from "./_shared/form-field";
 import { AddItemButton, ListCard, StatusLive } from "./_shared/list-card";
+import { ConfidenceBadge } from "./_shared/confidence-badge";
 
 /**
  * WorkList — shell presentacional para la sección `work` del editor
@@ -16,6 +17,8 @@ import { AddItemButton, ListCard, StatusLive } from "./_shared/list-card";
  *    preserva el marker en el scoring).
  *  - Highlights[] es un textarea con bullets (uno por línea) — el patrón
  *    open-resume estándar.
+ *  - `ConfidenceBadge` por item (PR 4d) muestra el `ConfidenceMarker` del
+ *    campo `position` — la cara más visible del item.
  *
  * "Agregar experiencia" crea un item con TODO `confidence:
  * "user_confirmed"` porque el usuario lo está creando activamente.
@@ -84,7 +87,15 @@ export function WorkList({
             <li key={idx}>
               <ListCard
                 title={`${w.position || "Cargo"} — ${w.name || "Empresa"}`}
-                subtitle={formatDateRange(w)}
+                subtitle={
+                  <Fragment>
+                    <span>{formatDateRange(w)}</span>
+                    <ConfidenceBadge
+                      marker={w.confidence.position}
+                      value={w.position}
+                    />
+                  </Fragment>
+                }
                 removeLabel={`Eliminar experiencia ${idx + 1}`}
                 onRemove={() => {
                   removeAt(idx);
