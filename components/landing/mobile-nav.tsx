@@ -95,7 +95,7 @@ export function MobileNav({ items }: MobileNavProps) {
         aria-label={copy.nav.mobileMenu.dialogLabel}
         onClose={returnFocusToTrigger}
         data-testid="mobile-nav-dialog"
-        className="m-0 ml-auto h-full max-h-screen w-full max-w-sm border-l border-line bg-canvas p-0 text-ink backdrop:bg-black/60"
+        className="m-0 ml-auto h-full max-h-screen w-full max-w-[min(24rem,100vw)] border-l border-line bg-canvas p-0 text-ink backdrop:bg-black/60"
       >
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">

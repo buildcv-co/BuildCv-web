@@ -56,6 +56,7 @@ export function InputPanel({
             </span>
           </div>
           <textarea
+            data-testid="analyzer-cv-textarea"
             value={cvText}
             onChange={(event) => onCv(event.target.value)}
             placeholder={copy.analyze.cvPlaceholder}

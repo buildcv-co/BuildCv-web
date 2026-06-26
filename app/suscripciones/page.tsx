@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, IS_LOCAL } from "@/lib/auth";
 import { copy } from "@/lib/copy/es";
 import { SubscriptionDashboard } from "@/components/subscriptions/subscription-dashboard";
 import { SubscriptionsEmpty } from "@/components/subscriptions/subscriptions-empty";
@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
 
 export default async function SubscriptionsPage() {
   const session = await getServerSession(authOptions);
-  const isAuthenticated = Boolean((session?.user as { id?: string } | undefined)?.id);
+  const isAuthenticated =
+    IS_LOCAL ||
+    Boolean((session?.user as { id?: string } | undefined)?.id);
 
   if (!isAuthenticated) {
     return <SubscriptionsEmpty callbackUrl="/suscripciones" />;

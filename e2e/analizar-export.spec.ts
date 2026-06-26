@@ -25,6 +25,16 @@ const PDF_BYTES = Buffer.from("%PDF-1.4\n%mock\n%%EOF");
 
 test.describe("004-web-export-ui — flujo de export PDF", () => {
   test("happy path: analizar → adaptar → descargar PDF dispara la descarga vía blob URL", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "buildcv:analizar:cv-preseed",
+        "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
+      );
+      window.localStorage.setItem(
+        "buildcv:analizar:job-preseed",
+        "Buscamos backend .NET con AWS y PostgreSQL.\n".repeat(4),
+      );
+    });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SCORE_MOCK) });
     });
@@ -36,7 +46,7 @@ test.describe("004-web-export-ui — flujo de export PDF", () => {
     });
 
     await page.goto("/analizar");
-    await page.getByLabel("Tu hoja de vida").fill("Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8));
+    await expect(page.getByLabel("Tu hoja de vida")).toBeVisible();
     await page.getByLabel("La vacante").fill("Buscamos backend .NET con AWS y PostgreSQL.\n".repeat(4));
     await page.getByRole("button", { name: "Analizar" }).click();
 
@@ -53,6 +63,16 @@ test.describe("004-web-export-ui — flujo de export PDF", () => {
   });
 
   test("error 422: el botón Descargar muestra panel con Regenerar", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "buildcv:analizar:cv-preseed",
+        "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
+      );
+      window.localStorage.setItem(
+        "buildcv:analizar:job-preseed",
+        "Buscamos backend .NET con AWS y PostgreSQL.\n".repeat(4),
+      );
+    });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SCORE_MOCK) });
     });
@@ -68,7 +88,7 @@ test.describe("004-web-export-ui — flujo de export PDF", () => {
     });
 
     await page.goto("/analizar");
-    await page.getByLabel("Tu hoja de vida").fill("Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8));
+    await expect(page.getByLabel("Tu hoja de vida")).toBeVisible();
     await page.getByLabel("La vacante").fill("Buscamos backend .NET con AWS y PostgreSQL.\n".repeat(4));
     await page.getByRole("button", { name: "Analizar" }).click();
 

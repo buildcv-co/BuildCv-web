@@ -31,20 +31,18 @@ for (const vp of VIEWPORTS) {
       expect(hOverlap <= 0 || vOverlap <= 0).toBe(true);
     });
 
-    test("el privacy notice ('Procesamos en memoria...') está visible en TODOS los viewports", async ({ page }) => {
+    test("el privacy notice está visible en TODOS los viewports", async ({ page }) => {
       await page.goto("/analizar");
-      const notice = page.getByText("Procesamos en memoria y descartamos el texto al responder.");
+      const notice = page.getByText(/procesamos en memoria|procesa en memoria/i).first();
       await expect(notice).toBeVisible();
     });
 
-    test("los 3 botones (Analizar, Probar ejemplo, Limpiar) están visibles y no se cortan", async ({ page }) => {
+    test("el EmptyState con CTA 'Ver cómo importar un CV' es visible cuando no hay inputs", async ({ page }) => {
       await page.goto("/analizar");
-      const analizar = page.getByRole("button", { name: /analizar/i }).first();
-      const ejemplo = page.getByRole("button", { name: /probar con un ejemplo/i });
-      const limpiar = page.getByRole("button", { name: /limpiar/i });
-      await expect(analizar).toBeVisible();
-      await expect(ejemplo).toBeVisible();
-      await expect(limpiar).toBeVisible();
+      const cta = page.getByTestId("empty-state-primary-cta");
+      await expect(cta).toBeVisible();
+      await expect(cta).toHaveAttribute("href", "/importar");
+      await expect(cta).toHaveText(/importar/i);
     });
   });
 }

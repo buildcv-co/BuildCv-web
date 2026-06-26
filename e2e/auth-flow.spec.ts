@@ -96,4 +96,15 @@ test.describe("013.2-web-jwt-cookie — Auth flow", () => {
     await expect(badge).toHaveAttribute("data-state", "ok");
     await expect(badge).toHaveText(/^5 créditos$/);
   });
+
+  // 019-navigation-onboarding — REQ-LOCAL-001 regression guard.
+  // En local mode (NEXT_PUBLIC_LOCAL_MODE=true), /auth/signin salta
+  // el form de OAuth y redirige al usuario a /analizar (NO
+  // /analizar/iterate). El landing point es ahora descubrible:
+  // empty state con CTA 'Importar CV'.
+  test("AuthFlow_019_SignIn_LocalMode_RedirectsToAnalizar_NotIterate", async ({ page }) => {
+    await page.goto("/auth/signin");
+    await expect(page).toHaveURL(/\/analizar(\?|$)/);
+    expect(page.url()).not.toMatch(/\/analizar\/iterate/);
+  });
 });

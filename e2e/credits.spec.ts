@@ -131,6 +131,16 @@ test.describe("013-credit-consumption — UI", () => {
   });
 
   test("adapt: 402 muestra modal con link Comprar más créditos", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "buildcv:analizar:cv-preseed",
+        "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
+      );
+      window.localStorage.setItem(
+        "buildcv:analizar:job-preseed",
+        "Buscamos backend .NET con AWS.\n".repeat(4),
+      );
+    });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
@@ -167,6 +177,16 @@ test.describe("013-credit-consumption — UI", () => {
   });
 
   test("adapt: 402 modal tiene botón Cancelar que cierra el modal", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "buildcv:analizar:cv-preseed",
+        "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
+      );
+      window.localStorage.setItem(
+        "buildcv:analizar:job-preseed",
+        "Buscamos backend .NET con AWS.\n".repeat(4),
+      );
+    });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
@@ -203,6 +223,16 @@ test.describe("013-credit-consumption — UI", () => {
   });
 
   test("adapt: 200 después de comprar más créditos", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "buildcv:analizar:cv-preseed",
+        "Mariana\nBackend dev con experiencia en C# y ASP.NET Core.\n".repeat(8),
+      );
+      window.localStorage.setItem(
+        "buildcv:analizar:job-preseed",
+        "Buscamos backend .NET con AWS.\n".repeat(4),
+      );
+    });
     await page.route("**/api/score", async (route) => {
       await route.fulfill({
         status: 200,
