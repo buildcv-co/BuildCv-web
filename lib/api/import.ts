@@ -46,12 +46,20 @@ export type ValidateFileResult = { ok: true } | { ok: false; reason: string };
  * Validación client-side ANTES de subir (defense in depth, Constitution Art. I).
  * No sustituye al backend; evita round-trips innecesarios y mejora UX.
  */
+function isAllowedFile(file: File): boolean {
+  if (ALLOWED_MIMES.includes(file.type as AllowedMime)) return true;
+  // Fallback por extensión solo cuando el browser no pudo determinar MIME.
+  if (file.type !== "" && file.type !== "application/octet-stream") return false;
+  const name = file.name.toLowerCase();
+  return name.endsWith(".pdf") || name.endsWith(".docx");
+}
+
 export function validateFile(file: File): ValidateFileResult {
   if (file.size === 0) return { ok: false, reason: "El archivo está vacío." };
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return { ok: false, reason: "El archivo supera el límite de 5 MB." };
   }
-  if (!ALLOWED_MIMES.includes(file.type as AllowedMime)) {
+  if (!isAllowedFile(file)) {
     return {
       ok: false,
       reason: "Tipo de archivo no soportado. Sube un PDF o DOCX.",

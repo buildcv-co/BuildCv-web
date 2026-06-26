@@ -159,7 +159,7 @@ export const copy = {
       manualFallbackTitle: "¿Tu CV es un escaneo o imagen?",
       manualFallbackDescription: "Pegá el texto de tu CV acá y continuamos igual.",
       manualFallbackCta: "Pegar texto manualmente",
-      manualFallbackContinue: "Continuar con este texto",
+      manualFallbackContinue: "Analizar este texto",
       metaDescription:
         "Subí tu CV en PDF o DOCX y extraemos el texto para que no tengas que copiar a mano. Sin garantías, sin guardado: se procesa y se descarta.",
       dragHere: "Arrastra tu CV aquí",
@@ -167,12 +167,17 @@ export const copy = {
       or: "o",
       clickToSelect: "haz click para seleccionar un archivo",
     },
+    uploadTitle: "Opción 1: subí un archivo",
+    uploadDescription: "Aceptamos PDF o DOCX con texto seleccionable. Si tu PDF es una foto o escaneo, usá la opción 2.",
     states: {
       idle: "Selecciona un archivo",
       loading: "Extrayendo texto…",
-      success: "Texto extraído",
+      success: "CV listo para analizar",
       error: "No pudimos procesar el archivo",
     },
+    successPreview: "Vista previa del texto extraído:",
+    buttonAnalyze: "Analizar este CV ahora",
+    buttonUploadAnother: "Subir otro archivo",
     buttonUseInEditor: "Usar este texto en el editor",
     handoffHint: "Listo — abrir el editor con este texto pre-poblado.",
     sections: {

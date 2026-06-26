@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { copy } from "@/lib/copy/es";
 
 const IMPORT_SUCCESS = {
   text: "Juan Pérez\nBackend Developer con 5 años de experiencia en C# y .NET.\n\nEXPERIENCIA\n\nAcme Corp · Senior Developer · 2022-2026\n- Lideré migración de monolito a microservicios",
@@ -13,7 +14,7 @@ const IMPORT_SUCCESS = {
 };
 
 test.describe("005-web-cv-import-ui — flujo de import PDF/DOCX", () => {
-  test("happy path: 200 + ImportResult válido → renderiza ImportResultPanel con el texto extraído", async ({
+  test("happy path: 200 + ImportResult válido → muestra preview y CTA para analizar", async ({
     page,
   }) => {
     await page.route("**/api/import", async (route) => {
@@ -40,14 +41,11 @@ test.describe("005-web-cv-import-ui — flujo de import PDF/DOCX", () => {
       buffer: Buffer.from("%PDF-1.4\nmock"),
     });
 
-    // El ImportResultPanel aparece con el texto
+    // El preview del texto extraído aparece con las acciones principales
     await expect(page.getByTestId("import-result-text")).toContainText("Juan Pérez");
     await expect(page.getByTestId("import-result-text")).toContainText("Backend Developer");
-    await expect(page.getByText("EXPERIENCIA", { exact: true })).toBeVisible();
-    await expect(page.getByText(/alta confianza/i)).toBeVisible();
-
-    // El aviso del parseo aparece
-    await expect(page.getByText(/Se omitieron 1 imagen/)).toBeVisible();
+    await expect(page.getByRole("button", { name: copy.import.buttonAnalyze })).toBeVisible();
+    await expect(page.getByRole("button", { name: copy.import.buttonUploadAnother })).toBeVisible();
   });
 
   test("422 (PDF escaneado): muestra ImportErrorPanel con mensaje del backend", async ({

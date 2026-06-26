@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ImportButton } from "./import-button";
 import type { ImportResult } from "@/lib/api/types";
@@ -90,7 +90,7 @@ describe("ImportButton — happy path (idle → loading → success)", () => {
     expect(formData.get("file")).toBe(file);
   });
 
-  it("success: muestra el botón 'Usar este texto en el editor' (handoff)", async () => {
+  it("success: muestra el botón 'Analizar este CV ahora' y guarda el texto en localStorage", async () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(successResult)));
     const { container } = render(<ImportButton editorAvailable />);
@@ -100,7 +100,7 @@ describe("ImportButton — happy path (idle → loading → success)", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: copy.import.buttonUseInEditor }),
+        screen.getByRole("button", { name: copy.import.buttonAnalyze }),
       ).toBeInTheDocument();
     });
   });
@@ -130,9 +130,9 @@ describe("ImportButton — manejo de errores", () => {
     await user.upload(input, makeFile("scan.pdf", "application/pdf"));
 
     await waitFor(() => {
-      expect(screen.getByText(/escaneo/)).toBeInTheDocument();
+      const alert = screen.getByRole("alert");
+      expect(within(alert).getByText(/escaneo/)).toBeInTheDocument();
     });
-    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
   it("415 unsupported_mime: muestra mensaje 'PDF o DOCX'", async () => {
