@@ -4,14 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/copy/es";
 
-interface NavItem {
+export interface NavItem {
   readonly href: string;
   readonly label: string;
+  /**
+   * When true, the link should be filtered out for anonymous users.
+   * Reserved for v1 (auth-web); PR1 always passes all items visible.
+   */
+  readonly requiresAuth?: boolean;
 }
 
-const NAV_ITEMS: ReadonlyArray<NavItem> = [
-  { href: "/", label: "Inicio" },
-  { href: "/analizar", label: copy.nav.analyze },
+export const NAV_ITEMS: ReadonlyArray<NavItem> = [
+  { href: "/", label: copy.nav.global.home },
+  { href: "/analizar", label: copy.nav.global.analyze },
+  { href: "/importar", label: copy.nav.global.import },
+  { href: "/suscripciones", label: copy.nav.global.subscriptions },
+  { href: "/auth/signin", label: copy.nav.global.account },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -31,6 +39,7 @@ export function LandingNav() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
+            data-testid={`nav-link-${item.href.replaceAll("/", "_") || "_root"}`}
             className={
               active
                 ? "rounded-full border border-accent px-3 py-1.5 text-sm text-accent sm:px-4 sm:py-2"
