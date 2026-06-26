@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { copy } from "@/lib/copy/es";
+import { SiteHeader } from "@/components/landing/site-header";
 import { WebVitalsReporter } from "@/components/observability/web-vitals-reporter";
 import { DevErrorOverlay } from "@/components/observability/dev-error-overlay";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
         >
           Saltar al contenido
         </a>
+        <SiteHeader />
         {children}
         <WebVitalsReporter />
         <DevErrorOverlay />

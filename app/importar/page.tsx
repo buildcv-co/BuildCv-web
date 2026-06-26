@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ImportButton } from "@/components/import/import-button";
 import { ClientWrapper } from "@/components/observability/client-wrapper";
 import { copy } from "@/lib/copy/es";
@@ -13,15 +12,6 @@ export const metadata: Metadata = {
 export default function ImportarPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-6 py-8">
-      <header className="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="font-display text-xl">
-          {copy.appName}
-        </Link>
-        <span className="font-mono text-xs text-faint">
-          procesamiento en memoria · sin guardado
-        </span>
-      </header>
-
       <main id="contenido">
         <h1 className="font-display text-3xl sm:text-4xl">
           {copy.import.page.title}

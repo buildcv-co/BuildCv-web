@@ -3,7 +3,6 @@ import { copy } from "@/lib/copy/es";
 import { buildLandingMetadata } from "@/lib/seo/metadata";
 import { buildAllLdSchemas } from "@/lib/seo/jsonld";
 import { FaqSection } from "@/components/landing/faq-section";
-import { LandingNav } from "@/components/landing/landing-nav";
 import { TrustSignals } from "@/components/landing/trust-signals";
 
 export const metadata = buildLandingMetadata();
@@ -22,16 +21,6 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: buildAllLdSchemas(copy.landing.faqs) }} // ONLY: JSON-LD built-time, no user input (Art. V documented exception)
       />
       <div className="mx-auto w-full max-w-5xl px-6">
-        <header className="flex items-center justify-between py-8">
-          <Link
-            href="/"
-            className="font-display text-xl text-ink transition hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            {copy.appName}
-          </Link>
-          <LandingNav />
-        </header>
-
         <main id="contenido" className="py-12 sm:py-20">
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-accent">
             {copy.home.kicker}

@@ -20,10 +20,6 @@ export default async function DiffRoutePage({
   const jobText = typeof sp.job === "string" ? sp.job : "";
   return (
     <div className="mx-auto w-full max-w-6xl px-6 py-8">
-      <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <span className="font-display text-xl">{copy.appName}</span>
-        <span className="font-mono text-xs text-faint">diff viewer</span>
-      </header>
       <main id="contenido">
         <ClientWrapper>
           <DiffPage jobText={jobText} />
