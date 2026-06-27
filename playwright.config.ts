@@ -8,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: process.env.CI ? [["github"], ["html"]] : "html",
   use: {
     baseURL: BASE_URL,
@@ -22,7 +22,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    command: "node scripts/e2e-mock-backend.mjs & pnpm dev",
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
@@ -35,6 +35,7 @@ export default defineConfig({
       LINKEDIN_CLIENT_ID: "playwright-linkedin-client-id",
       LINKEDIN_CLIENT_SECRET: "playwright-linkedin-client-secret",
       JWT_CACHE_TTL_SECONDS: "300",
+      BACKEND_URL: "http://127.0.0.1:4018",
     },
     stdout: "ignore",
     stderr: "pipe",

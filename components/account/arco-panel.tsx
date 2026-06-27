@@ -42,6 +42,7 @@ function errorKind(err: Error | null): "rate-limit" | "validation" | "network" |
 
 export function ArcoPanel({ userData }: ArcoPanelProps): React.ReactElement {
   const router = useRouter();
+  const [displayedUserData, setDisplayedUserData] = useState(userData);
   const [accessOpen, setAccessOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [rectifyName, setRectifyName] = useState(userData.name);
@@ -57,7 +58,7 @@ export function ArcoPanel({ userData }: ArcoPanelProps): React.ReactElement {
     [router],
   );
 
-  const arco = useArco({ userData, onEmailRotated: handleEmailRotated });
+  const arco = useArco({ userData: displayedUserData, onEmailRotated: handleEmailRotated });
 
   const handleRectifySubmit = async (
     e: React.FormEvent<HTMLFormElement>,
@@ -67,7 +68,10 @@ export function ArcoPanel({ userData }: ArcoPanelProps): React.ReactElement {
     if (rectifyName !== userData.name) payload.name = rectifyName;
     if (rectifyEmail !== userData.email) payload.email = rectifyEmail;
     if (Object.keys(payload).length === 0) return;
-    await arco.rectify(payload);
+    const updatedUserData = await arco.rectify(payload);
+    if (updatedUserData) {
+      setDisplayedUserData(updatedUserData);
+    }
   };
 
   const handleCancelConfirm = async (): Promise<void> => {
@@ -117,7 +121,7 @@ export function ArcoPanel({ userData }: ArcoPanelProps): React.ReactElement {
               data-testid="arco-access-json"
               className="mt-2 overflow-x-auto whitespace-pre-wrap font-mono text-xs"
             >
-              {JSON.stringify(userData, null, 2)}
+              {JSON.stringify(displayedUserData, null, 2)}
             </pre>
           </details>
         </div>
@@ -193,7 +197,7 @@ export function ArcoPanel({ userData }: ArcoPanelProps): React.ReactElement {
 
       {modalOpen ? (
         <ArcoCancelModal
-          userEmail={userData.email}
+          userEmail={displayedUserData.email}
           onConfirm={handleCancelConfirm}
           onCancel={() => setModalOpen(false)}
         />
