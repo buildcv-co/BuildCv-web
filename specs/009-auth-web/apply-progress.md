@@ -1305,3 +1305,165 @@ The MVP can technically launch with just PR0+PR1+PR2+PR4 (auth works end-to-end 
 - `<UserMenu>` component
 - Header sign-out button
 - Required integration with PR2 signOut helper
+
+---
+
+## PR7 — UserMenu component
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr7-user-menu`
+**Base**: `main` @ `d0c6ff3`
+**Started**: 2026-06-27
+**Completed**: 2026-06-27
+
+### Scope
+
+Implemented the auth-aware header surface for 009-auth-web: `UserMenu` mounts through the existing `SiteHeader extras` slot, exposes loading/authenticated/unauthenticated states, opens a native `<dialog>` menu with `/cuenta` and sign-out actions, hides the legacy `/auth/signin` nav item when authenticated, and renders `null` before any session hook work in local mode.
+
+### Tasks completed (TDD strict)
+
+| Task | TDD cycle | Status | Evidence |
+|---|---|---|---|
+| **T-PR7-001** | RED → GREEN → REFACTOR | ✅ | `__tests__/lib/use-user-menu.test.ts` covers loading, authenticated, unauthenticated, error-as-unauthenticated, and single session fetch. |
+| **T-PR7-002** | RED → GREEN → REFACTOR | ✅ | `__tests__/components/header/user-menu.test.tsx` covers skeleton, authenticated trigger, avatar initial, accessible dialog opening. |
+| **T-PR7-003** | RED → GREEN → REFACTOR | ✅ | `user-menu.test.tsx` asserts `Mi cuenta` menuitem links to `/cuenta`. |
+| **T-PR7-004** | RED → GREEN → REFACTOR | ✅ | `user-menu.test.tsx` asserts `Cerrar sesión` calls the PR2 sign-out helper. |
+| **T-PR7-005** | RED → GREEN → REFACTOR | ✅ | `user-menu.test.tsx` asserts anonymous state renders `/auth/signin`. |
+| **T-PR7-006** | RED → GREEN → REFACTOR | ✅ | `user-menu-local-mode.test.tsx` asserts local mode renders `null` and does **not** call `useUserMenu()` before returning. |
+| **T-PR7-007** | RED → GREEN → REFACTOR | ✅ | `app/layout.test.tsx` verifies `RootLayout` passes `UserMenu` into `SiteHeader extras`; `landing-nav.test.tsx` verifies authenticated nav hides `/auth/signin`. |
+| **T-PR7-008** | CHORE | ✅ | `lib/copy/es.ts` adds `copy.userMenu.*`; lint/build/test/defensive checks run. |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| T-PR7-001 | `__tests__/lib/use-user-menu.test.ts` | Hook/unit | N/A (new hook) | ✅ Written first for three states | ✅ Passed via `pnpm exec vitest run __tests__/lib/use-user-menu.test.ts` | ✅ 5 cases | ✅ Minimal public state: no id/expiresAt leak |
+| T-PR7-002 | `__tests__/components/header/user-menu.test.tsx` | Component | N/A (new component) | ✅ Written first for loading/auth/dialog | ✅ Passed in focused run | ✅ Loading + authenticated + dialog behavior | ✅ Extracted local-mode outer gate after review |
+| T-PR7-003 | `__tests__/components/header/user-menu.test.tsx` | Component | ✅ component focused suite | ✅ Link expectation written | ✅ Passed in focused run | ✅ Dialog open path + href assertion | ✅ Uses copy key and `Link` |
+| T-PR7-004 | `__tests__/components/header/user-menu.test.tsx` | Component | ✅ component focused suite | ✅ Sign-out expectation written | ✅ Passed in focused run | ✅ Click path through open dialog | ✅ Uses PR2 helper, no direct backend call |
+| T-PR7-005 | `__tests__/components/header/user-menu.test.tsx` | Component | ✅ component focused suite | ✅ Anonymous CTA expectation written | ✅ Passed in focused run | ✅ Authenticated branch remains separate | ✅ Copy centralized |
+| T-PR7-006 | `__tests__/components/header/user-menu-local-mode.test.tsx` | Component/integration | N/A (new local-mode test) | ✅ Null/no-flicker expectations written | ✅ Passed after outer gate fix | ✅ Authenticated + loading + non-local contrast | ✅ Prevents hook invocation before local return |
+| T-PR7-007 | `app/layout.test.tsx`, `components/landing/landing-nav.test.tsx` | Integration | ✅ existing header/nav focused tests | ✅ Layout/nav expectations written before wiring | ✅ Passed in focused run | ✅ Auth + anonymous nav states | ✅ Keeps `UserMenu` in `SiteHeader extras` |
+
+### Tests added/modified
+
+- Added `__tests__/lib/use-user-menu.test.ts` — 5 hook tests.
+- Added `__tests__/components/header/user-menu.test.tsx` — 8 component tests.
+- Added `__tests__/components/header/user-menu-local-mode.test.tsx` — 3 local-mode tests.
+- Added `app/layout.test.tsx` — 1 integration test for `SiteHeader extras` wiring.
+- Modified `components/landing/landing-nav.test.tsx` — authenticated/anonymous nav expectations.
+- Total PR7-focused tests: **34** across 5 files after final local-mode fix; broader focused regression set: **93** tests across 14 files.
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `pnpm exec vitest run __tests__/lib/use-user-menu.test.ts __tests__/components/header/user-menu.test.tsx __tests__/components/header/user-menu-local-mode.test.tsx components/landing/landing-nav.test.tsx components/landing/site-header.test.tsx app/layout.test.tsx __tests__/app/cuenta/page.test.tsx __tests__/app/api/auth/session/route.test.ts __tests__/app/api/auth/logout/route.test.ts __tests__/app/api/auth/web-signup/route.test.ts __tests__/lib/api/session.test.ts __tests__/lib/api/sign-out.test.ts __tests__/lib/api/user-data.test.ts __tests__/lib/api/auth-adapter.test.ts` | ✅ 14 files / 93 tests pass |
+| `pnpm exec vitest run __tests__/components/header/user-menu-local-mode.test.tsx __tests__/components/header/user-menu.test.tsx __tests__/lib/use-user-menu.test.ts components/landing/landing-nav.test.tsx app/layout.test.tsx` | ✅ 5 files / 34 tests pass after local-mode gate fix |
+| `pnpm lint` | ✅ pass |
+| `pnpm build` | ✅ pass |
+| `pnpm test` | ✅ 119 files / 1131 tests pass |
+| `pnpm tsc --noEmit` | ⚠️ fails with 7 pre-existing test typing errors outside PR7 scope; no new PR7 errors |
+| `git diff --check` | ✅ pass |
+
+### `pnpm tsc --noEmit` pre-existing failures (not PR7 regressions)
+
+| File | Error |
+|---|---|
+| `__tests__/components/analyzer/analyzer.test.tsx:22` | `ScoreError` no longer exported from `@/lib/api/types`. |
+| `__tests__/lib/editor/types.test.ts:226` | `heading` not in `CvSection`. |
+| `__tests__/lib/editor/types.test.ts:263` | Partial `{ sections: [] }` missing `LegacyCvDocument` fields. |
+| `__tests__/lib/editor/types.test.ts:277` | Partial `{ sections: [] }` missing `LegacyCvDocument` fields. |
+| `lib/api/import.test.ts:126` | `text` not in `ImportResponse`. |
+| `lib/api/import.test.ts:127` | `sections` not in `ImportResponse`. |
+| `lib/api/types.test.ts:723` | string confidence marker incompatible with `ConfidenceMarker`. |
+
+### Files modified (BuildCv-web only)
+
+Created:
+- `lib/use-user-menu.ts` — client hook wrapping `getSession()` for loading/authenticated/unauthenticated states.
+- `components/header/user-menu.tsx` — auth-aware header UserMenu with native `<dialog>`, local-mode outer gate, `/cuenta`, and sign-out.
+- `__tests__/lib/use-user-menu.test.ts`
+- `__tests__/components/header/user-menu.test.tsx`
+- `__tests__/components/header/user-menu-local-mode.test.tsx`
+- `app/layout.test.tsx`
+
+Modified:
+- `app/layout.tsx` — passes `<UserMenu />` to `<SiteHeader extras>`.
+- `components/landing/landing-nav.tsx` — hides `/auth/signin` when authenticated.
+- `components/landing/landing-nav.test.tsx` — covers authenticated nav hiding.
+- `lib/copy/es.ts` — adds `copy.userMenu.*`.
+
+### LOC
+
+Independent production file line counts:
+- `components/header/user-menu.tsx`: 154 lines
+- `lib/use-user-menu.ts`: 50 lines
+- `app/layout.tsx`: 46 lines (net +2 / -1)
+- `components/landing/landing-nav.tsx`: 57 lines (net +4 / -2)
+- `lib/copy/es.ts`: 710 lines (net +10)
+
+Estimated PR7 production LOC added/changed: **~220** (within 350 cap). No dependency/package changes.
+
+### Defensive checks
+
+- Backend status checked clean; no backend files changed.
+- `lib/auth.ts` untouched.
+- `package.json` / `pnpm-lock.yaml` untouched.
+- No new npm dependencies.
+- No new `NEXT_PUBLIC_*` secrets.
+- No PR3/PR5/PR8/PR0 hardening included.
+- `git diff --check` clean.
+- Known repo-wide baseline grep findings remain outside PR7: one pre-existing `@ts-expect-error` in `__tests__/lib/storage/migrate.test.ts`, plus legacy-path strings in older tests/comments. PR7 production files introduce none.
+
+### REQs/NFRs/Compliance covered
+
+- REQ-FN-017 — `<UserMenu>` component in header.
+- REQ-FN-007 regression — sign-out helper still invoked from header sign-out.
+- NFR-A11Y-1 / CR-DLG-1 — native `<dialog>`, accessible trigger, close control, menu roles.
+- Art. III — no token/secret/Authorization exposure in markup.
+- Art. VI — composition through existing `SiteHeader extras`; no direct backend call from component.
+- Art. VII — local mode returns `null` before hook/session work.
+
+### Risks covered
+
+- R7-A: `UserMenu` lives in `SiteHeader extras`; nav only filters `/auth/signin` by hook state.
+- R7-B: loading skeleton with `min-h-16` avoids header CLS.
+- R-DIALOG-JSDOM: component tests assert native dialog opening behavior.
+- R-LOCAL-MODE-CACHE: sign-out goes through PR2 `lib/api/sign-out.ts`; local mode avoids hook invocation.
+
+### MVP UserMenu Readiness Checkpoint
+
+1. Header exposes account/sign-out surface — ✅ `UserMenu` rendered through `SiteHeader extras`.
+2. Loading state avoids layout shift — ✅ skeleton with `min-h-16` and `aria-busy`.
+3. Authenticated state shows avatar initial + email — ✅ covered by component tests.
+4. Dropdown uses native `<dialog>` with account/sign-out actions — ✅ covered by component tests.
+5. Anonymous state keeps sign-in CTA — ✅ `/auth/signin` link covered.
+6. Local mode skips auth UI without session/BFF hook invocation — ✅ fixed and covered.
+7. Landing nav hides duplicate `/auth/signin` account link when authenticated — ✅ covered.
+8. PR2 sign-out regression preserved — ✅ `__tests__/lib/api/sign-out.test.ts` included in 93-test regression set.
+9. `/cuenta` route guard regression preserved — ✅ `__tests__/app/cuenta/page.test.tsx` included.
+10. Remaining pre-launch SHOULD_FIX: PR8 a11y/e2e + accepted PR0 hardening notes.
+
+### Triage update after PR7
+
+- MVP_BLOCKER: **0** (unchanged; PR6 closed Art. IX blocker).
+- SHOULD_FIX_BEFORE_LAUNCH: PR7 UserMenu **closed**.
+- Remaining SHOULD_FIX_BEFORE_LAUNCH: PR8 partial a11y/e2e, logout 500/401 hardening note, missing `providerAccountId` validation test, permissive email regex note.
+
+### Deviations from tasks.md
+
+1. **Sign-out helper name**: tasks text says `signOutAndClear()`, but the shipped PR2 helper in this branch is `lib/api/sign-out.ts` exporting `signOut()`. PR7 uses that actual helper to preserve the branch contract.
+2. **Local-mode test path**: tasks expected `__tests__/local-mode-skips-user-menu.test.tsx`; implemented as `__tests__/components/header/user-menu-local-mode.test.tsx` to keep component tests grouped.
+3. **Hook implementation source**: tasks mention `useSession()` wrapper; implementation uses existing `getSession()` from `lib/api/session.ts`, matching the project's BFF same-origin session pattern and avoiding direct NextAuth client dependency in this slice.
+
+### Commits created
+
+- `2848507` feat(009): [PR7] hook use-user-menu con tres estados
+- `edfbf17` feat(009): [PR7] componente UserMenu con dialog nativo
+- `9083a47` feat(009): [PR7] integrar UserMenu en header
+- `pending` docs(009-auth-web): registrar avance PR7 UserMenu
+
+### PR7 ready for review?
+
+**YES**. Implementation stays web-only, within LOC cap, with focused + full test pass, lint pass, build pass, documented `tsc --noEmit` baseline failures, and no dependency/backend/auth-core changes.
