@@ -219,3 +219,172 @@ Por el estado actual del proyecto:
 - Auth-web está **listo para launch** (gates pasan, MVP_BLOCKER cerrado, fail-closed correcto).
 - Los SAFE_DEFER_POST_MVP (7 items) son **nice-to-have**, no bloquean.
 - **Recomendación pragmática**: ejecutar deploy MVP primero (acción #3 de arriba es solo copy update; #1 y #2 son env vars en Render, #4 es post-deploy smoke). Validar tráfico real. Luego priorizar 010-payments-web para monetizar o 020-a11y para reforzar calidad.
+
+---
+
+## 10. Pre-launch deploy smoke
+
+### Metadata
+
+- **Fecha**: 2026-06-27
+- **Verdict**: `LAUNCH_NEEDS_OWNER_ACTION` (ver §10.5)
+- **Commits desplegables**:
+  - BuildCv-web main @ `493739a` (post-footer-counter commit).
+  - BuildCv-api main @ `496a3c7` (archive commit, sin cambios).
+
+### 10.1 Env vars verificadas (sin imprimir valores)
+
+> **Limitación de scope del orchestrator**: este entorno no tiene acceso a Render dashboard, OAuth provider dev apps, ni URL de producción desplegada. Los pasos abajo son **OWNER ACTION** con comandos/procedimientos exactos para que el owner ejecute.
+
+#### BuildCv-web Render (REQUIERE OWNER)
+
+| Env var | Estado esperado | Cómo verificar |
+|---|---|---|
+| `BFF_API_KEY` | configurada, **matching exacto** con api `Auth__BffApiKey` | Render dashboard → service → Environment |
+| `NEXTAUTH_URL` | URL de producción (ej. `https://buildcv-web.onrender.com`) | Render dashboard |
+| `NEXTAUTH_SECRET` | ≥32 chars random | Render dashboard |
+| `NEXTAUTH_AUDIENCE` | `buildcv-api` | Render dashboard |
+| `NEXTAUTH_ISSUER` | `buildcv-web` | Render dashboard |
+| `BACKEND_URL` | URL pública api (ej. `https://buildcv-api.onrender.com`) | Render dashboard |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | de OAuth Google dev app | Render dashboard |
+| `LINKEDIN_CLIENT_ID` + `LINKEDIN_CLIENT_SECRET` | de OAuth LinkedIn dev app | Render dashboard |
+| `NEXT_PUBLIC_LOCAL_MODE` | `false` en producción | Render dashboard |
+| `NEXT_PUBLIC_STRUCTURED_INPUT` | `true` (default) | Render dashboard |
+| `ALLOWED_DEV_ORIGINS` | CORS whitelist producción | Render dashboard |
+| `NEXT_PUBLIC_BFF_API_KEY` | **DEBE NO EXISTIR** (server-side only) | `grep -r NEXT_PUBLIC_BFF_API_KEY .` → 0 hits en código |
+
+#### BuildCv-api Render (REQUIERE OWNER)
+
+| Env var | Estado esperado | Cómo verificar |
+|---|---|---|
+| `Auth__BffApiKey` | **matching exacto** con web `BFF_API_KEY` | Render dashboard |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | Render dashboard |
+| `Ai__ApiKey` | (opcional para M1) | Render dashboard |
+| `Cors__AllowedOrigins__0` | URL pública web | Render dashboard |
+| `Wompi__Enabled` | `false` hasta launch (default appsettings) | Render dashboard |
+| `LocalAuth__Enabled` | **`false`** en producción (per AGENTS.md) | Render dashboard |
+
+### 10.2 Footer counter actualizado
+
+**Status**: ✅ COMPLETADO por orchestrator.
+
+- **Commit**: `493739a` — `fix(copy): actualizar contador de tests del footer`
+- **Cambio**: `"540 tests automatizados · 0 supresiones"` → `"1150 tests automatizados · 0 supresiones"`.
+- **Archivos**: 3 (lib/copy/es.ts:508-509 + components/landing/trust-signals.test.tsx + e2e/landing.spec.ts).
+- **Diff**: +7/-7 LOC. Patch mínimo.
+- **Gates post-change**:
+  - `pnpm lint`: 0 warnings ✓
+  - `pnpm typecheck`: 0 errors ✓
+  - `pnpm test`: 1134/1134 unit ✓ (count sin cambios — solo copy modificada, no tests nuevos)
+  - `pnpm build`: success ✓
+  - `node scripts/check-endpoint-drift.mjs`: PASS ✓
+  - `pnpm exec vitest run components/landing/trust-signals.test.tsx lib/copy/es.test.ts`: 83/83 ✓
+  - `pnpm exec playwright test e2e/landing.spec.ts -g "trust badges"`: 1/1 ✓
+- **Push**: `098f927..493739a main -> main` ✓
+
+### 10.3 Deploy status
+
+**Status**: ⏸ PENDIENTE — OWNER ACTION.
+
+- **No hay tooling de deploy disponible en este entorno** (sin `render`/`vercel`/`fly` CLI). Solo `gh` CLI (GitHub Actions).
+- **Workflows `.github/workflows/`**: solo `ci.yml` en ambos repos. Sin workflow de deploy.
+- **Deploy mechanism**: Render Blueprint (`BuildCv-api/render.yaml`). Render auto-deploys cuando detecta push a main branch (asumiendo que el Blueprint ya está importado en Render).
+- **Trigger implícito**: el push `098f927..493739a` ya triggearía auto-deploy en Render si el Blueprint está activo. El owner debe confirmar en Render dashboard que:
+  1. El servicio `buildcv-web` está creado y healthy.
+  2. El servicio `buildcv-api` está creado y healthy.
+  3. La última deploy refleja el commit `493739a` (web) y `496a3c7` (api).
+  4. Los healthchecks pasan: web `/`, api `/health/live`.
+
+### 10.4 Smoke manual autenticado (REQUIERE OWNER)
+
+10 pasos del Grupo D de §5 + 14 pasos adicionales del brief. Solo owner con OAuth dev apps + URL desplegada puede ejecutar. Comandos clave:
+
+```bash
+# Una vez deployed, owner ejecuta:
+
+# 1-3. Home + footer
+curl -sI https://<web-url>/  # 200
+curl -s https://<web-url>/ | grep -E "1150 tests|Constitution"  # counter visible
+
+# 4-6. OAuth flow (browser)
+# Click "Continuar con Google" en /auth/signin
+# Confirmar callback a /cuenta o /analizar según flow
+# Confirmar NextAuth session cookie set
+
+# 7-8. Backend reachability
+curl -sI https://<api-url>/health/ready  # 200 o 503 (Postgres ok)
+curl -s https://<api-url>/api/v1/auth/session  # 401 sin sesión (expected)
+
+# 9-14. ARCO flow (autenticado, browser)
+# /cuenta → ARCO Access → Rectify → Cancel (type-email) → DELETE → auto-sign-out → /auth/signin?reason=arco-cancel
+
+# 15-17. Console + logs review
+# Browser console: 0 errors críticos, 0 secrets/tokens
+# Render logs: 0 secrets, 0 PII innecesaria, 0 500 inesperados
+```
+
+### 10.5 Verdict: `LAUNCH_NEEDS_OWNER_ACTION`
+
+**Justificación**:
+
+- ✅ **Code-side launch-readiness**: 100%. Footer counter actualizado, gates verdes, MVP_BLOCKER Art. IX cerrado, BFF fail-closed correcto.
+- ⏸ **Deploy-side launch-readiness**: requiere owner action. 4 pre-launch items pendientes:
+  1. Configurar `BFF_API_KEY` (web) == `Auth__BffApiKey` (api) en Render (matching exacto).
+  2. Configurar OAuth provider credentials (Google + LinkedIn) en Render.
+  3. Confirmar auto-deploy activo o trigger manual deploy.
+  4. Ejecutar smoke manual autenticado (Grupo D + 14 pasos adicionales) post-deploy.
+
+**Criterios para `LAUNCH_READY` o `LAUNCH_READY_WITH_NOTES`** (todos owner action):
+- [ ] Env vars críticas configuradas y matching.
+- [ ] OAuth Google funciona end-to-end.
+- [ ] OAuth LinkedIn funciona o queda SKIPPED con razón no bloqueante.
+- [ ] `/cuenta` autenticado renderiza correctamente.
+- [ ] ARCO Rectify funciona (PUT /user/data → 200).
+- [ ] ARCO Cancel funciona (DELETE /user/data → auto-sign-out → redirect `/auth/signin?reason=arco-cancel`).
+- [ ] Console/logs sin errores críticos ni secretos.
+- [ ] Footer counter visible "1150 tests automatizados · 0 supresiones" en landing.
+- [ ] Lint/test/build/typecheck pasan en CI contra el commit deployed.
+
+**Criterios para `LAUNCH_BLOCKED`** (no esperados):
+- [ ] OAuth flow no completa (provider config issue).
+- [ ] ARCO Cancel no redirige correctamente (regresión del fix verify-fixes).
+- [ ] Token leak en console/logs.
+- [ ] 500 inesperados en logs prod.
+
+### 10.6 Handoff para owner
+
+**Comandos exactos para configurar Render** (sin imprimir valores):
+
+```bash
+# 1. Generar BFF_API_KEY compartido (≥32 chars random)
+openssl rand -base64 32
+
+# 2. En Render dashboard:
+#    - buildcv-web service → Environment → Add:
+#      BFF_API_KEY = <valor generado en paso 1>
+#      (más NEXTAUTH_URL, NEXTAUTH_SECRET, OAuth credentials)
+#    - buildcv-api service → Environment → Add:
+#      Auth__BffApiKey = <mismo valor generado en paso 1>
+#      (más Cors__AllowedOrigins__0 = https://buildcv-web.onrender.com)
+#    - Sync mode: "sync: false" para todos los secrets
+
+# 3. En OAuth providers (Google Cloud Console + LinkedIn Developer):
+#    - Authorized redirect URIs:
+#      https://<web-url>/api/auth/callback/google
+#      https://<web-url>/api/auth/callback/linkedin
+
+# 4. Trigger deploy (auto si está configurado, manual si no):
+gh repo view buildcv-co/BuildCv-web --json pushedAt  # confirma último push
+# Render dashboard → service → Manual Deploy → Deploy latest commit
+
+# 5. Verificar
+curl -sI https://<web-url>/  # 200
+curl -sI https://<api-url>/health/ready  # 200 o 503
+```
+
+**Una vez completado**, owner actualiza este smoke-report con:
+- Section 10.7 "Post-deploy smoke": OAuth Google/LinkedIn PASS/FAIL, ARCO runtime PASS/FAIL, console/log review, findings.
+- Verdict actualizado: `LAUNCH_READY` / `LAUNCH_READY_WITH_NOTES` / `LAUNCH_NEEDS_WORK` / `LAUNCH_BLOCKED`.
+- Commit docs `docs(009-auth-web): agregar post-deploy launch smoke` + push.
+- Si verdict es READY → `sdd-new` siguiente (010-payments-web o 020-a11y) o comunicación de launch.
+
