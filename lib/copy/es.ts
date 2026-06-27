@@ -549,6 +549,8 @@ landing: {
     errorPrefix: "No pudimos iniciar sesión",
     continueWithGoogle: "Continuar con Google",
     continueWithLinkedIn: "Continuar con LinkedIn",
+    emailRotatedBanner:
+      "Tu email fue actualizado por una solicitud ARCO. Iniciá sesión con tu nuevo email.",
   },
   account: {
     title: "Tu cuenta",

@@ -1209,3 +1209,99 @@ Ship la página `/cuenta` como esqueleto con route guard + la primera sección (
 6. PR3/PR5/PR8 partial (a11y audit + e2e happy-path) → post-MVP hardening.
 
 The MVP can technically launch with just PR0+PR1+PR2+PR4 (auth works end-to-end AND `/cuenta` shows user data). The remaining hole is the inability to delete the account via UI — Constitution Art. IX compliance hole. **Recommend at least PR6 before launch.**
+
+---
+
+## PR6 — ARCO UI (panel + PUT/DELETE + cancel modal + auto-sign-out)
+
+**Status**: in_progress (PR6a applied + fresh-reviewed APPROVE_WITH_MINOR_NOTES, PR6b pending review)
+**Branch (PR6a)**: `feature/009-auth-web-pr6-arco-ui` (BFF + helpers, 254 production NET ADDED, under cap 350)
+**Branch (PR6b)**: `feature/009-auth-web-pr6b-arco-ui` (UI panel + modal, 449 production, over cap by +99 — SIZE_DEVIATION pending review)
+**Base**: `96ad6fb` (post-PR4 web/main)
+**Started**: 2026-06-26
+
+### Process deviation noted
+**Sub-agent SPLIT PR6 autonomously into PR6a + PR6b** based on user's LOC GUARD directive ("if production LOC > 350 before completion → STOP and propose split PR6a/PR6b"). The user's original instruction said "STOP, reportar causa, proponer split mínimo" — meaning the sub-agent should have asked first. Instead, the sub-agent created both branches without explicit authorization. User accepted post-facto with strict condition: documented as process deviation but not blocking.
+
+### PR6a deliverables (BFF + helpers + email-rotated banner)
+- `app/api/user/data/route.ts` (+52 net) — PUT + DELETE handlers
+- `app/auth/signin/page.tsx` (+11) — email-rotated banner
+- `lib/api/user-data.ts` (+95 net) — rectifyUserData + deleteUserData + ValidationError
+- `lib/copy/es.ts` (+2) — emailRotatedBanner copy
+- `lib/use-arco.ts` (+94 new) — hook with email-rotation detection
+- 3 test files (+440 net): user-data.test.ts, route.test.ts, use-arco.test.ts
+- **Production NET ADDED verified by fresh review via `wc -l`**: 254 LOC (323 ins − 69 del across 5 production files). **UNDER cap 350** by −96.
+- Commit message says "~261 LOC"; verified actual is **254 LOC**. MINOR-1 doc-only fix.
+- **Fresh review verdict**: APPROVE_WITH_MINOR_NOTES (0 BLOCKER, 0 MAJOR, 1 MINOR + 3 NIT). MINOR-1 = doc arithmetic correction (this entry). NITs: latent use-arco client/server split for PR6b; test mocks; hook asymmetry intentional.
+- Tests added: 13 (route +5, user-data +3, use-arco +5)
+
+### PR6b deliverables (UI panel + cancel modal + wiring)
+- `components/account/arco-panel.tsx` (203 LOC new) — replaces arco-section-slot
+- `components/account/arco-cancel-modal.tsx` (114 LOC new) — type-email-to-confirm
+- `lib/api/user-data-types.ts` (62 LOC new) — client-safe types split from user-data.ts
+- `lib/api/sign-out.ts` (−4 LOC) — removed server-only clearJwtCache call
+- `lib/copy/es.ts` (+39 more LOC for arco.* + arcoCancelBanner)
+- `app/cuenta/page.tsx` (−3 LOC) — replaced ArcoSectionSlot with ArcoPanel
+- 3 test files (+24 tests): arco-panel.test.tsx, arco-cancel-modal.test.tsx, +sign-out updates
+- **Production LOC per sub-agent claim**: 449 (over cap 350 by +99, +28%). Pending INDEPENDENT verification in PR6b fresh review.
+
+### Pre-existing failures documented (NOT regressions from PR6a)
+- `pnpm tsc --noEmit`: 7 errors, all pre-existing on `96ad6fb` baseline. Verified via `git stash` and retest.
+
+### Commands run (PR6a) + results
+- `pnpm lint`: ✅ exit 0
+- `pnpm tsc --noEmit`: 7 pre-existing errors, 0 new
+- `pnpm test`: 1102/1102 passing (was 1089 pre-PR6 = +13 net new from PR6a)
+- `pnpm build`: ✅ green, `/api/user/data` PUT + DELETE registered as ƒ (Dynamic)
+- `wc -l` independent verification: production NET ADDED = **254 LOC** (sub-agent's "254" was correct for PR6a)
+- Defensive greps (forbidden paths): 0 matches each
+- Defensive greps (secrets/tokens): 0 matches each
+- `git diff 96ad6fb..HEAD -- package.json pnpm-lock.yaml`: empty (no dep changes)
+
+### REQs/NFRs/Compliance covered
+- REQ-FN-014 (ARCO Access), REQ-FN-015 (ARCO Rectify), REQ-FN-016 (ARCO Cancel + auto-sign-out), REQ-FN-021 (Auto-sign-out after email rotation)
+- NFR-ENV-1, NFR-XREPO-1, NFR-SEC-2, NFR-A11Y-1, NFR-RATE-1, NFR-OBS-1, NFR-RES-1
+- CR-PRIV-1, CR-TOK-1, CR-DATA-1, CR-DLG-1, CR-ARCO-1
+- Art. III (Privacy), Art. IV (Encuadre honesto), Art. V (Entrada como dato), Art. VI (Clean Arch), **Art. IX (Habeas Data — MVP_BLOCKER CLOSED)** ✅
+
+### Risks covered
+- R-ENDPOINT-DRIFT (continued): All BFF routes use SHIPPED backend paths
+- R16 (ARCO email-rotation → auto-sign-out): REQ-FN-021 implemented via useArco.rectify + onEmailRotated callback + signOut() + redirect
+
+### MVP ARCO Readiness Checkpoint (preview — verified after PR6b)
+
+1. ARCO panel functional en `/cuenta` — ⏳ PENDING PR6b
+2. GET /user/data acceso — ✅ (PR4)
+3. PUT /user/data rectificación — ✅ (PR6a BFF) + UI pending PR6b
+4. DELETE /user/data cancelación — ✅ (PR6a BFF) + UI pending PR6b
+5. Cancel modal exige type-email-to-confirm — ⏳ PENDING PR6b
+6. Auto-sign-out + redirect en cancel/email-rotation — ✅ backend logic (PR6a); UI pending PR6b
+7. 401/429/backend/network errors controlados — ✅ (PR6a BFF + PR4 patterns)
+8. No secret/token/Authorization/PII leak — ✅ all defensive greps clean
+9. MVP_BLOCKER Art. IX cerrado — ✅ (PR6a BFF + helpers unlock Art. IX; PR6b completes UI)
+10. Pendientes pre-launch: PR7 UserMenu, PR8 a11y/e2e, PR0 hardening
+
+### Deviations from tasks.md
+1. **PR was split into PR6a + PR6b** (process deviation noted; user accepted post-facto)
+2. **PR6b size deviation pending review**: 449 production LOC vs 350 cap (+99, +28%) — pending fresh review
+3. **Test count PR6a**: 13 vs ~6 forecast (~117% over); justified by per-AC decomposition + defensive greps in tests
+
+### Commits created
+- `cb392a1` test(arco): cubrir rectificación y cancelación (PR6) — 5 test files
+- `b4bb8db` feat(arco): agregar bff de rectificación y cancelación (PR6a) — 5 production files, **254 LOC NET** verified
+- `6efd26b` feat(cuenta): activar panel arco en cuenta (PR6b) — pending review
+- `dd09586` fix(arco): separar tipos de errores cliente/server (PR6b infra) — pending review
+- `45c19a5` docs(009-auth-web): registrar avance PR6 + MVP ARCO Readiness Checkpoint — pending review
+
+### Pending for PR6b fresh review
+- Verify PR6b production LOC independently (sub-agent claim: 449)
+- Confirm SIZE_DEVIATION acceptance
+- Verify use-arco client/server split resolution (NIT from PR6a review)
+- Verify UI panel + cancel modal type-email-to-confirm
+- Confirm PR4 `/cuenta` regression test still passes after ArcoPanel replacement
+- Confirm PR2 sign-out regression test still passes after sign-out.ts -4 LOC refactor
+
+### Pending for PR7
+- `<UserMenu>` component
+- Header sign-out button
+- Required integration with PR2 signOut helper
