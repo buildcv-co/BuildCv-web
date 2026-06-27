@@ -630,6 +630,7 @@ landing: {
     signIn: "Iniciar sesión",
     myAccount: "Mi cuenta",
     signOut: "Cerrar sesión",
+    signOutError: "No pudimos cerrar sesión. Intentá de nuevo.",
     dialogLabel: "Menú de usuario",
     closeLabel: "Cerrar menú",
   },

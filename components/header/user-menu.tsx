@@ -22,6 +22,8 @@ export function UserMenu(): React.ReactElement | null {
 
 function UserMenuContent(): React.ReactElement {
   const { status, user } = useUserMenu();
+  const [isSignedOutLocally, setIsSignedOutLocally] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dialogId = useId();
@@ -47,7 +49,10 @@ function UserMenuContent(): React.ReactElement {
     };
   }, [syncOpen]);
 
-  if (status === "loading") {
+  const currentStatus = isSignedOutLocally ? "unauthenticated" : status;
+  const currentUser = isSignedOutLocally ? null : user;
+
+  if (currentStatus === "loading") {
     return (
       <div
         data-testid="user-menu-loading"
@@ -59,7 +64,7 @@ function UserMenuContent(): React.ReactElement {
     );
   }
 
-  if (status === "unauthenticated" || !user) {
+  if (currentStatus === "unauthenticated" || !currentUser) {
     return (
       <Link
         href="/auth/signin"
@@ -71,7 +76,7 @@ function UserMenuContent(): React.ReactElement {
     );
   }
 
-  const avatarInitial = user.email.charAt(0).toLowerCase() || "·";
+  const avatarInitial = currentUser.email.charAt(0).toLowerCase() || "·";
 
   const openDialog = (): void => {
     dialogRef.current?.showModal();
@@ -84,8 +89,16 @@ function UserMenuContent(): React.ReactElement {
     triggerRef.current?.focus();
   };
 
-  const handleSignOut = (): void => {
-    void signOut().catch(() => undefined);
+  const handleSignOut = async (): Promise<void> => {
+    setSignOutError(null);
+    try {
+      await signOut();
+      dialogRef.current?.close();
+      syncOpen(false);
+      setIsSignedOutLocally(true);
+    } catch {
+      setSignOutError(copy.userMenu.signOutError);
+    }
   };
 
   return (
@@ -98,7 +111,7 @@ function UserMenuContent(): React.ReactElement {
         aria-expanded={isOpen}
         aria-controls={dialogId}
         onClick={openDialog}
-        aria-label={copy.userMenu.triggerLabel(user.email)}
+        aria-label={copy.userMenu.triggerLabel(currentUser.email)}
         className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface/50 px-3 text-sm text-ink transition hover:border-accent/60 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         <span
@@ -107,7 +120,7 @@ function UserMenuContent(): React.ReactElement {
         >
           {avatarInitial}
         </span>
-        <span className="hidden sm:inline">{user.email}</span>
+        <span className="hidden sm:inline">{currentUser.email}</span>
       </button>
       <dialog
         id={dialogId}
@@ -132,13 +145,18 @@ function UserMenuContent(): React.ReactElement {
               role="menuitem"
               type="button"
               data-testid="user-menu-signout"
-              onClick={handleSignOut}
+              onClick={() => void handleSignOut()}
               className="block w-full rounded px-3 py-2 text-left text-sm transition hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {copy.userMenu.signOut}
             </button>
           </li>
         </ul>
+        {signOutError ? (
+          <p role="alert" aria-live="polite" className="mt-3 max-w-64 text-sm text-red-300">
+            {signOutError}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={closeDialog}

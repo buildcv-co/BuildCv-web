@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IS_LOCAL } from "@/lib/auth";
 import { copy } from "@/lib/copy/es";
 import { useUserMenu } from "@/lib/use-user-menu";
 
@@ -29,8 +30,20 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 export function LandingNav() {
-  const pathname = usePathname();
+  if (IS_LOCAL) {
+    return <LandingNavContent status="unauthenticated" />;
+  }
+
+  return <LandingNavWithSession />;
+}
+
+function LandingNavWithSession() {
   const { status } = useUserMenu();
+  return <LandingNavContent status={status} />;
+}
+
+function LandingNavContent({ status }: { readonly status: "loading" | "authenticated" | "unauthenticated" }) {
+  const pathname = usePathname();
 
   return (
     <nav aria-label="Navegación principal" className="flex items-center gap-2 sm:gap-4">
