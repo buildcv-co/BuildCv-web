@@ -22,7 +22,7 @@
 | PR5 | web | `feature/009-pr4` | ~300 | ~12 | planned |
 | PR6 | web | `feature/009-pr4` | ~300 | ~12 | planned |
 | PR7 | web | `feature/009-pr2` | ~175 | ~8 | planned |
-| PR8 | web | `feature/009-pr7` | ~250 | ~15 | planned |
+| PR8 | web | `feature/009-pr7` | ~250 | ~15 | completed (revised MVP scope) |
 | **Total** | | | **~1,780 LOC** | **~88 tests** | |
 
 **Per-PR LOC**: every PR is **≤ 350** (50-LOC margin under the 400-line review guard).
@@ -1743,6 +1743,8 @@ PR7 is leaf (no downstream dependency on UserMenu). Safe to revert independently
 ---
 
 # PR8 — Web: E2E + accessibility hardening
+
+> **Apply note (2026-06-27)**: PR8 shipped under the maintainer-approved reduced MVP scope: shipped auth/UserMenu/ARCO e2e only, in-house Playwright accessibility checks, no `/privacidad`, no consent UI, no new npm dependencies, and source-based endpoint drift instead of a full OpenAPI client.
 
 - **Objective**: Ship the full end-to-end Playwright suite + `@axe-core/playwright` accessibility audits + Lighthouse gates. Final hardening pass before the change is archiveable.
 - **Repo**: `BuildCv-web/`

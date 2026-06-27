@@ -1651,3 +1651,91 @@ Estimated PR7 production LOC added/changed: **~220** (within 350 cap). No depend
 ### Ready for re-review?
 
 **YES** — both MAJOR findings are closed with strict TDD evidence, focused regressions, full suite/lint/build green, and PR7 production LOC remains under the 350 guard.
+
+---
+
+## PR8 — reduced MVP hardening (E2E + in-house a11y + endpoint drift)
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr8-e2e-a11y-openapi`
+**Base**: `8752722`
+**Completed**: 2026-06-27
+**Scope**: BuildCv-web only; no backend functional changes.
+
+### Reduced MVP scope shipped
+
+- Shipped-feature E2E only: `/cuenta`, ARCO Access/Rectify/Cancel, and `UserMenu`.
+- No `/privacidad`, no consent UI, and no PR3/PR5 scope.
+- No new npm dependencies; accessibility is implemented with in-house Playwright/WCAG checks rather than `@axe-core/playwright`.
+- Source-based endpoint drift gate replaces the originally planned full OpenAPI client because the backend has no committed OpenAPI artifact.
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| PR8 account/ARCO | `e2e/account-flow.spec.ts` | E2E | N/A (new) | ✅ RED failed on missing mock backend (`ECONNREFUSED 127.0.0.1:4018`) | ✅ 6 scenarios pass with mock backend | ✅ load/access/rectify/cancel variants | ✅ shared fixture helpers |
+| PR8 UserMenu | `e2e/user-menu-pr8.spec.ts` | E2E | N/A (new) | ✅ RED failed while local mode hid `UserMenu` | ✅ passes under `NEXT_PUBLIC_LOCAL_MODE=false` | ✅ visible/link/focus/sign-out states | ✅ helper `openUserMenu()` |
+| PR8 a11y | `e2e/a11y-auth-pr8.spec.ts` | E2E/a11y | N/A (new) | ✅ RED failed on missing auth/mock backend | ✅ 4 in-house a11y checks pass | ✅ cuenta/dialog/modal/header surfaces | ✅ `expectBaseA11y()` helper |
+| PR8 endpoint drift | `e2e/endpoint-drift.spec.ts`, `scripts/check-endpoint-drift.mjs` | E2E/CI | N/A (new) | ✅ RED failed because script did not exist | ✅ script passes web-only/backend-only/all modes | ✅ forbidden + required web/backend paths | ✅ comment stripping to avoid false positives |
+
+### Tests added/modified
+
+- Added `e2e/auth-web-fixtures.ts` — NextAuth cookie injection, mock reset, `UserMenu` helper.
+- Added `e2e/account-flow.spec.ts` — 6 account/ARCO E2E scenarios.
+- Added `e2e/user-menu-pr8.spec.ts` — 3 `UserMenu` E2E scenarios, enabled when running non-local auth mode.
+- Added `e2e/a11y-auth-pr8.spec.ts` — 4 in-house accessibility checks.
+- Added `e2e/endpoint-drift.spec.ts` — 3 drift gate checks.
+- Added `scripts/e2e-mock-backend.mjs` — minimal local backend for server-side BFF fetches.
+- Added `scripts/check-endpoint-drift.mjs` — source-based canonical endpoint drift gate.
+- Modified `components/account/arco-panel.tsx` and `lib/use-arco.ts` so ARCO Rectify updates displayed Access JSON from the BFF response.
+- Modified `playwright.config.ts` to start the mock backend and point `BACKEND_URL` to it during Playwright runs.
+- Modified `package.json` and `.github/workflows/ci.yml` to add the endpoint drift gate.
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `pnpm test:e2e -- account-flow user-menu-pr8 a11y-auth-pr8 endpoint-drift` | ✅ 16/16 pass after GREEN |
+| `NEXT_PUBLIC_LOCAL_MODE=false pnpm test:e2e -- account-flow user-menu-pr8 a11y-auth-pr8 endpoint-drift` | ✅ 16/16 pass (required for non-local `UserMenu`) |
+| `pnpm lint` | ✅ pass |
+| `pnpm test` | ✅ 119 files / 1134 tests pass |
+| `pnpm build` | ✅ pass |
+| `pnpm run check:endpoint-drift` | ✅ web forbidden/canonical + backend canonical paths pass |
+| `pnpm typecheck` / `pnpm tsc --noEmit` | ⚠️ fails with the same 7 pre-existing test typing errors documented in PR7; no PR8 files appear |
+| `pnpm test:e2e` | ⚠️ 133 passed / 5 skipped / 1 unrelated flaky `Mobile_TabCyclesInsideDialog_FocusNeverEscapes`; immediate `pnpm test:e2e -- navigation -g Mobile_TabCyclesInsideDialog_FocusNeverEscapes` passed 26/26 |
+
+### LOC
+
+- Production functional delta: **~14 net LOC** (`components/account/arco-panel.tsx`, `lib/use-arco.ts`) — well under the 350 cap.
+- Test/support/CI additions: 472 lines across 7 new files plus small config/script changes.
+- No new npm dependencies.
+
+### Defensive checks
+
+- No backend functional files changed.
+- No `NEXT_PUBLIC` secrets added.
+- No new suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
+- No token/header/PII exposure added.
+- Endpoint drift gate passes and strips comments before scanning, avoiding false positives from historical explanatory comments.
+
+### Deviations from original tasks.md
+
+1. **No axe/Lighthouse deps**: reduced MVP scope explicitly avoids new npm dependencies; in-house Playwright a11y checks cover landmarks, labels, headings, dialog naming, focus return, and keyboard access.
+2. **No privacy/consent E2E**: PR3/PR5 scope was intentionally not shipped in this MVP path.
+3. **Source drift instead of OpenAPI drift**: backend has no committed OpenAPI artifact, so PR8 enforces canonical path presence/absence from source.
+4. **`UserMenu` E2E requires non-local mode**: default full E2E remains local-mode-compatible; PR8 `UserMenu` checks run with `NEXT_PUBLIC_LOCAL_MODE=false`.
+
+### MVP Final Readiness Checkpoint
+
+1. MVP blockers: **0**.
+2. PR8 reduced hardening scope: ✅ implemented and focused-green.
+3. Account `/cuenta` authenticated load: ✅ covered.
+4. ARCO Access/Rectify/Cancel smoke: ✅ covered.
+5. `UserMenu` visibility, account link, focus return, sign-out state: ✅ covered under non-local auth mode.
+6. In-house a11y checks: ✅ covered for cuenta, UserMenu dialog, ARCO cancel modal, header navigation.
+7. Endpoint drift gate: ✅ script + npm script + CI step.
+8. No new dependencies, no backend functional changes, no secrets/suppressions: ✅ verified.
+
+### Ready for verification?
+
+**YES with notes** — focused PR8 suite, lint, unit suite, build, and endpoint drift are green. Repo-wide `pnpm typecheck` still has the documented 7 pre-existing test typing errors, and one unrelated full-E2E navigation test flaked once but passed on immediate rerun.
