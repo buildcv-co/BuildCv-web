@@ -1047,15 +1047,15 @@ Ship la página `/cuenta` como esqueleto con route guard + la primera sección (
 
 ### Files modified (BuildCv-web only)
 
-**Production (9 files, 722 LOC):**
-- `app/api/user/data/route.ts` (110 LOC) — BFF GET handler
-- `app/cuenta/page.tsx` (91 LOC) — `/cuenta` page server component
-- `components/account/cuenta-skeleton.tsx` (56 LOC) — layout skeleton
-- `components/account/datos-personales-section.tsx` (158 LOC) — 3-state section
-- `components/account/consent-section-slot.tsx` (36 LOC) — PR5 slot placeholder
-- `components/account/arco-section-slot.tsx` (33 LOC) — PR6 slot placeholder
-- `lib/api/_utils.ts` (61 LOC) — `parseRetryAfter` + `formatRetryAfter`
-- `lib/api/user-data.ts` (143 LOC) — typed port + `RateLimitError` + `UserDataError`
+**Production (9 files, 714 LOC verified via `wc -l`):**
+- `app/api/user/data/route.ts` (109 LOC) — BFF GET handler
+- `app/cuenta/page.tsx` (90 LOC) — `/cuenta` page server component
+- `components/account/cuenta-skeleton.tsx` (55 LOC) — layout skeleton
+- `components/account/datos-personales-section.tsx` (157 LOC) — 3-state section
+- `components/account/consent-section-slot.tsx` (35 LOC) — PR5 slot placeholder
+- `components/account/arco-section-slot.tsx` (32 LOC) — PR6 slot placeholder
+- `lib/api/_utils.ts` (60 LOC) — `parseRetryAfter` + `formatRetryAfter`
+- `lib/api/user-data.ts` (142 LOC) — typed port + `RateLimitError` + `UserDataError`
 - `lib/copy/es.ts` (+34 LOC) — `copy.account.*` keys
 
 **Tests (5 files, 680 LOC):**
@@ -1067,15 +1067,16 @@ Ship la página `/cuenta` como esqueleto con route guard + la primera sección (
 
 ### LOC
 
-- PR4 production added: 722 LOC
+- PR4 production added: **714 LOC verified** (sub-agent reported 722; corrected via `wc -l` on each prod file)
 - PR4 tests added: 680 LOC
-- **Total: 1402 LOC** (target ~175, cap 350)
-- **Deviation**: +1203 over the 175-LOC forecast. Justified:
-  - **Test overhead** (~680 LOC): TDD strict + 23 net-new tests is well above the 8-test forecast. Each test has full mock setup (next-auth, cookies, fetch, redirect, getServerSession) following the PR1/PR2 pattern. Tests are 49% of the diff — consistent with the TDD-strict contract (Art. VIII).
-  - **Component skeleton + slot structure** (~125 LOC across 3 components): necessary to support R2 (PR5 + PR6 each touch exactly ONE slot, no diff conflicts). The slot placeholder copy is honest (says "Próximamente vas a poder…") — no false promises.
-  - **DatosPersonalesSection 3 states** (158 LOC): loading skeleton + loaded `dl` + error banner (rate-limit vs generic). The component is the user-facing artifact, not throwaway code.
-  - **`_utils.ts` shared util** (61 LOC): intentionally generic for PR5/PR6/PR8 reuse (no duplication across 4+ BFFs).
-  - **Total review budget impact**: 1402 LOC is ~3.5× the 400-line PR-review guard. The 4 components + 5 test files decompose cleanly into review units. Recommend either: (a) accept deviation like PR2 (commit message above flags this transparently), or (b) split into PR4a (BFF + page + datos-personales, ~600 LOC) + PR4b (slots + _utils, ~120 LOC) — but the split is artificial since the slots MUST ship with the page for R2 stability.
+- **Total: 1680 LOC across 15 files** (verified via `git diff --shortstat 738d816..866c1b1`; sub-agent reported 1402/14 — incorrect, excluded `apply-progress.md` 278 LOC)
+- **Deviation verified**: **+539 over the 175-LOC forecast** (714 − 175), **+364 over cap 350** (sub-agent reported "+72 over cap" — incorrect; user's math 722−350=+372 was directionally correct; verified `wc -l` shows +364). Sub-agent's "+1203 over forecast" arithmetic was also wrong (1402−175=1227, not 1203, and forecast interpretation was off).
+- Accepted by PR4 fresh review (`reviews/pr4-fresh-review.md`): verdict `APPROVE_WITH_MINOR_NOTES` with SIZE_DEVIATION accepted. Justification:
+  - **Test overhead** (~680 LOC): TDD strict + 23 net-new tests is well above the 8-test forecast. Each test has full mock setup (next-auth, cookies, fetch, redirect, getServerSession) following the PR1/PR2 pattern. Tests are 41% of the diff — consistent with the TDD-strict contract (Art. VIII).
+  - **Component skeleton + slot structure** (~123 LOC across 3 components: skeleton + datos-personales + 2 slot placeholders): necessary to support R2 (PR5 + PR6 each touch exactly ONE slot, no diff conflicts). The slot placeholder copy is honest (says "Próximamente vas a poder…") — no false promises.
+  - **DatosPersonalesSection 3 states** (157 LOC): loading skeleton + loaded `dl` + error banner (rate-limit vs generic). The component is the user-facing artifact, not throwaway code.
+  - **`_utils.ts` shared util** (60 LOC): intentionally generic for PR5/PR6/PR8 reuse (no duplication across 4+ BFFs).
+  - **Total review budget impact**: 1680 LOC is ~4.2× the 400-line PR-review guard. The 4 components + 5 test files decompose cleanly into review units. Recommend either: (a) accept deviation like PR2 (commit message above flags this transparently), or (b) split into PR4a (BFF + page + datos-personales, ~600 LOC) + PR4b (slots + _utils, ~120 LOC) — but the split is artificial since the slots MUST ship with the page for R2 stability.
 
 ### Risks covered
 
@@ -1108,14 +1109,14 @@ Ship la página `/cuenta` como esqueleto con route guard + la primera sección (
 
 ### Deviations from tasks.md
 
-- **LOC forecast** (~175 → 722 production, 1402 total): see "LOC" section above. TDD strict + slot structure + 3-state component justify the overage.
+- **LOC forecast** (~175 → **714 production verified, 1680 total**) (see "LOC" section above; values corrected post-review): TDD strict + slot structure + 3-state component justify the overage. Accepted by fresh review with SIZE_DEVIATION = ACCEPT.
 - **Test forecast** (8 → 23): natural decomposition per REQ coverage + R2 slot-stability assertions. All 23 are net-new, no mock falsos, all assert real behavior (HTTP calls, return shapes, error mappings, HTML output).
 - **Forecast did NOT include `lib/api/_utils.ts`**: tasks.md did not list this shared util, but it eliminates duplication across PR4/PR5/PR6/PR8 and is testable in isolation (6 unit tests). Adding it here is intentional.
 
 ### Commits created
 
 - `a6fed6b` test(cuenta): cubrir bff de datos de usuario (PR4) — 5 test files, 23 tests
-- `8c3e641` feat(cuenta): agregar skeleton y carga de datos (PR4) — 9 production files, 722 LOC
+- `8c3e641` feat(cuenta): agregar skeleton y carga de datos (PR4) — 9 production files, 714 LOC (verified via `wc -l`)
 - (this docs commit, applied next)
 
 ### Pending for PR6
