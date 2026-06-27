@@ -1467,3 +1467,81 @@ Estimated PR7 production LOC added/changed: **~220** (within 350 cap). No depend
 ### PR7 ready for review?
 
 **YES**. Implementation stays web-only, within LOC cap, with focused + full test pass, lint pass, build pass, documented `tsc --noEmit` baseline failures, and no dependency/backend/auth-core changes.
+---
+
+## PR7 patch after fresh review (MAJOR-1 + MAJOR-2)
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr7-user-menu`
+**Base**: `c9a5b2f`
+**Completed**: 2026-06-27
+
+### Review findings closed
+
+- **MAJOR-1 CLOSED ✅** — `LandingNav` now mirrors the `UserMenu` local-mode pattern: `IS_LOCAL` returns a controlled unauthenticated nav before `useUserMenu()` can run, so local mode does not call the session/BFF helper from the header nav.
+- **MAJOR-2 CLOSED ✅** — `UserMenu` now clears visible authenticated state after successful sign-out and shows a controlled inline `role="alert"` message on sign-out failure without rendering raw error details.
+- **NITs status**: unchanged from original review; the 2 original NIT/suggestions remain open/documented and were intentionally out of this patch scope.
+
+### Tests added/modified
+
+- **Added** 1 local-mode regression in `components/landing/landing-nav.test.tsx`: local mode does not call `useUserMenu()` and renders controlled nav state.
+- **Added** 2 sign-out UI regressions in `__tests__/components/header/user-menu.test.tsx`: success shows sign-in CTA; failure shows controlled error and preserves signed-in state.
+- **Modified** existing landing-nav hook mock to become assertable.
+- **Total new tests**: 3 (suite count 1131 → 1134).
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| MAJOR-1 | `components/landing/landing-nav.test.tsx` | Component | ✅ 33/33 focused baseline | ✅ local-mode test failed because `useUserMenu()` was called once | ✅ `LandingNav` local-mode branch avoids the hook | ✅ non-local authenticated test still asserts hook is called | ✅ split `LandingNavWithSession` / `LandingNavContent` |
+| MAJOR-2 | `__tests__/components/header/user-menu.test.tsx` | Component | ✅ 33/33 focused baseline | ✅ success/failure tests failed: no signed-out CTA and no `role="alert"` | ✅ local signed-out override + controlled error | ✅ success and failure cover opposite states | ✅ no raw error is rendered |
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `git branch --show-current` | ✅ `feature/009-auth-web-pr7-user-menu` |
+| `pnpm test components/landing/landing-nav.test.tsx __tests__/components/header/user-menu.test.tsx __tests__/components/header/user-menu-local-mode.test.tsx __tests__/lib/use-user-menu.test.ts` | ✅ 4 files / 36 tests pass |
+| `pnpm lint` | ✅ pass |
+| `pnpm test` | ✅ 119 files / 1134 tests pass |
+| `pnpm test user-menu` | ✅ 3 files / 18 tests pass |
+| `pnpm test use-user-menu` | ✅ 1 file / 5 tests pass |
+| `pnpm test site-header` | ✅ 1 file / 10 tests pass |
+| `pnpm test landing-nav` | ✅ 1 file / 18 tests pass |
+| `pnpm test cuenta` | ✅ 1 file / 4 tests pass |
+| `pnpm test session` | ✅ 2 files / 9 tests pass |
+| `pnpm test sign-out` | ✅ 1 file / 6 tests pass |
+| `pnpm build` | ✅ pass |
+| `pnpm tsc --noEmit` | ⚠️ fails with the same 7 pre-existing typecheck errors documented in PR7 review; no PR7 patch files appear |
+| Defensive greps | ⚠️ only expected historical comments/canonical-path and server-side canonical route hits; no new forbidden path, secret, token, PII log, suppression, backend, or dependency changes from this patch |
+
+### LOC
+
+- **Production patch**: +32 net LOC (`components/header/user-menu.tsx` +18, `components/landing/landing-nav.tsx` +13, `lib/copy/es.ts` +1).
+- **Test patch**: +67 net LOC.
+- **PR7 production total**: 217 + 32 = **249** (target ≤350, LOC guard passed).
+
+### Risks covered
+
+- **R-LOCAL-MODE-CACHE / Art. VII**: local mode no longer triggers `useUserMenu()` from `LandingNav`.
+- **MAJOR-2 stale UI**: successful sign-out clears the visible authenticated header state without requiring a full reload.
+- **MAJOR-2 silent failure**: sign-out failures now surface controlled, sanitized UI and preserve signed-in state.
+- **PR4 regression**: `/cuenta` link in `UserMenu` remains `/cuenta` and focused cuenta tests pass.
+
+### Deviations
+
+- MSW was not used because the project has no `msw` dependency and this patch is explicitly forbidden from adding npm dependencies; existing PR7 tests mock the typed hook/helper boundary instead.
+- Requested `pnpm test --filter ...` form remains unsupported for this project; equivalent Vitest positional filters were run.
+
+### Commits created
+
+- `1918a42` test(auth): cubrir local-mode y cierre de sesión en header (PR7 patch)
+- `d140e22` fix(auth): corregir sesión local-mode y estado de sign-out (PR7 patch)
+
+### Backend touched
+
+**NO** — patch is limited to `BuildCv-web` header/nav/copy tests and docs.
+
+### Ready for re-review?
+
+**YES** — both MAJOR findings are closed with strict TDD evidence, focused regressions, full suite/lint/build green, and PR7 production LOC remains under the 350 guard.
