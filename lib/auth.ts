@@ -1,6 +1,7 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Account, Profile } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import LinkedInProvider from "next-auth/providers/linkedin";
+import { registerWithBackend } from "@/lib/api/auth-adapter";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:5080";
 
@@ -15,6 +16,52 @@ export const NEXT_AUTH_AUDIENCE = process.env.NEXTAUTH_AUDIENCE ?? "buildcv-api"
 
 type UserWithBackendId = { backendUserId?: string };
 type SessionWithId = { user: { id?: string } };
+
+type SignInEventParams = {
+  user: { email?: string | null; name?: string | null };
+  account: Account | null;
+  profile?: Profile;
+  isNewUser?: boolean;
+};
+
+/**
+ * Hook `events.signIn` — reemplaza el callback obsoleto que POSTeaba al
+ * endpoint legacy con contrato drift (PR0 backend introdujo el endpoint
+ * canónico `/api/v1/auth/web-signup`, PR1 web fija el adapter).
+ *
+ * Hoy delega a `registerWithBackend` que habla con el endpoint canónico
+ * shippeado por PR0 backend y se autentica vía header `X-BFF-Key`.
+ *
+ * Si el adapter falla con 5xx o error de red: NO bloqueamos el inicio de
+ * sesión (R1-A) — logueamos `console.warn` (Art. III, sin PII) y dejamos
+ * que NextAuth proceda. El usuario verá `/cuenta` y un eventual 401 al
+ * primer GET protegido se resolverá reintentando vía PR2.
+ */
+export async function handleSignInEvent(params: SignInEventParams): Promise<void> {
+  const provider = params.account?.provider;
+  const providerAccountId = params.account?.providerAccountId;
+  const email = params.user?.email;
+  const name = params.user?.name ?? "";
+
+  if (!provider || !providerAccountId || !email) return;
+
+  if (provider !== "google" && provider !== "linkedin") return;
+
+  try {
+    await registerWithBackend({
+      provider,
+      providerAccountId,
+      email,
+      name,
+    });
+  } catch (err) {
+    // Falla del adapter (upstream 5xx, red, BFF key inválida). No bloqueamos
+    // el flujo de sign-in; el siguiente GET protegido reintentará vía PR2.
+    const detail =
+      err instanceof Error ? err.message : "unknown adapter failure";
+    console.warn("[auth/events.signIn] registerWithBackend failed:", detail);
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -35,28 +82,6 @@ export const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET ?? "",
   },
   callbacks: {
-    async signIn({ user, account }) {
-      const provider = account?.provider;
-      const providerId = account?.providerAccountId;
-      const email = user.email;
-      const name = user.name;
-
-      if (!provider || !providerId || !email) return false;
-
-      const res = await fetch(`${BACKEND_URL}/api/v1/auth/${provider}/callback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerId, email, name }),
-      });
-
-      if (!res.ok) return false;
-
-      const data = (await res.json()) as { userId?: string };
-      if (!data.userId) return false;
-
-      (user as UserWithBackendId).backendUserId = data.userId;
-      return true;
-    },
     async jwt({ token, user }) {
       const backendUserId = (user as UserWithBackendId | undefined)?.backendUserId;
       if (user && backendUserId) {
@@ -73,9 +98,17 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  events: {
+    signIn: handleSignInEvent,
+  },
   pages: {
     signIn: "/auth/signin",
   },
 };
 
 export type AuthSession = SessionWithId;
+
+// `BACKEND_URL` se mantiene exportado por compatibilidad histórica con
+// consumidores que ya lo importaban desde este módulo. El adapter de auth
+// usa su propio import interno desde `@/lib/api/backend`.
+export { BACKEND_URL };
