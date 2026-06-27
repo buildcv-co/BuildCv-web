@@ -54,15 +54,14 @@ test.describe("009-auth-web PR8 — in-house a11y", () => {
   test("A11y_ArcoCancelModalHasNameLabelAndNoKeyboardTrap", async ({ page }) => {
     await page.goto("/cuenta");
     await page.getByTestId("arco-cancel-trigger").click();
-    await expect(page.getByTestId("arco-cancel-modal")).toHaveAttribute(
-      "aria-labelledby",
-      /arco-cancel-title/,
-    );
-    await expect(page.getByLabel(new RegExp(MOCK_USER.email))).toBeVisible();
+    const modal = page.getByTestId("arco-cancel-modal");
+    await expect(modal).toHaveAttribute("aria-labelledby", /arco-cancel-title/);
+    // Scope to modal — UserMenu trigger also matches the email regex via aria-label.
+    await expect(modal.getByTestId("arco-confirm-email")).toBeVisible();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Shift+Tab");
     await page.getByTestId("arco-cancel-button").click();
-    await expect(page.getByTestId("arco-cancel-modal")).toHaveCount(0);
+    await expect(modal).toHaveCount(0);
   });
 
   test("A11y_HeaderNavigationHasAccessibleLandmarks", async ({ page }) => {
