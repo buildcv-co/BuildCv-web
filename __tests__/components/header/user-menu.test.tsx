@@ -50,6 +50,7 @@ const copyMock = vi.hoisted(() => ({
       signIn: "Iniciar sesión",
       myAccount: "Mi cuenta",
       signOut: "Cerrar sesión",
+      signOutError: "No pudimos cerrar sesión. Intentá de nuevo.",
       dialogLabel: "Menú de usuario",
       closeLabel: "Cerrar menú",
     },
@@ -189,6 +190,50 @@ describe("<UserMenu> — T-PR7-002..005", () => {
     await user.click(signOutBtn);
 
     expect(signOutMock.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("[MAJOR-2] después de cerrar sesión con éxito muestra el estado anónimo", async () => {
+    useUserMenuMock.state = {
+      status: "authenticated",
+      user: { email: "ada@example.com", name: "Ada" },
+    };
+    const { UserMenu } = await loadUserMenu();
+    const user = userEvent.setup();
+    render(<UserMenu />);
+
+    await user.click(screen.getByTestId("user-menu-trigger"));
+    await user.click(screen.getByRole("menuitem", { name: /Cerrar sesión/i }));
+
+    expect(signOutMock.signOut).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: /Iniciar sesión/i })).toHaveAttribute(
+        "href",
+        "/auth/signin",
+      );
+    });
+    expect(screen.queryByText("ada@example.com")).toBeNull();
+  });
+
+  it("[MAJOR-2] si cerrar sesión falla muestra error controlado y conserva estado autenticado", async () => {
+    useUserMenuMock.state = {
+      status: "authenticated",
+      user: { email: "ada@example.com", name: "Ada" },
+    };
+    signOutMock.signOut.mockRejectedValue(
+      new Error("Authorization: Bearer secret access_token refresh_token"),
+    );
+    const { UserMenu } = await loadUserMenu();
+    const user = userEvent.setup();
+    render(<UserMenu />);
+
+    await user.click(screen.getByTestId("user-menu-trigger"));
+    await user.click(screen.getByRole("menuitem", { name: /Cerrar sesión/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("No pudimos cerrar sesión. Intentá de nuevo.");
+    expect(alert).not.toHaveTextContent(/Bearer|access_token|refresh_token|secret/i);
+    expect(screen.getByTestId("user-menu-trigger")).toHaveAccessibleName(/ada@example.com/i);
+    expect(screen.queryByRole("link", { name: /Iniciar sesión/i })).toBeNull();
   });
 
   it("[T-PR7-005] unauthenticated: renderiza <a href='/auth/signin'>Iniciar sesión</a>", async () => {
