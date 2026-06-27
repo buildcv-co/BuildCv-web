@@ -550,6 +550,40 @@ landing: {
     continueWithGoogle: "Continuar con Google",
     continueWithLinkedIn: "Continuar con LinkedIn",
   },
+  account: {
+    title: "Tu cuenta",
+    inMemoryNotice:
+      "Tu cuenta se guarda en memoria durante esta sesión de desarrollo.",
+    datosPersonales: {
+      title: "Tus datos personales",
+      loadingAria: "Cargando tus datos personales",
+      providerGoogle: "Google",
+      providerLinkedIn: "LinkedIn",
+      labels: {
+        email: "Email",
+        provider: "Proveedor",
+        createdAt: "Cuenta creada",
+        lastLoginAt: "Último inicio de sesión",
+      },
+    },
+    consentSlot: {
+      title: "Consentimientos",
+      placeholderMessage:
+        "Próximamente vas a poder gestionar tus consentimientos acá.",
+    },
+    arcoSlot: {
+      title: "Derechos ARCO",
+      placeholderMessage:
+        "Próximamente vas a poder ver, rectificar y eliminar tu cuenta acá.",
+    },
+    errors: {
+      rateLimit: "Demasiadas solicitudes. Reintentá en unos minutos.",
+      rateLimitWithDate: (date: string) =>
+        `Demasiadas solicitudes. Reintentá el ${date}.`,
+      loadFailed: "No pudimos cargar tus datos. Reintentá más tarde.",
+      unauthenticated: "Tu sesión expiró. Inicia sesión de nuevo.",
+    },
+  },
   subscription: {
     activeTitle: "Suscripción activa",
     canceledTitle: "Suscripción cancelada",
