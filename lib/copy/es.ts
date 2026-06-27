@@ -551,6 +551,8 @@ landing: {
     continueWithLinkedIn: "Continuar con LinkedIn",
     emailRotatedBanner:
       "Tu email fue actualizado por una solicitud ARCO. Iniciá sesión con tu nuevo email.",
+    arcoCancelBanner:
+      "Tu cuenta fue eliminada por una solicitud ARCO. Si querés volver a usar BuildCV, iniciá sesión de nuevo.",
   },
   account: {
     title: "Tu cuenta",
@@ -584,6 +586,41 @@ landing: {
         `Demasiadas solicitudes. Reintentá el ${date}.`,
       loadFailed: "No pudimos cargar tus datos. Reintentá más tarde.",
       unauthenticated: "Tu sesión expiró. Inicia sesión de nuevo.",
+    },
+    arco: {
+      access: {
+        title: "Ver mis datos",
+        button: "Ver mis datos",
+        jsonLabel: "Detalle de tu cuenta",
+      },
+      rectify: {
+        title: "Rectificar datos",
+        nameLabel: "Nombre",
+        emailLabel: "Email",
+        emailRotationNote:
+          "Si cambiás tu email, vas a tener que iniciar sesión de nuevo.",
+        submit: "Guardar cambios",
+        submitting: "Guardando…",
+        success: "Cambios guardados.",
+      },
+      cancel: {
+        title: "Eliminar mi cuenta",
+        button: "Eliminar mi cuenta",
+        modalTitle: "¿Eliminar tu cuenta?",
+        modalBody:
+          "Vas a eliminar tu perfil y todos tus consentimientos. Las facturas ya emitidas se conservan por ley. Esta acción no se puede deshacer.",
+        emailHelp: (email: string) =>
+          `Escribí tu email para confirmar: ${email}`,
+        confirm: "Eliminar definitivamente",
+        cancel: "Cancelar",
+        close: "Cerrar",
+      },
+      errors: {
+        rateLimit: "Demasiadas solicitudes. Reintentá más tarde.",
+        validation: "Revisá el formato.",
+        network: "No pudimos contactar el servidor. Reintentá.",
+        generic: "No pudimos guardar los cambios. Reintentá.",
+      },
     },
   },
   subscription: {

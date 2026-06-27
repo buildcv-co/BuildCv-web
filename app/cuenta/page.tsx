@@ -11,12 +11,13 @@ import { copy } from "@/lib/copy/es";
 import { CuentaSkeleton } from "@/components/account/cuenta-skeleton";
 import { DatosPersonalesSection } from "@/components/account/datos-personales-section";
 import { ConsentSectionSlot } from "@/components/account/consent-section-slot";
-import { ArcoSectionSlot } from "@/components/account/arco-section-slot";
+import { ArcoPanel } from "@/components/account/arco-panel";
 
 /**
- * Página `/cuenta` — server component (009-auth-web PR4).
+ * Página `/cuenta` — server component (009-auth-web PR4 + PR6).
  *
- * Spec: REQ-FN-010 + REQ-FN-011 + REQ-FN-018 + CR-PRIV-1.
+ * Spec: REQ-FN-010 + REQ-FN-011 + REQ-FN-014..016 + REQ-FN-018 + REQ-FN-021
+ * + CR-PRIV-1.
  *
  * Comportamiento:
  *  - Sin sesión NextAuth → `redirect('/auth/signin?callbackUrl=/cuenta')`
@@ -24,7 +25,7 @@ import { ArcoSectionSlot } from "@/components/account/arco-section-slot";
  *  - Con sesión → render del `<CuentaSkeleton>` con 3 secciones estables:
  *      1. `<DatosPersonalesSection>` (PR4) — email/provider/createdAt/lastLoginAt.
  *      2. `<ConsentSectionSlot>` (PR4) — placeholder, PR5 inyecta `<ConsentPanel>`.
- *      3. `<ArcoSectionSlot>` (PR4) — placeholder, PR6 inyecta `<ArcoPanel>`.
+ *      3. `<ArcoPanel>` (PR6) — Access/Rectify/Cancel con type-email modal.
  *  - Si `getUserData` lanza `RateLimitError` → banner inline con copy
  *    rate-limit + fecha formateada del `Retry-After` (REQ-FN-018, NFR-RATE-1).
  *  - Si `getUserData` lanza otro error → banner genérico.
@@ -36,7 +37,8 @@ import { ArcoSectionSlot } from "@/components/account/arco-section-slot";
  *    vienen del backend vía el BFF `app/api/user/data/route.ts` (no
  *    directo).
  *  - **R2**: slot structure estable; PR5 y PR6 cada una toca un slot
- *    distinto, no colisionan.
+ *    distinto, no colisionan. PR6 reemplaza `<ArcoSectionSlot>` con
+ *    `<ArcoPanel>`.
  */
 
 export const dynamic = "force-dynamic";
@@ -80,12 +82,7 @@ export default async function CuentaPage(): Promise<React.ReactElement> {
           placeholderMessage={copy.account.consentSlot.placeholderMessage}
         />
       }
-      arco={
-        <ArcoSectionSlot
-          title={copy.account.arcoSlot.title}
-          placeholderMessage={copy.account.arcoSlot.placeholderMessage}
-        />
-      }
+      arco={userData ? <ArcoPanel userData={userData} /> : null}
     />
   );
 }
