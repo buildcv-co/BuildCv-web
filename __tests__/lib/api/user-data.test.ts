@@ -1,19 +1,21 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 /**
- * Tests del typed port `getUserData` (009-auth-web PR4 — T-PR4-002).
+ * Tests del typed port `getUserData` / `rectifyUserData` / `deleteUserData`
+ * (009-auth-web PR4 T-PR4-002 + PR6 T-PR6-001/T-PR6-002).
  *
  * Contrato congelado en spec §3.3:
- *   GET `${BACKEND_URL}/api/v1/user/data`
+ *   GET    `${BACKEND_URL}/api/v1/user/data`  → `UserDataResponse`
+ *   PUT    `${BACKEND_URL}/api/v1/user/data`  → `UserDataResponse` (rectify)
+ *   DELETE `${BACKEND_URL}/api/v1/user/data`  → `{ message: string }` (cancel)
  *   Header: `Authorization: Bearer <backend-jwt>` (vía getJwtFromSession)
- *   200 → `UserDataResponse { userId, provider, email, name, createdAt, lastLoginAt }`
  *   429 → throws RateLimitError(retryAfter: Date) — NFR-RATE-1
+ *   400 → throws ValidationError(detail) — T-PR6-002
  *
- * Path canonical: `/api/v1/user/data` (NO `/user/data/consent` — eso es PR5).
+ * Path canonical: `/api/v1/user/data` (NO `/user/data/consent`, NO `/arco/*`).
  *
- * IMPORTANTE: TDD strict. La función `getUserData` aún NO EXISTE en el
- * código de producción al momento de RED. Cada test referencia la firma
- * congelada por la spec.
+ * IMPORTANTE: TDD strict. Las funciones aún NO EXISTEN en el código de
+ * producción al momento de RED. Cada test referencia la firma congelada.
  */
 
 const ORIGINAL_ENV = { ...process.env };
@@ -173,5 +175,115 @@ describe("getUserData (typed port)", () => {
     const ms = rl.retryAfter!.getTime();
     expect(ms).toBeGreaterThanOrEqual(before + 30_000 - 100);
     expect(ms).toBeLessThanOrEqual(Date.now() + 30_000 + 100);
+  });
+});
+
+describe("rectifyUserData (typed port — T-PR6-001 / T-PR6-002)", () => {
+  it("PUT contra `${BACKEND_URL}/api/v1/user/data` con body { name, email } (NO contra `/arco/*`)", async () => {
+    const { rectifyUserData } = await loadPort();
+    sessionModuleMock.getJwtFromSession.mockResolvedValueOnce({
+      jwt: "backend-jwt",
+      userId: "11111111-1111-1111-1111-111111111111",
+    });
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          userId: "11111111-1111-1111-1111-111111111111",
+          provider: "google",
+          email: "new@example.com",
+          name: "Ada Lovelace v2",
+          createdAt: "2026-06-25T10:00:00Z",
+          lastLoginAt: "2026-06-26T08:00:00Z",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const result = await rectifyUserData({
+      name: "Ada Lovelace v2",
+      email: "new@example.com",
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = fetchMock.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe("http://test-backend:5080/api/v1/user/data");
+    // defensivo: nunca contra legacy `/arco/rectify` ni `/user/data/consent`
+    expect(calledUrl).not.toContain("/arco");
+    expect(calledUrl).not.toContain("/consent");
+    expect(calledUrl).not.toContain("/callback");
+    const calledInit = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(calledInit.method).toBe("PUT");
+    const headers = calledInit.headers as Record<string, string>;
+    expect(headers["Authorization"]).toBe("Bearer backend-jwt");
+    expect(calledInit.body).toBe(
+      JSON.stringify({ name: "Ada Lovelace v2", email: "new@example.com" }),
+    );
+    expect(result.name).toBe("Ada Lovelace v2");
+    expect(result.email).toBe("new@example.com");
+  });
+
+  it("lanza `ValidationError` con detail del backend cuando PUT devuelve 400", async () => {
+    const { rectifyUserData, ValidationError } = await loadPort();
+    sessionModuleMock.getJwtFromSession.mockResolvedValueOnce({
+      jwt: "jwt",
+      userId: "u",
+    });
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          type: "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+          title: "One or more validation errors occurred.",
+          status: 400,
+          detail: "email: invalid format",
+        }),
+        { status: 400, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    let thrown: unknown;
+    try {
+      await rectifyUserData({ email: "not-an-email" });
+    } catch (err) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(ValidationError);
+    const ve = thrown as InstanceType<typeof ValidationError>;
+    expect(ve.status).toBe(400);
+    expect(ve.detail).toBe("email: invalid format");
+  });
+});
+
+describe("deleteUserData (typed port — T-PR6-001)", () => {
+  it("DELETE contra `${BACKEND_URL}/api/v1/user/data` (NO contra `/arco/cancel`) y retorna `{ message }`", async () => {
+    const { deleteUserData } = await loadPort();
+    sessionModuleMock.getJwtFromSession.mockResolvedValueOnce({
+      jwt: "backend-jwt",
+      userId: "11111111-1111-1111-1111-111111111111",
+    });
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ message: "User data deleted" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const result = await deleteUserData();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = fetchMock.mock.calls[0]![0] as string;
+    expect(calledUrl).toBe("http://test-backend:5080/api/v1/user/data");
+    // defensivo: nunca contra legacy `/arco/cancel` ni `/user/data/consent`
+    expect(calledUrl).not.toContain("/arco");
+    expect(calledUrl).not.toContain("/consent");
+    expect(calledUrl).not.toContain("/callback");
+    const calledInit = fetchMock.mock.calls[0]![1] as RequestInit;
+    expect(calledInit.method).toBe("DELETE");
+    const headers = calledInit.headers as Record<string, string>;
+    expect(headers["Authorization"]).toBe("Bearer backend-jwt");
+    expect(result).toEqual({ message: "User data deleted" });
   });
 });
