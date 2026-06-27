@@ -623,6 +623,17 @@ landing: {
       },
     },
   },
+  // 009-auth-web PR7 — `<UserMenu>` (REQ-FN-017 + Art. VII no-friction local).
+  userMenu: {
+    triggerLabel: (email: string) => `Menú de usuario (${email})`,
+    triggerLoading: "Cargando menú de usuario",
+    signIn: "Iniciar sesión",
+    myAccount: "Mi cuenta",
+    signOut: "Cerrar sesión",
+    signOutError: "No pudimos cerrar sesión. Intentá de nuevo.",
+    dialogLabel: "Menú de usuario",
+    closeLabel: "Cerrar menú",
+  },
   subscription: {
     activeTitle: "Suscripción activa",
     canceledTitle: "Suscripción cancelada",
