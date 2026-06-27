@@ -10,7 +10,7 @@ import {
   UserDataError,
   ValidationError,
   type UserDataResponse,
-} from "@/lib/api/user-data";
+} from "@/lib/api/user-data-types";
 import { ArcoCancelModal } from "@/components/account/arco-cancel-modal";
 
 /** ARCO panel (Access/Rectify/Cancel) — PR6b (REQ-FN-014/015/016).

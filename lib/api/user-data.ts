@@ -1,6 +1,23 @@
 import { getJwtFromSession } from "@/lib/api/jwt";
 import { BACKEND_URL } from "@/lib/api/backend";
 import { parseRetryAfter } from "@/lib/api/_utils";
+import {
+  RateLimitError,
+  UserDataError,
+  ValidationError,
+  type RectifyPayload,
+  type UserDataResponse,
+} from "@/lib/api/user-data-types";
+
+// Re-export types y errores para que el BFF y el page los sigan importando
+// desde aquí sin breaking change (PR4 los importa desde `@/lib/api/user-data`).
+export {
+  RateLimitError,
+  UserDataError,
+  ValidationError,
+  type RectifyPayload,
+  type UserDataResponse,
+};
 
 /**
  * Typed port para los datos del usuario autenticado (009-auth-web PR4 + PR6).
@@ -15,6 +32,8 @@ import { parseRetryAfter } from "@/lib/api/_utils";
  *
  * **Server-side ONLY.** El browser nunca debe importar este módulo:
  * usa `app/api/user/data/route.ts` (BFF) como único punto de contacto.
+ * Los tipos y clases de error viven en `@/lib/api/user-data-types`
+ * (cliente-seguro) y se re-exportan aquí para no romper imports existentes.
  *
  * **NO expone tokens al cliente** (Constitution Art. VI + CR-TOK-1):
  * el header `Authorization: Bearer` se agrega server-side desde el cache
@@ -22,62 +41,11 @@ import { parseRetryAfter } from "@/lib/api/_utils";
  * del usuario, no el JWT backend ni el refresh token.
  *
  * **NO loguea PII** (Constitution Art. III / NFR-OBS-1): los errores se
- * exponen con clases tipadas (`RateLimitError`, `UserDataError`,
- * `ValidationError`) y los handlers aguas arriba deciden qué loguear.
+ * exponen con clases tipadas y los handlers aguas arriba deciden qué loguear.
  *
  * Path canonical: `/api/v1/user/data` (NO `/user/data/consent` — eso es PR5,
  * NO `/arco/*` — eso es legacy según R-ENDPOINT-DRIFT #5-7).
  */
-
-export interface UserDataResponse {
-  userId: string;
-  provider: "google" | "linkedin";
-  email: string;
-  name: string;
-  createdAt: string;
-  lastLoginAt: string;
-}
-
-export interface RectifyPayload {
-  name?: string;
-  email?: string;
-}
-
-export class RateLimitError extends Error {
-  public readonly retryAfter: Date | null;
-  public readonly detail: string;
-
-  constructor(retryAfter: Date | null, detail: string) {
-    super(`Rate limit exceeded (retryAfter=${retryAfter?.toISOString() ?? "unknown"}): ${detail}`);
-    this.name = "RateLimitError";
-    this.retryAfter = retryAfter;
-    this.detail = detail;
-  }
-}
-
-export class UserDataError extends Error {
-  public readonly status: number;
-  public readonly detail: string;
-
-  constructor(status: number, detail: string) {
-    super(`User data error (status=${status}): ${detail}`);
-    this.name = "UserDataError";
-    this.status = status;
-    this.detail = detail;
-  }
-}
-
-export class ValidationError extends Error {
-  public readonly status: 400;
-  public readonly detail: string;
-
-  constructor(detail: string) {
-    super(`Validation error (status=400): ${detail}`);
-    this.name = "ValidationError";
-    this.status = 400;
-    this.detail = detail;
-  }
-}
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 

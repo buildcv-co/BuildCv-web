@@ -3,20 +3,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 /**
  * Tests del helper client-side `lib/api/sign-out.ts`.
  *
- * 009-auth-web PR2 (Session refresh + sign-out helpers).
+ * 009-auth-web PR2 + PR6 (T-PR6-001..012 — ARCO flow reuses signOut).
  *
- * `signOut()` ejecuta el flujo de cierre de sesión en 3 pasos:
+ * `signOut()` ejecuta el flujo de cierre de sesión en 2 pasos:
  *  1. Llama `signOut({redirect: false})` de `next-auth/react` para
  *     limpiar la cookie NextAuth session.
  *  2. POST `/api/auth/logout` (BFF) que revoca los refresh tokens
  *     del backend y limpia el cache BFF server-side.
- *  3. Llama `clearJwtCache()` de `lib/api/jwt` por defensa adicional
- *     (R-LOCAL-MODE-CACHE).
+ *
+ * **IMPORTANTE (PR6 split)**: el cache BFF (`lib/api/jwt.ts`) es server-only
+ * (importa `next/headers`). El cliente NO puede importarlo directamente —
+ * la limpieza del cache se hace server-side en el BFF logout handler
+ * (`app/api/auth/logout/route.ts:65 + 80`). R-LOCAL-MODE-CACHE se mantiene
+ * porque el BFF siempre llama `clearJwtCache()` después del revoke.
  *
  * Propiedades (Constitution Art. III, IV, VII / REQ-FN-007):
  *  - **Idempotente**: llamar dos veces es seguro (sin throw).
  *  - **Best-effort en BFF 5xx**: si el BFF falla, el cache igual se
- *    limpia (no infinite retry, no silent failure).
+ *    limpia server-side (no infinite retry, no silent failure).
  *  - **NO expone tokens**: ni en URL, ni en body, ni en logs.
  *  - **Path canonical**: `/api/auth/logout` (NO `/auth/sign-out`).
  */
@@ -31,19 +35,12 @@ const nextAuthMock = {
   signOut: vi.fn(),
 };
 
-const jwtMock = {
-  clearJwtCache: vi.fn(),
-};
-
 vi.mock("next-auth/react", () => nextAuthMock);
-vi.mock("@/lib/api/jwt", () => jwtMock);
 
 beforeEach(() => {
   vi.resetModules();
   nextAuthMock.signOut.mockReset();
-  jwtMock.clearJwtCache.mockReset();
   global.fetch = vi.fn();
-  // Default: BFF logout succeeds
   vi.mocked(global.fetch).mockResolvedValue(
     new Response(JSON.stringify({ message: "Logged out" }), {
       status: 200,
@@ -58,7 +55,7 @@ afterEach(() => {
 });
 
 describe("lib/api/sign-out (client helper)", () => {
-  it("ejecuta los 3 pasos en orden: NextAuth signOut → BFF logout → clearJwtCache", async () => {
+  it("ejecuta los 2 pasos en orden: NextAuth signOut → BFF logout", async () => {
     const callOrder: string[] = [];
     nextAuthMock.signOut.mockImplementation(async () => {
       callOrder.push("nextauth.signOut");
@@ -67,20 +64,12 @@ describe("lib/api/sign-out (client helper)", () => {
       callOrder.push("fetch.bff.logout");
       return new Response(JSON.stringify({ message: "Logged out" }), { status: 200 });
     });
-    jwtMock.clearJwtCache.mockImplementation(() => {
-      callOrder.push("jwt.clearJwtCache");
-    });
 
     const { signOut } = await loadSignOut();
     await signOut();
 
-    expect(callOrder).toEqual([
-      "nextauth.signOut",
-      "fetch.bff.logout",
-      "jwt.clearJwtCache",
-    ]);
+    expect(callOrder).toEqual(["nextauth.signOut", "fetch.bff.logout"]);
     expect(nextAuthMock.signOut).toHaveBeenCalledTimes(1);
-    expect(jwtMock.clearJwtCache).toHaveBeenCalledTimes(1);
     const fetchMock = vi.mocked(global.fetch);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = fetchMock.mock.calls[0]![0] as string;
@@ -101,7 +90,7 @@ describe("lib/api/sign-out (client helper)", () => {
     expect(calledInit.method).toBe("POST");
   });
 
-  it("BFF 500 (best-effort): igual limpia el cache, NO lanza, NO infinite retry", async () => {
+  it("BFF 500 (best-effort): NO lanza, NO infinite retry, console.warn", async () => {
     vi.mocked(global.fetch).mockResolvedValue(
       new Response(JSON.stringify({ error: "Internal" }), { status: 500 }),
     );
@@ -116,13 +105,12 @@ describe("lib/api/sign-out (client helper)", () => {
     }
 
     expect(threw).toBeNull();
-    expect(jwtMock.clearJwtCache).toHaveBeenCalledTimes(1);
     expect(warnSpy).toHaveBeenCalled();
     expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(1); // no infinite retry
     warnSpy.mockRestore();
   });
 
-  it("BFF 401 (sesión ya expiró): handled gracefully — clearJwtCache igual corre, no error UX", async () => {
+  it("BFF 401 (sesión ya expiró): handled gracefully — no error UX", async () => {
     vi.mocked(global.fetch).mockResolvedValue(
       new Response(JSON.stringify({ error: "No session" }), { status: 401 }),
     );
@@ -136,16 +124,14 @@ describe("lib/api/sign-out (client helper)", () => {
     }
 
     expect(threw).toBeNull();
-    expect(jwtMock.clearJwtCache).toHaveBeenCalledTimes(1);
   });
 
-  it("**Idempotente**: llamar dos veces seguidas es seguro, sin throw, ambas limpian cache", async () => {
+  it("**Idempotente**: llamar dos veces seguidas es seguro, sin throw", async () => {
     const { signOut } = await loadSignOut();
     await signOut();
     await signOut();
 
     expect(nextAuthMock.signOut).toHaveBeenCalledTimes(2);
-    expect(jwtMock.clearJwtCache).toHaveBeenCalledTimes(2);
   });
 
   it("**Non-exposure** (Art. III / CR-TOK-1): no se loguean tokens ni se exponen en payload", async () => {
@@ -158,7 +144,6 @@ describe("lib/api/sign-out (client helper)", () => {
     await signOut();
 
     expect(warnSpy).not.toHaveBeenCalled();
-    // El body del POST debe estar vacío (no enviamos tokens al cliente)
     const calledInit = vi.mocked(global.fetch).mock.calls[0]![1] as RequestInit;
     expect(calledInit.body ?? null).toBeNull();
     warnSpy.mockRestore();
