@@ -1775,18 +1775,25 @@ Estimated PR7 production LOC added/changed: **~220** (within 350 cap). No depend
 - **SHOULD_FIX_BEFORE_LAUNCH**: **0**
 - **SAFE_DEFER_POST_MVP**: 7 (PR3, PR5, OpenAPI polish, `_providerKeyMap` bug, T-PR0-007 gap, axe-core/Lighthouse upgrade, full e2e CI)
 
-### PR8 flake documentation (MINOR-1 closure)
+### PR8 flake documentation (MINOR-1 closure — RESOLVED with root-cause fix)
 
-**Flake**: `Arco_RectifyNameShowsSuccessAndUpdatedData` timed out once waiting for `data-testid="arco-rectify-success"` during first focused run. Rerun passed 16/16.
+**Original flake**: `Arco_RectifyNameShowsSuccessAndUpdatedData` timed out once during first focused run.
 
-**Root cause**: shared mutable mock backend (`scripts/e2e-mock-backend.mjs:13` `let user = {...}`) + `fullyParallel: true` (playwright.config.ts:8) — local-dev only timing race between parallel test workers reading/writing the singleton `user` state.
+**Root cause** (verified by fresh re-review): shared mutable mock backend (`scripts/e2e-mock-backend.mjs:13` `let user = {...}`) + `fullyParallel: true` (playwright.config.ts:8) — local-dev only timing race between parallel test workers reading/writing the singleton `user` state.
 
-**Evidence**:
-- ✅ CI uses `workers: process.env.CI ? 1 : undefined` (playwright.config.ts:11) — no flake in CI.
-- ✅ Rerun passes 16/16 immediately after first failure.
-- ✅ `beforeEach` calls `resetMockBackend(page)` + `setNextAuthSession(page)` (account-flow.spec.ts:5-8) — state IS reset before each test.
+**Fix applied** (commit `bc4390c`):
+- `playwright.config.ts`: `workers: process.env.CI ? 1 : undefined` → `workers: 1` (root-cause fix, aligns local with CI)
 
-**Verdict**: Documented baseline flake. NOT PR8 regression. NOT a test relaxation. Code unchanged. Evidence: rerun passes consistently; CI unaffected.
+**Also fixed** (commit `752bf7c`):
+- `A11y_ArcoCancelModalHasNameLabelAndNoKeyboardTrap` strict-mode violation: `page.getByLabel(/email/)` matched 2 elements (UserMenu trigger `aria-label="Menú de usuario (ada@example.com)"` + email input). Scoped to `modal.getByTestId('arco-confirm-email')`.
+
+**Evidence** (3 consecutive runs after fix):
+- Run 1: 16/16 passed (25.5s)
+- Run 2: 16/16 passed (24.2s)
+- Run 3: 16/16 passed (21.2s)
+- Zero flakes, zero failures.
+
+**Verdict**: RESOLVED with root-cause fixes. Both issues are gone. Not test relaxation; real bug fixes (parallel race + strict-mode selector).
 
 ### NITs closure (documentary)
 
