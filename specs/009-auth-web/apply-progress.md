@@ -366,7 +366,7 @@ Web auth adapter corregido para consumir `POST /api/v1/auth/web-signup` (PR0 bac
 | Command | Result |
 |---|---|
 | `pnpm lint` | ✅ exit 0 (0 warnings, 0 errors) |
-| `pnpm typecheck` (tsc --noEmit) | ⚠️ 8 pre-existing typecheck errors (verified on `e6f6cac` baseline via `git stash`); 0 new errors from PR1 |
+| `pnpm typecheck` (tsc --noEmit) | ⚠️ 7 pre-existing typecheck errors (verified on `e6f6cac` baseline via `git stash`); 0 new errors from PR1 |
 | `pnpm test __tests__/lib/api/auth-adapter.test.ts` | ✅ 11/11 passing |
 | `pnpm test __tests__/app/api/auth/web-signup/route.test.ts` | ✅ 7/7 passing |
 | `pnpm test __tests__/security/no-hardcoded-urls.test.ts` | ✅ 7/7 passing |
@@ -455,3 +455,176 @@ Created:
 ### PR1 ready for review?
 
 **YES** — strict TDD evidence per task, 28 new tests passing (all RED proven via import-fail before GREEN), 0 suppressions, 0 mocks falsos, 0 hardcoded env vars (defensive grep test guards), Constitution Art. III/V/VI/VIII satisfied, build green with `/api/auth/web-signup` registered, lint clean, all defensive greps return 0 matches.
+
+---
+
+## PR1 — review follow-up (MINOR-1 + NIT-1)
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr1-auth-adapter`
+**Base**: `e6f6cac` (web main)
+**Started**: 2026-06-26
+**Completed**: 2026-06-26
+**Reviewer**: sdd-apply (sub-agent executor)
+
+### Autosquash (NIT-2 closure)
+
+| Pre-autosquash SHA | Post-autosquash SHA | Message |
+|---|---|---|
+| `b7ae3e6` + `7888b2c` | `2736e8a` | `test(auth): cubrir contrato web-signup (PR1 RED)` (autosquashed fixup!) |
+| `62f9c87` | `5fbf47c` | `fix(auth): adaptar web signup al contrato bff (PR1 GREEN)` |
+| `7c9f07f` | `c75bfd0` | `docs(009-auth-web): registrar avance PR1` |
+
+NIT-2 (`7888b2c fixup!` loose) **CLOSED** ✅ — autosquash consolidado en `2736e8a`.
+
+### MINOR-1 fix (functional)
+
+**Problem** (from `pr1-fresh-review.md:288-294`): `events.signIn` en NextAuth puede llegar con `name` undefined/empty cuando el profile OAuth no incluye un display name (p.ej. cuentas de Google sin display name público). El adapter POSTeaba `{name: ""}` al backend, que responde 400 (`WebSignupHandler.cs:30-33` valida `name` non-empty), y el hook se lo tragaba silenciosamente (R1-A best-effort).
+
+**Decisión arquitectónica**: skip + warn (NO fallback al email local-part) per Constitution Art. I (cero invención). Invertir el nombre desde el local-part del email sería **inventar datos del usuario** que nunca declaró. Constitution Art. III (privacidad) prefiere NO enviar PII derivada.
+
+**Implementación** (`lib/auth.ts:50-56`):
+
+```ts
+if (!name) {
+  console.warn(
+    "[auth/events.signIn] skipping web-signup: provider profile missing required `name` field (MINOR-1 fix; per Constitution Art. I we do NOT invent the name from email local-part)",
+  );
+  return;
+}
+```
+
+R1-A (best-effort sign-in) preservado: no lanzamos, no bloqueamos. El usuario queda signed-in en NextAuth; el siguiente GET protegido en `/cuenta` se resolverá reintentando vía PR2 (session helpers + retry).
+
+### MINOR-1 TDD Cycle Evidence
+
+| Phase | File | Line | Evidence |
+|---|---|---|---|
+| RED | `__tests__/lib/auth.test.ts` | 178-205 | Test triangulado: `events.signIn` con `name=""` → `registerWithBackend` NOT called + `console.warn` called + warning NO contiene el email del usuario (Art. III no-PII) |
+| RED | `__tests__/lib/auth.test.ts` | 207-225 | Test triangulado #2: `events.signIn` con `name=undefined` (claim ausente en profile OAuth) → mismo gate |
+| GREEN | `lib/auth.ts` | 50-56 | Gate explícito `if (!name)` que loguea y retorna sin invocar el adapter |
+| REFACTOR | (n/a) | — | Implementación ya era mínima: 6 LOC incluyendo el comentario que justifica la decisión (Constitution Art. I) |
+
+### Tests added/modified
+
+- **Added** 2 unit tests en `__tests__/lib/auth.test.ts`:
+  - `events.signIn NO llama registerWithBackend cuando name está vacío (perfil OAuth sin display name) y emite console.warn explícito` (line 178)
+  - `events.signIn NO llama registerWithBackend cuando name es undefined (claim ausente en el profile OAuth)` (line 207) — triangulación
+- **Modified** `lib/auth.ts` (MINOR-1 implementation)
+- **Total post-fix**: 8 tests in `auth.test.ts` (was 6 in PR1 base → +2 net new)
+
+### NIT-1 verification (doc correction)
+
+**Reviewer's claim** (`pr1-fresh-review.md:298-304`): `apply-progress.md` dice "8 pre-existing typecheck errors" pero el actual es 7.
+
+**Verification** (2026-06-26 via `pnpm tsc --noEmit`):
+
+```
+__tests__/components/analyzer/analyzer.test.tsx(22,34): error TS2305
+__tests__/lib/editor/types.test.ts(226,11): error TS2353
+__tests__/lib/editor/types.test.ts(263,11): error TS2740
+__tests__/lib/editor/types.test.ts(277,11): error TS2740
+lib/api/import.test.ts(126,19): error TS2339
+lib/api/import.test.ts(127,19): error TS2339
+lib/api/types.test.ts(723,3): error TS2322
+```
+
+**Count**: 7 errors, all pre-existing on `e6f6cac` baseline, identical file:line:error triples, **0 nuevos** desde PR1.
+
+**Test count verification** (2026-06-26 via `pnpm vitest run --reporter=verbose` per file):
+
+| Suite | Claimed (apply-progress) | Actual | Drift |
+|---|---|---|---|
+| `__tests__/lib/api/auth-adapter.test.ts` | 11 | 11 | ✅ none |
+| `__tests__/app/api/auth/web-signup/route.test.ts` | 7 | 7 | ✅ none |
+| `__tests__/security/no-hardcoded-urls.test.ts` | 7 | 7 | ✅ none |
+| `__tests__/lib/auth.test.ts` (post-PR1) | 6 (3 original/updated + 3 events.signIn) | 6 | ✅ none |
+| `__tests__/lib/auth.test.ts` (post-MINOR-1) | n/a (new) | 8 (+2 triangulados) | ✅ added |
+| **PR1 net new** | 28 (11+7+7+3) | 28 (verified) | ✅ none |
+| **Full suite** (post-PR1) | 1040 | 1040 | ✅ none |
+| **Full suite** (post-MINOR-1) | n/a | 1042 (+2) | ✅ added |
+
+**Drift found and corrected**: `apply-progress.md:368` claimed "8 pre-existing typecheck errors" → corrected to **7** (the reviewer was right; see fix in the `pnpm typecheck` row above in the PR1 section).
+
+**No other drift found**: all test counts accurate.
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `pnpm vitest run __tests__/lib/auth.test.ts --reporter=verbose` | ✅ 8/8 passing (was 6/6 pre-fix → +2 triangulados) |
+| `pnpm vitest run __tests__/lib/api/auth-adapter.test.ts --reporter=verbose` | ✅ 11/11 passing (sin cambios) |
+| `pnpm vitest run __tests__/app/api/auth/web-signup/route.test.ts --reporter=verbose` | ✅ 7/7 passing (sin cambios) |
+| `pnpm vitest run __tests__/security/no-hardcoded-urls.test.ts --reporter=verbose` | ✅ 7/7 passing (sin cambios) |
+| `pnpm test` (full suite) | ✅ 1042/1042 passing (was 1040/1040 pre-fix → +2 net new) |
+| `pnpm lint` | ✅ exit 0 (no warnings, no errors) |
+| `pnpm tsc --noEmit` | ⚠️ 7 pre-existing typecheck errors (verified, identical to baseline `e6f6cac`); 0 new from MINOR-1 fix |
+| `pnpm build` | ✅ next build green, `/api/auth/web-signup` registered as ƒ (Dynamic) |
+| `grep -rn "/auth/sign-out" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/privacy/policies" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/user/consent[^/]" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/api/v1/auth/\${provider}/callback" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "providerId" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "NEXT_PUBLIC_BFF_API_KEY" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "BFF_API_KEY" components/` | ✅ 0 matches |
+| `grep -rn "X-BFF-Key" components/` | ✅ 0 matches |
+| `grep -rn "@ts-ignore\|@ts-expect-error" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "eslint-disable" app/ lib/ components/` | ✅ 0 matches |
+| `git diff e6f6cac..HEAD -- package.json pnpm-lock.yaml` | empty (no dep changes) ✅ |
+
+### Files modified (BuildCv-web only, MINOR-1 fix)
+
+Modified:
+- `lib/auth.ts` (+19/-0 LOC: gate explícito `if (!name)` con `console.warn` + comentario Constitution Art. I)
+- `__tests__/lib/auth.test.ts` (+49/-0 LOC: 2 nuevos tests triangulados con comentario MINOR-1)
+
+Created:
+- (n/a — solo edición)
+
+### LOC
+
+- **MINOR-1 production code**: ~6 LOC net (gate + console.warn + comentario) — target ~5, cap ~30 → ✅ dentro de target
+- **MINOR-1 test code**: ~49 LOC (2 tests triangulados con comentarios extensos explicando el por qué)
+- **MINOR-1 net**: ~55 LOC
+
+### Risks covered
+
+- **MINOR-1** (fresh review PR1): `events.signIn` ya NO POSTea `{name: ""}` al backend cuando el profile OAuth viene sin display name. **CLOSED** ✅
+- **NIT-1** (doc correction): `apply-progress.md` ahora dice "7 pre-existing typecheck errors" (corregido de "8"). **CLOSED** ✅
+- **NIT-2** (autosquash): `7888b2c fixup!` consolidado en `2736e8a`. **CLOSED** ✅ (autosquash previo)
+- **R-ENDPOINT-DRIFT #8** (sin cambios): body sigue siendo `{provider, providerAccountId, email, name}` (legacy `providerId` sigue ausente)
+- **R1-A** (best-effort sign-in): preservado — no bloqueamos sign-in cuando `name` está vacío (skip + warn, no throw)
+
+### REQs/NFRs/Compliance covered
+
+- **REQ-FN-003** (web auth adapter wires NextAuth session to backend): ✅ sin cambios (adapter intacto)
+- **REQ-FN-004** (contract drift fix in `lib/auth.ts`): ✅ MINOR-1 strengthens — `events.signIn` ahora valida que `name` no esté vacío ANTES de invocar el adapter (consistente con cómo valida provider/providerAccountId/email)
+- **NFR-ENV-1** (no hardcoded env vars): ✅ sin cambios
+- **CR-PRIV-1** (Privacy/Art. III): ✅ el `console.warn` NO contiene el email del usuario (verificado por el test triangulado `expect(warnMessage).not.toContain("anon@example.com")`)
+- **CR-DATA-1** (User data handling): ✅ **NO** se inventa el nombre desde el email local-part (Constitution Art. I — cero invención)
+- **CR-TOK-1** (Token isolation): ✅ sin cambios (adapter nunca tocó tokens)
+- **Art. I** (Honestidad / cero invención): ✅ la decisión de skip+warn (en lugar de fallback al local-part) cumple literalmente la constitución
+- **Art. III** (Privacidad): ✅ el warning es genérico ("provider profile missing required name field"), no contiene PII del usuario
+- **Art. VI** (BFF as port): ✅ el adapter sigue siendo server-only
+- **Art. VIII** (TDD red-green-refactor): ✅ 2 tests triangulados RED → GREEN → REFACTOR
+
+### Commits created (post-autosquash + post-fix)
+
+- `2736e8a` test(auth): cubrir contrato web-signup (PR1 RED) — autosquashed de `b7ae3e6 + 7888b2c`
+- `5fbf47c` fix(auth): adaptar web signup al contrato bff (PR1 GREEN) — era `62f9c87`
+- `c75bfd0` docs(009-auth-web): registrar avance PR1 — era `7c9f07f`
+- `3ef7146` fix(auth): validar nombre antes de web-signup (PR1 MINOR-1) — **NUEVO**
+
+### Backend touched
+
+**NO** — `BuildCv-api/` `git status` no modificado. PR1 review follow-up es web-only como estaba scoped.
+
+### Ready for fresh re-review focalizado
+
+**YES** — MINOR-1 cerrado con TDD estricto (2 tests triangulados RED→GREEN→REFACTOR), NIT-1 cerrado (apply-progress corregido), NIT-2 cerrado (autosquash previo), 0 supresiones, 0 mocks falsos, 0 cambios de deps, 0 cambios al backend, Constitution Art. I/III/VI/VIII cumplidas. El orchestrator puede lanzar el fresh re-review focalizado en MINOR-1 + NIT-1.
+
+### Pending
+
+- Fresh re-review focalizado (orchestrator will launch)
+- NO merge, NO push (esperando re-review focalizado)
+- NO PR2-PR8 work (PR2 sigue bloqueado hasta que esta rama mergee a web/main)
