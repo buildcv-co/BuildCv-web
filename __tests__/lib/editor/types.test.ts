@@ -33,6 +33,21 @@ import {
   type Languages,
 } from "@/lib/editor/types";
 
+function makeLegacyDocument(
+  sections: LegacyCvDocument["sections"] = [],
+): LegacyCvDocument {
+  return {
+    id: "legacy-doc-1",
+    version: "1.0.0",
+    locale: "es-CO",
+    sections,
+    entities: [],
+    createdAt: "2026-06-08T14:30:00.000Z",
+    updatedAt: "2026-06-08T14:30:00.000Z",
+    source: "imported",
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // 1) CvDocument primario es JSON Resume compatible
 // ─────────────────────────────────────────────────────────────────────
@@ -220,14 +235,22 @@ describe("types_LegacyCvDocument_Alias_Still_Exists_For_BackwardCompat", () => {
 
 describe("migrateLegacyToJsonResume_Converts_PlainTextSection_To_Basics_Inferred_Confidence", () => {
   it("section plain-text de tipo profile con heading/text → basics con confidence inferred", () => {
-    const legacy: LegacyCvDocument = {
-      sections: [
-        {
-          heading: "profile",
-          text: "Ada Lovelace — Engineer — ada@example.com",
-        },
-      ],
-    };
+    const legacy = makeLegacyDocument([
+      {
+        id: "profile-1",
+        kind: "profile",
+        source: "imported",
+        createdAt: "2026-06-08T14:30:00.000Z",
+        updatedAt: "2026-06-08T14:30:00.000Z",
+        fullName: "Ada Lovelace",
+        headline: "Engineer",
+        email: "ada@example.com",
+        phone: "",
+        location: "",
+        links: [],
+        summary: "Ada Lovelace — Engineer — ada@example.com",
+      },
+    ]);
 
     const migrated = migrateLegacyToJsonResume(legacy);
 
@@ -260,7 +283,7 @@ describe("migrateLegacyToJsonResume_Converts_PlainTextSection_To_Basics_Inferred
 
 describe("migrateLegacyToJsonResume_Adds_EngineVersion_2_0_0_Meta", () => {
   it("sella meta.engineVersion a literal '2.0.0' (SemVer seal, Constitution Art. II)", () => {
-    const legacy: LegacyCvDocument = { sections: [] };
+    const legacy = makeLegacyDocument();
 
     const migrated = migrateLegacyToJsonResume(legacy);
 
@@ -274,7 +297,7 @@ describe("migrateLegacyToJsonResume_Adds_EngineVersion_2_0_0_Meta", () => {
 
 describe("migrateLegacyToJsonResume_Empty_Legacy_Returns_Minimal_Valid_CvDocument", () => {
   it("sections vacío → basics vacío + work/education/skills arrays vacíos + meta sellada", () => {
-    const legacy: LegacyCvDocument = { sections: [] };
+    const legacy = makeLegacyDocument();
 
     const migrated = migrateLegacyToJsonResume(legacy);
 

@@ -12,6 +12,10 @@ function SignInInner() {
   const error = searchParams.get("error");
   const reason = searchParams.get("reason");
 
+  if (IS_LOCAL && !reason) {
+    redirect("/analizar");
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-6 py-12">
       <h1 className="font-display text-3xl">{copy.appName}</h1>
@@ -48,9 +52,6 @@ function SignInInner() {
 }
 
 export default function SignInPage() {
-  if (IS_LOCAL) {
-    redirect("/analizar");
-  }
   return (
     <Suspense fallback={<div className="mx-auto w-full max-w-md px-6 py-12 text-sm text-muted">Cargando…</div>}>
       <SignInInner />

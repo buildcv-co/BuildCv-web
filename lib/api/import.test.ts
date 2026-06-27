@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImportError, MAX_FILE_SIZE_BYTES, requestImport, validateFile } from "./import";
+import { isImportResult } from "./types";
 import type { ImportResult, ImportResultV2 } from "./types";
 
 const successPayload: ImportResult = {
@@ -123,6 +124,8 @@ describe("requestImport", () => {
     const file = makeFile("cv.pdf", "application/pdf", 1024);
     const result = await requestImport(file);
     expect(result).toEqual(successPayload);
+    expect(isImportResult(result)).toBe(true);
+    if (!isImportResult(result)) throw new Error("Expected legacy import result");
     expect(result.text).toContain("Juan Pérez");
     expect(result.sections).toHaveLength(2);
     expect(result.warnings).toHaveLength(1);

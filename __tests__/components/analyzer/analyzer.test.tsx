@@ -19,7 +19,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Analyzer } from "@/components/analyzer/analyzer";
 import type { JobSpec } from "@/lib/job/job-spec";
-import type { ScoreCvResponseV2, ScoreError } from "@/lib/api/types";
+import type { ScoreCvResponseV2 } from "@/lib/api/types";
+import type { ScoreError } from "@/lib/api/score";
 
 const requestScoreMock = vi.fn();
 const adaptPanelSpy = vi.fn();

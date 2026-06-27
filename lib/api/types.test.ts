@@ -32,6 +32,7 @@ import {
   type PerSectionScore,
   type RedFlag,
 } from "./types";
+import type { CvDocument } from "@/lib/job/cv-document";
 
 const validInvention: EntityInvention = {
   type: "Skill",
@@ -694,7 +695,7 @@ describe("ScoreResponseV2 — respuesta del motor 2.0.0", () => {
 // discriminated union consumed by the import button (drops MD round-trip for v2 path).
 // =====================================================================
 
-const minimalCvForImport = {
+const minimalCvForImport: CvDocument = {
   basics: {
     name: "Ada Lovelace",
     email: "ada@example.com",
