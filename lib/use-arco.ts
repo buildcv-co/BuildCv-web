@@ -49,7 +49,7 @@ export interface UseArcoResult {
   status: ArcoStatus;
   error: Error | null;
   sessionEmail: string;
-  rectify: (payload: RectifyPayload) => Promise<void>;
+  rectify: (payload: RectifyPayload) => Promise<UserDataResponse | null>;
   cancel: () => Promise<void>;
 }
 
@@ -111,7 +111,7 @@ export function useArco({ userData, onEmailRotated }: UseArcoOptions): UseArcoRe
   const sessionEmail = userData.email;
 
   const rectify = useCallback(
-    async (payload: RectifyPayload): Promise<void> => {
+    async (payload: RectifyPayload): Promise<UserDataResponse | null> => {
       setStatus("loading");
       setError(null);
       try {
@@ -133,10 +133,12 @@ export function useArco({ userData, onEmailRotated }: UseArcoOptions): UseArcoRe
           onEmailRotated(data.email);
         }
         setStatus("success");
+        return data;
       } catch (err) {
         const e = err instanceof Error ? err : new Error("Unknown error");
         setError(e);
         setStatus("error");
+        return null;
       }
     },
     [sessionEmail, onEmailRotated],
