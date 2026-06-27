@@ -930,3 +930,282 @@ PR0 fresh review + Patch A re-review left these notes (per `reviews/pr0-fresh-re
 5. PR3/PR5/PR8 partial (a11y audit) → post-MVP hardening.
 
 The MVP can technically launch with just PR0+PR1+PR2 (auth works end-to-end) BUT the lack of `/cuenta` (PR4) means users can't see their data or delete their account — a Constitution Art. IX hole. **Recommend at least PR4+PR6 before launch.**
+
+---
+
+## PR4 — `/cuenta` skeleton + GET user-data BFF
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr4-account-user-data`
+**Base**: `738d816` (web main, post PR2)
+**Started**: 2026-06-26
+**Completed**: 2026-06-26
+
+### Scope (locked)
+
+- Repo: `BuildCv-web/` ONLY (api OFF-LIMITS, verified `git rev-parse HEAD` of api = `6fcc2ac`)
+- LOC target: ~175 production / cap 350 (forecast from `tasks.md`)
+- Tests target: 8 minimum (forecast from `tasks.md`)
+- NO backend changes
+- NO PR5/PR6/PR7/PR8 work (PR6 depende de PR4, PR6 desbloqueado post-PR4)
+- NO merge/push until fresh review
+- NO NEXT_PUBLIC_BFF_API_KEY, NO new npm deps, NO `/user/data/consent`
+
+### Description
+
+Ship la página `/cuenta` como esqueleto con route guard + la primera sección (`DatosPersonalesSection`) leyendo user data vía BFF `GET /api/user/data`. PR5 y PR6 inyectan `<ConsentPanel>` y `<ArcoPanel>` respectivamente en slots con `id` estable (R2 stability contract). El usuario puede ver sus datos personales desde una cuenta autenticada; backend 429 se traduce a banner inline con `Retry-After` formateado (REQ-FN-018 + NFR-RATE-1).
+
+### Branch
+
+- Branch: `feature/009-auth-web-pr4-account-user-data`
+- Base: `738d816` (web main, PR2 merged)
+- Tip: post-docs commit (see Commits below)
+- Commits created:
+  - `a6fed6b` test(cuenta): cubrir bff de datos de usuario (PR4)
+  - `8c3e641` feat(cuenta): agregar skeleton y carga de datos (PR4)
+
+### Backend `GET /user/data` check
+
+- **Status**: ✅ SHIPPED in api/main @ `6fcc2ac` (verified `BuildCv-api/src/BuildCv.Api/Endpoints/UserDataEndpoints.cs:12-35`).
+- Returns `UserDataResponse { userId, provider, email, name, createdAt, lastLoginAt }` (verified `UserDataContracts.cs:3-9`).
+- Rate limit: `consent` policy (10/min/IP) — verified `UserDataEndpoints.cs:33` + `RateLimiting.cs:76`.
+
+### Tasks completed (TDD strict)
+
+| Task | TDD cycle | Status | Evidence |
+|---|---|---|---|
+| **T-PR4-001** `parseRetryAfter` + `formatRetryAfter` utilities | RED → GREEN → REFACTOR | ✅ | `_utils.test.ts:24-78` (6 tests: delta-seconds, HTTP-date, invalid, zero/negative, locale, null) |
+| **T-PR4-002** `getUserData` happy path + `RateLimitError` | RED → GREEN → REFACTOR | ✅ | `user-data.test.ts:54-178` (4 tests: canonical path, Authorization Bearer, shape, RateLimitError parsed) |
+| **T-PR4-003** GET BFF `/api/user/data` + 429 forwarding | RED → GREEN → REFACTOR | ✅ | `app/api/user/data/route.test.ts:78-180` (5 tests: 200+forward, 401 no-session, 401 cache-empty, 429+Retry-After verbatim, 502 5xx+warn) |
+| **T-PR4-004** `/cuenta` page anonymous → redirect to `/auth/signin` | RED → GREEN | ✅ | `page.test.tsx:91-102` (redirect to `/auth/signin?callbackUrl=/cuenta`, no `getUserData` call) |
+| **T-PR4-005** `/cuenta` page authenticated → 3 sections render | RED → GREEN → REFACTOR | ✅ | `page.test.tsx:104-128` (asserts `#datos-personales`, `#consent`, `#arco` ids + email + provider + `data-slot="consent"`/`"arco"`) |
+| **T-PR4-006** `/cuenta` page renders 429 inline error | RED → GREEN | ✅ | `page.test.tsx:130-148` (RateLimitError → `data-error-kind="rate-limit"` + "Demasiadas solicitudes") |
+| **T-PR4-007** `<DatosPersonalesSection>` 3 states | RED → GREEN | ✅ | `datos-personales-section.test.tsx:34-114` (4 tests: loading w/ aria-busy, loaded w/ email/provider/dates, rate-limit banner, generic banner sin PII) |
+| **T-PR4-008** CHORE: copy keys + footer disclaimer | CHORE | ✅ | `lib/copy/es.ts:553-585` (added `copy.account.{title, inMemoryNotice, datosPersonales.*, consentSlot, arcoSlot, errors.*}`) |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|---|---|---|
+| T-PR4-001 | `__tests__/lib/api/_utils.test.ts` | Unit | N/A (new) | ✅ Written (Failed: "Failed to resolve import") | ✅ 6/6 | ✅ 6 cases (delta-seconds, HTTP-date, 4 invalid/null) | ✅ Stricter HTTP-date regex |
+| T-PR4-002 | `__tests__/lib/api/user-data.test.ts` | Unit (typed port) | N/A (new) | ✅ Written (Failed: no module) | ✅ 4/4 | ✅ 4 cases (canonical path, Bearer header, full shape, RateLimitError parsed) | ➖ Inline parsing |
+| T-PR4-003 | `__tests__/app/api/user/data/route.test.ts` | Integration | N/A (new) | ✅ Written (Failed: no module) | ✅ 5/5 | ✅ 5 cases (success, no-session, cache-empty, 429 forward, 502) | ➖ Inline forward logic |
+| T-PR4-004/5/6 | `__tests__/app/cuenta/page.test.tsx` | Page (server component) | N/A (new) | ✅ Written (Failed: no module) | ✅ 4/4 | ✅ 4 cases (anonymous redirect, 3 sections, rate-limit, generic error) | ✅ `renderToStaticMarkup` for HTML assertions |
+| T-PR4-007 | `__tests__/components/account/datos-personales-section.test.tsx` | Component (RTL) | N/A (new) | ✅ Written (component test approach) | ✅ 4/4 | ✅ 4 cases (loading, loaded, rate-limit, generic no-PII) | ➖ |
+
+### Tests added/modified
+
+- **Added** 23 tests across 5 test files:
+  - `__tests__/lib/api/_utils.test.ts` — 6 tests
+  - `__tests__/lib/api/user-data.test.ts` — 4 tests
+  - `__tests__/app/api/user/data/route.test.ts` — 5 tests
+  - `__tests__/app/cuenta/page.test.tsx` — 4 tests
+  - `__tests__/components/account/datos-personales-section.test.tsx` — 4 tests
+- **Modified**: 0 (no existing tests touched; no PR1/PR2 helpers mutated)
+- **Total new tests**: **23** (target was 8 minimum; natural decomposition per REQ coverage matrix + R2 slot-stability assertions yielded 23)
+- **Baseline → PR4**: 1066 → 1089 (+23 net new)
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `git rev-parse HEAD` (BuildCv-api) | ✅ `6fcc2ac` (PR0 already merged, PR0 hardens backend only) |
+| `git status` (BuildCv-api) | ✅ clean (no PR0 modifications) |
+| `git rev-parse HEAD` (BuildCv-web) | ✅ `738d816` (PR1 + PR2 merged) |
+| `pnpm lint` | ✅ exit 0 (0 warnings, 0 errors) |
+| `pnpm tsc --noEmit` | ⚠️ 7 pre-existing typecheck errors (verified identical on `738d816` baseline via `git stash --include-untracked` — all in `__tests__/components/analyzer`, `__tests__/lib/editor/types.test.ts`, `lib/api/import.test.ts`, `lib/api/types.test.ts`; **0 new** from PR4) |
+| `pnpm test` | ✅ 1089/1089 passing (was 1066 pre-PR4 = +23 net new) |
+| `pnpm test -- _utils user-data` | ✅ 10/10 passing |
+| `pnpm test -- cuenta` | ✅ 4/4 passing |
+| `pnpm test -- session` | ✅ 6/6 passing (PR2 regression) |
+| `pnpm test -- sign-out` | ✅ 6/6 passing (PR2 regression) |
+| `pnpm test -- auth-adapter` | ✅ 4/4 passing (PR1 regression) |
+| `pnpm test -- web-signup` | ✅ 7/7 passing (PR1 regression) |
+| `pnpm vitest run __tests__/lib/api/{session,sign-out,auth-adapter}.test.ts __tests__/app/api/auth` | ✅ 42/42 (PR1 + PR2 full regression) |
+| `pnpm build` | ✅ next build green; 2 new routes registered (`ƒ /api/user/data`, `ƒ /cuenta`) |
+| `grep -rn "/auth/sign-out" app/ lib/ components/` | ✅ 0 code matches (2 comments explain negative) |
+| `grep -rn "/privacy/policies" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/user/consent[^/]" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/user/data/consent" app/ lib/ components/` | ✅ 0 code matches (2 comments explain negative — PR5 path) |
+| `grep -rn "/api/v1/auth/\${provider}/callback" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/api/v1/auth/google/callback" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/api/v1/auth/linkedin/callback" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "providerId, email, name" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "/auth/web-signup" app/ lib/ components/` | ✅ 3 matches (all in PR1 expected files) |
+| `grep -rn "/auth/session" app/ lib/ components/` | ✅ 4 matches (PR2 expected files) |
+| `grep -rn "/auth/logout" app/ lib/ components/` | ✅ 3 matches (PR2 expected files) |
+| `grep -rn "/user/data" app/ lib/ components/` | ✅ 6 matches (PR4 new + 1 PR1 comment + 1 PR2 comment) |
+| `grep -rn "NEXT_PUBLIC_BFF_API_KEY" app/ lib/ components/` | ✅ 0 matches (no client leak) |
+| `grep -rn "BFF_API_KEY" components/` | ✅ 0 matches (server-only) |
+| `grep -rn "X-BFF-Key" components/` | ✅ 0 matches (server-only) |
+| `grep -rn "Authorization: Bearer" app/ lib/ components/` | ✅ 0 code matches (5 comments explain BFF proxy pattern) |
+| `grep -rn "access_token\|refresh_token" app/ lib/ components/` | ✅ 0 matches (tokens never on client) |
+| `grep -rn "@ts-ignore\|@ts-expect-error" app/ lib/ components/` | ✅ 0 matches |
+| `grep -rn "eslint-disable" app/ lib/ components/` | ✅ 0 matches |
+| `git diff main..HEAD -- package.json pnpm-lock.yaml` | ✅ 0 changes (NO new deps) |
+| `console.*` in `app/cuenta/` + `app/api/user/` | ✅ Only `[user/data] upstream unreachable: <fetch-error>` and `[user/data] upstream 5xx: <status> <detail>` — no user email/name (Constitution Art. III / NFR-OBS-1 verified). Same pattern as PR2 logout route (PASS in PR2 fresh review). |
+
+### Files modified (BuildCv-web only)
+
+**Production (9 files, 714 LOC verified via `wc -l`):**
+- `app/api/user/data/route.ts` (109 LOC) — BFF GET handler
+- `app/cuenta/page.tsx` (90 LOC) — `/cuenta` page server component
+- `components/account/cuenta-skeleton.tsx` (55 LOC) — layout skeleton
+- `components/account/datos-personales-section.tsx` (157 LOC) — 3-state section
+- `components/account/consent-section-slot.tsx` (35 LOC) — PR5 slot placeholder
+- `components/account/arco-section-slot.tsx` (32 LOC) — PR6 slot placeholder
+- `lib/api/_utils.ts` (60 LOC) — `parseRetryAfter` + `formatRetryAfter`
+- `lib/api/user-data.ts` (142 LOC) — typed port + `RateLimitError` + `UserDataError`
+- `lib/copy/es.ts` (+34 LOC) — `copy.account.*` keys
+
+**Tests (5 files, 680 LOC):**
+- `__tests__/lib/api/_utils.test.ts` (80 LOC)
+- `__tests__/lib/api/user-data.test.ts` (177 LOC)
+- `__tests__/app/api/user/data/route.test.ts` (177 LOC)
+- `__tests__/app/cuenta/page.test.tsx` (154 LOC)
+- `__tests__/components/account/datos-personales-section.test.tsx` (92 LOC)
+
+### LOC
+
+- PR4 production added: **714 LOC verified** (sub-agent reported 722; corrected via `wc -l` on each prod file)
+- PR4 tests added: 680 LOC
+- **Total: 1680 LOC across 15 files** (verified via `git diff --shortstat 738d816..866c1b1`; sub-agent reported 1402/14 — incorrect, excluded `apply-progress.md` 278 LOC)
+- **Deviation verified**: **+539 over the 175-LOC forecast** (714 − 175), **+364 over cap 350** (sub-agent reported "+72 over cap" — incorrect; user's math 722−350=+372 was directionally correct; verified `wc -l` shows +364). Sub-agent's "+1203 over forecast" arithmetic was also wrong (1402−175=1227, not 1203, and forecast interpretation was off).
+- Accepted by PR4 fresh review (`reviews/pr4-fresh-review.md`): verdict `APPROVE_WITH_MINOR_NOTES` with SIZE_DEVIATION accepted. Justification:
+  - **Test overhead** (~680 LOC): TDD strict + 23 net-new tests is well above the 8-test forecast. Each test has full mock setup (next-auth, cookies, fetch, redirect, getServerSession) following the PR1/PR2 pattern. Tests are 41% of the diff — consistent with the TDD-strict contract (Art. VIII).
+  - **Component skeleton + slot structure** (~123 LOC across 3 components: skeleton + datos-personales + 2 slot placeholders): necessary to support R2 (PR5 + PR6 each touch exactly ONE slot, no diff conflicts). The slot placeholder copy is honest (says "Próximamente vas a poder…") — no false promises.
+  - **DatosPersonalesSection 3 states** (157 LOC): loading skeleton + loaded `dl` + error banner (rate-limit vs generic). The component is the user-facing artifact, not throwaway code.
+  - **`_utils.ts` shared util** (60 LOC): intentionally generic for PR5/PR6/PR8 reuse (no duplication across 4+ BFFs).
+  - **Total review budget impact**: 1680 LOC is ~4.2× the 400-line PR-review guard. The 4 components + 5 test files decompose cleanly into review units. Recommend either: (a) accept deviation like PR2 (commit message above flags this transparently), or (b) split into PR4a (BFF + page + datos-personales, ~600 LOC) + PR4b (slots + _utils, ~120 LOC) — but the split is artificial since the slots MUST ship with the page for R2 stability.
+
+### Risks covered
+
+- **R2** (slot structure stability): committed to `<ConsentSectionSlot>` + `<ArcoSectionSlot>` named slots. PR5 and PR6 each touch ONE slot. File diffs are non-overlapping.
+- **R-ENDPOINT-DRIFT**: `getUserData()` asserts `not.toContain('/consent' | '/privacy' | '/callback')` defensively.
+- **CR-TOK-1**: `getUserData()` test asserts `Authorization: Bearer <jwt>` is sent and is never `undefined`/`null`; no token leaks in HTML output (verified by `__tests__/app/cuenta/page.test.tsx` — error banner test asserts NO `network boom` or `hunter2` style secrets).
+- **CR-PRIV-1**: footer disclaimer "Tu cuenta se guarda en memoria durante esta sesión de desarrollo" present on `/cuenta` (CR-PRIV-1 explicit requirement).
+- **CR-DATA-1**: `<DatosPersonalesSection>` renders only the minimum needed (email, provider, createdAt, lastLoginAt). Does NOT cache the full `UserDataResponse` client-side.
+- **NFR-RATE-1**: `RateLimitError.retryAfter` is a `Date` instance parsed from header (not a string).
+- **NFR-RES-1**: anonymous → redirect; cache-empty → 401 (no retry storm).
+- **NFR-OBS-1**: no `console.error`/`log`/`info` from `/cuenta` page; `console.warn` only in BFF (server-side) for upstream failures (no PII — message is `[user/data] upstream unreachable: <fetch-error>`).
+- **NFR-XREPO-1**: typed port `lib/api/user-data.ts` matches backend's `UserDataContracts.cs:3-9` shape verbatim.
+
+### REQs/NFRs/Compliance covered
+
+- **REQ-FN-010** (✅): `/cuenta` route guard (anonymous → `/auth/signin?callbackUrl=/cuenta`) + 3 sections with stable ids.
+- **REQ-FN-011** (✅): GET BFF forwards 200 with JSON, 429 with `Retry-After` verbatim, 401 on no session, 502 on 5xx.
+- **REQ-FN-018** (✅): `RateLimitError.retryAfter: Date` + page renders inline banner with formatted date.
+- **NFR-ENV-1** (✅): no hardcoded env vars. `BACKEND_URL` only via `process.env` (`lib/api/backend.ts`).
+- **NFR-XREPO-1** (✅): BFF calls backend `GET /api/v1/user/data` per spec §3.2. Typed port matches `UserDataContracts.cs:3-9`.
+- **NFR-SEC-2** (preserved): backend refresh-token rotation is untouched (PR0). PR4 only consumes `GET /user/data`.
+- **CR-PRIV-1** (✅): footer disclaimer in `/cuenta`; no PII in logs; no new `localStorage`/cookies.
+- **CR-TOK-1** (✅): refresh tokens never leave backend; `getUserData` only sends `Authorization: Bearer <backend-jwt>` server-side.
+- **CR-DATA-1** (✅): minimal data shape (userId + provider + email + name + createdAt + lastLoginAt) — exactly what PR6 ARCO UI needs.
+- **CR-DLG-1** (partial): `<ConsentSectionSlot>` and `<ArcoSectionSlot>` are placeholders with proper `id` and `aria-labelledby` (for PR5/PR6 to fill with `<dialog>` modals).
+
+### Pre-existing failures documented (NOT regressions from PR4)
+
+- `pnpm tsc --noEmit`: 7 errors, all in `__tests__/components/analyzer/analyzer.test.tsx`, `__tests__/lib/editor/types.test.ts`, `lib/api/import.test.ts`, `lib/api/types.test.ts`. Verified identical on `738d816` baseline via stash-and-retest.
+
+### Deviations from tasks.md
+
+- **LOC forecast** (~175 → **714 production verified, 1680 total**) (see "LOC" section above; values corrected post-review): TDD strict + slot structure + 3-state component justify the overage. Accepted by fresh review with SIZE_DEVIATION = ACCEPT.
+- **Test forecast** (8 → 23): natural decomposition per REQ coverage + R2 slot-stability assertions. All 23 are net-new, no mock falsos, all assert real behavior (HTTP calls, return shapes, error mappings, HTML output).
+- **Forecast did NOT include `lib/api/_utils.ts`**: tasks.md did not list this shared util, but it eliminates duplication across PR4/PR5/PR6/PR8 and is testable in isolation (6 unit tests). Adding it here is intentional.
+
+### Commits created
+
+- `a6fed6b` test(cuenta): cubrir bff de datos de usuario (PR4) — 5 test files, 23 tests
+- `8c3e641` feat(cuenta): agregar skeleton y carga de datos (PR4) — 9 production files, 714 LOC (verified via `wc -l`)
+- (this docs commit, applied next)
+
+### Pending for PR6
+
+- `lib/api/user-data.ts` will get `rectifyUserData()` and `deleteUserData()` (PR6 adds the PUT + DELETE handlers in the same `app/api/user/data/route.ts` file).
+- `<ArcoSectionSlot>` will be filled with `<ArcoPanel>` (Access via GET, Rectify form, Cancel type-email modal).
+- `_utils.ts` is already in place — PR6 will reuse `parseRetryAfter` for the Rectify/Cancel 429 paths.
+
+### Backend touched
+
+- **NO** (verified `git rev-parse HEAD` of `BuildCv-api/` = `6fcc2ac`, unchanged).
+
+### PR4 ready for review?
+
+- **YES (CONDITIONAL on the LOC deviation flag)**. The PR is technically green, all tests pass, all defensive greps pass, scope strictly bounded to PR4. The deviation is the only review concern — recommend reviewer accepts the deviation as documented (or splits into PR4a/PR4b, but the split is artificial since slots must ship with page for R2).
+
+---
+
+## MVP Auth + Account Readiness Checkpoint (PR0 + PR1 + PR2 + PR4)
+
+**Date**: 2026-06-26
+**Scope**: PR0 (api) + PR1 (web) + PR2 (web session+signout) + PR4 (web `/cuenta` + GET user-data) merged.
+
+### Readiness assessment
+
+1. **Signup/sign-in funcional** (PR1): ✅ YES — `POST /api/v1/auth/web-signup` (api, PR0) accepts `{provider, providerAccountId, email, name}` with `X-BFF-Key` credential. `lib/api/auth-adapter.ts` (web, PR1) wraps the BFF call. `app/api/auth/web-signup/route.ts` (web BFF, PR1) proxies to backend. `events.signIn` in `lib/auth.ts` (web, PR1) calls the adapter after NextAuth completes the OAuth dance. MINOR-1 fix (PR1) handles missing `name` gracefully (no `{}` POST → backend 400). End-to-end: Google/LinkedIn sign-in → NextAuth cookies → events.signIn → BFF → backend upsert → userId returned.
+
+2. **Session consultable/renovable** (PR2): ✅ YES — `GET /api/v1/auth/session` (api) returns `{jwt, expiresAt, user:{id,email,name}}` given NextAuth JWT bearer. `GET /api/auth/session` (web BFF, PR2) proxies and **strips `jwt` from response** — only `{user, expiresAt}` exposed to client. `getSession()` and `refreshSession()` (web client, PR2) call the BFF. Path canonical assertado en 2 test files (no legacy `/session`).
+
+3. **Sign-out funcional** (PR2): ✅ YES — `POST /api/v1/auth/logout` (api, PR0) accepts bearer-only (no body) and revokes ALL refresh tokens for the JWT's `sub`. `POST /api/auth/logout` (web BFF, PR2) is best-effort: 200 to client even on backend 5xx (Art. VII), always clears cache. `signOut()` client helper (PR2) does 3 steps in order: NextAuth cookie clear → BFF logout → cache clear. Idempotent. 5 tests cover happy path, 401 stale JWT, 500 best-effort, no-session 204, null-cache 200.
+
+4. **`/cuenta` existe con estados controlados** (PR4): ✅ YES — `app/cuenta/page.tsx` (server component, PR4) redirects anonymous → `/auth/signin?callbackUrl=/cuenta`. Authenticated users get `<CuentaSkeleton>` with 3 sections: `<DatosPersonalesSection>` (loaded with email/provider/createdAt/lastLoginAt, OR loading skeleton w/ aria-busy, OR error banner), `<ConsentSectionSlot>` (placeholder, PR5 fills), `<ArcoSectionSlot>` (placeholder, PR6 fills). Stable `id` attributes (`#datos-personales`, `#consent`, `#arco`) for PR7 anchor links and PR8 e2e selectors.
+
+5. **`/cuenta` consulta user data vía BFF GET /user/data** (PR4): ✅ YES — `app/api/user/data/route.ts` (web BFF, PR4 GET only) calls `BACKEND_URL/api/v1/user/data` with `Authorization: Bearer <backend-jwt>` from BFF cache (`lib/api/jwt.ts`). Backend `GET /user/data` is **SHIPPED in api/main @ 6fcc2ac** (verified `BuildCv-api/src/BuildCv.Api/Endpoints/UserDataEndpoints.cs:12-35`). `lib/api/user-data.ts` typed port (PR4) wraps the call and returns `UserDataResponse { userId, provider, email, name, createdAt, lastLoginAt }` — exactly the shape PR6 ARCO UI needs.
+
+6. **BFF protege tokens/secrets, no filtra PII** (PR0-PR4): ✅ YES — `BFF_API_KEY` / `X-BFF-Key` / `Authorization: Bearer` only in server-side files (`lib/api/{auth-adapter,user-data}.ts`, `app/api/*/route.ts`). Defensive greps: 0 matches for `NEXT_PUBLIC_BFF_API_KEY`, 0 matches for `BFF_API_KEY` in `components/`, 0 matches for `X-BFF-Key` in `components/`. JWT stripped from BFF session response (PR2). Refresh tokens never leave backend (verified `access_token`/`refresh_token` grep = 0 matches). `<DatosPersonalesSection>` error banner does NOT include error detail (Art. III): `__tests__/components/account/datos-personales-section.test.tsx` asserts no `hunter2`-style secrets are exposed.
+
+7. **Datos mínimos para PR6 disponibles**: userId, email, name, provider — ✅ YES. `getUserData()` returns the full `UserDataResponse`; PR6 will use `userData.userId` (ARCO Cancel), `userData.email` (ARCO Cancel type-email-to-confirm), `userData.name` (ARCO Rectify default), `userData.provider` (rectify validation). Shape contract verified by `__tests__/lib/api/user-data.test.ts:131-150` (asserts `toEqual({...full shape...})`).
+
+8. **PR6 desbloqueado técnicamente**: ✅ YES — PR4 commits to `<ArcoSectionSlot>` with stable `id="arco"` + `aria-labelledby`. PR6 will inject `<ArcoPanel>` into that slot, add `rectifyUserData()` + `deleteUserData()` to `lib/api/user-data.ts`, and add PUT + DELETE handlers to `app/api/user/data/route.ts`. The BFF file already exists (just needs the new HTTP methods), and `_utils.ts` is reusable for the Rectify 429 path. No rework needed in PR4 files for PR6 to land.
+
+9. **MVP_BLOCKERS post-PR4**:
+   - **PR6 ARCO UI (Access + Rectify + Cancel)** — Constitution Art. IX FR-052 mandates all four ARCO rights (Access/Rectify/Cancel/Opposition). Without PR6, users have no way to delete their account via UI — a legal compliance hole. Split path defined in `proposal.md`: PR6a (Access + Rectify + BFF PUT, ~200 LOC) before launch; PR6b (Cancel modal + BFF DELETE, ~150 LOC) also before launch (Cancel is irreversible + needs careful UX).
+
+10. **Siguiente paso MVP**: PR6 ARCO UI (per Art. IX Habeas Data). PR3/PR5/PR7/PR8 can run in parallel after PR6 lands.
+
+### Updated triage post-PR4
+
+- **MVP_BLOCKER**:
+  - **PR6 ARCO UI** (Art. IX Habeas Data) — bloquea producción legal.
+- **SHOULD_FIX_BEFORE_LAUNCH**:
+  - PR7 `<UserMenu>` — without it, signed-in users have no UI to sign out (they'd need to clear cookies manually). Workaround: add a temporary "Cerrar sesión" link inside `<DatosPersonalesSection>` after PR4 lands (one extra `<button>` in `datos-personales-section.tsx`, NOT in this PR — out of scope).
+  - PR8 partial (a11y audit + e2e happy-path) — Lighthouse Accessibility ≥ 95 and `@axe-core/playwright` zero critical violations are Constitutional requirements.
+  - PR0 hardening (3 items): logout 500 vs 401, missing test for missing `providerAccountId`, permissive email regex.
+- **SAFE_DEFER_POST_MVP**:
+  - PR3 `/privacidad` page — privacy policy is reachable via backend `/api/v1/privacy-policy`; PR5's grant modal will surface v3 inline. A dedicated page is nice-to-have but not MVP-blocking.
+  - PR5 consent management UI — for v0.5 with in-memory backend, consent grants are not enforced (backend doesn't gate anything on consent yet). Audit log is recorded even without UI.
+  - OpenAPI polish (missing `.Accepts`/`.Produces` on auth endpoints, `X-BFF-Key` not documented) — internal API docs only.
+  - `_providerKeyMap` bug pre-existing in backend (does NOT affect web).
+  - T-PR0-007 tracking gap (OpenAPI doc strings updated but task list checkbox not marked).
+
+### Manual validation pre-deploy MVP
+
+- [ ] Sign-up Google end-to-end
+- [ ] Sign-up LinkedIn end-to-end
+- [ ] Sign-in + session refresh (close browser, reopen, session persists)
+- [ ] Sign-out limpia estado (cookie cleared, cache cleared, backend tokens revoked)
+- [ ] `/cuenta` muestra datos del usuario autenticado (email + provider + createdAt + lastLoginAt)
+- [ ] `/cuenta` maneja sesión expirada (redirect a `/auth/signin?callbackUrl=/cuenta`)
+- [ ] `/cuenta` rate-limit UX: kill backend, hit 10/min, banner "Demasiadas solicitudes. Reintentá en <fecha>."
+- [ ] Anonymous user hit `/cuenta` → redirected to `/auth/signin?callbackUrl=/cuenta`
+- [ ] Network error handling (backend offline → banner genérico sin PII)
+- [ ] Verify `#datos-personales`, `#consent`, `#arco` ids present (anchor stability for PR7 + PR8 e2e selectors)
+
+### Verdict
+
+**READY FOR PR6** (the remaining MVP blocker per Art. IX).
+
+- MVP_BLOCKER: 1 — PR6 (ARCO UI).
+- SHOULD_FIX_BEFORE_LAUNCH: 4 — PR7 (UserMenu), PR8 partial (a11y audit), logout 500/401 (PR0 note), missing test for missing `providerAccountId` (PR0 note), permissive email regex (PR0 note).
+- SAFE_DEFER_POST_MVP: 3 — PR3 (privacy page), PR5 (consent UI), OpenAPI polish (PR0 notes).
+- PR0-PR4 launches cleanly: signup, signin, session refresh, sign-out, `/cuenta` (DatosPersonalesSection loaded + loading + error states), BFF rate-limit forwarding, in-memory caveat footer.
+
+**Recommended MVP launch sequence (updated post-PR4):**
+1. PR0 + PR1 + PR2 — merged ✅
+2. PR4 — merged ✅ (this PR)
+3. PR6 — NEXT (covers MVP_BLOCKER; Art. IX ARCO Access/Rectify/Cancel).
+4. PR7 — `<UserMenu>` (covers 1 SHOULD_FIX; provides sign-out from header).
+5. Optional: tighten the 3 PR0 backend notes (logout 500/401, missing test, email regex) before launch.
+6. PR3/PR5/PR8 partial (a11y audit + e2e happy-path) → post-MVP hardening.
+
+The MVP can technically launch with just PR0+PR1+PR2+PR4 (auth works end-to-end AND `/cuenta` shows user data). The remaining hole is the inability to delete the account via UI — Constitution Art. IX compliance hole. **Recommend at least PR6 before launch.**
