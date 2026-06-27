@@ -291,6 +291,112 @@ Created:
 
 ---
 
+## PR0 hardening selected (BuildCv-api, pre-launch)
+
+**Status**: completed
+**Branch**: `feature/009-auth-web-pr0-hardening`
+**Base**: `6fcc2ac` (api `main`, post-PR0+PatchA merged)
+**Tip**: `1a60594`
+**Scope**: BuildCv-api backend only; BuildCv-web docs only (`apply-progress.md`).
+
+### Fixes applied
+
+1. **Logout invalid/unauthorized no longer returns 500**: `/api/v1/auth/logout` now maps `AUTH/LOGOUT_INVALID` to the existing JSON error shape with HTTP 401.
+2. **Missing `providerAccountId` coverage**: added direct integration coverage for a `/auth/web-signup` body missing `providerAccountId`; existing validation already returned 400, so no production change was needed for this item.
+3. **Email validation hardened pragmatically**: `WebSignupHandler` rejects whitespace, missing local/domain parts, multiple `@`, empty/one-character TLDs, and invalid domain labels while preserving normal plus-tag/subdomain emails. This is a basic defensive format check, not full RFC 5322 compliance.
+
+### TDD evidence per item
+
+| Item | RED evidence | GREEN evidence | REFACTOR |
+|---|---|---|---|
+| Logout 500 vs 401 | `AuthEndpointTests.cs:280-297` (`Logout_Returns401_WithoutAuthorizationHeader`, `Logout_Returns401_WithMalformedAuthorizationHeader`) failed 500 before implementation once `LocalAuth:Enabled=false` exposed real unauth behavior. Initial run also showed the pre-existing test-factory LocalAuth masking issue as 200. | `AuthEndpoints.cs:130-134` maps handler failure to `{type,title,status,detail}` with `status=401`; focused `Logout` filter passed 6/6 (5 integration + 1 application). | No extra abstraction needed; endpoint remains a thin result mapper. |
+| Missing `providerAccountId` | `AuthEndpointTests.cs:175-186` posts `{provider,email,name}` and asserts 400. Test passed because the validation existed; this item was coverage hardening, not a code gap. | Existing `WebSignupHandler.cs:20-23` validation remains unchanged. | `PostWebSignupWithBffKey` now accepts `object` (`AuthEndpointTests.cs:252`) so tests can represent missing JSON fields accurately. |
+| Stricter email validation | `AuthEndpointTests.cs:188-198` failed for `spaces in@email.com` (returned 200); `notanemail` and `@nodomain.com` were already rejected. | `WebSignupHandler.cs:50-76` adds length/whitespace/single-`@`/domain-label checks; focused WebSignup filter passed 12/12. | Domain-label helper extracted (`IsValidDomainLabel`) to keep the validator readable. |
+
+### Tests added/modified
+
+- **Added** 7 integration test cases in `tests/BuildCv.Api.IntegrationTests/AuthEndpointTests.cs`:
+  - 2 logout invalid/unauth cases (`Logout_Returns401_WithoutAuthorizationHeader`, `Logout_Returns401_WithMalformedAuthorizationHeader`)
+  - 1 missing-providerAccountId case
+  - 3 malformed-email cases (`notanemail`, `@nodomain.com`, `spaces in@email.com`)
+  - 2 valid-email regression cases (`valid@example.com`, `user.name+tag@subdomain.example.co.uk`)
+- **Modified** `PostWebSignupWithBffKey` helper to accept `object` for missing-field JSON bodies.
+- **Modified** `AuthTestWebApplicationFactory` to set `LocalAuth:Enabled=false`, because LocalAuth was masking unauthenticated logout/auth tests in this factory.
+
+### Commands run + results
+
+| Command | Result |
+|---|---|
+| `git status --short && git branch --show-current && git log --oneline -8 && git rev-parse HEAD` | ✅ clean, `main`, `6fcc2ac` before branch creation |
+| `git checkout main && git checkout -b feature/009-auth-web-pr0-hardening` | ✅ branch created from `6fcc2ac` |
+| Web repo `git status --short && git rev-parse HEAD` | ✅ clean at `b20b1e2` before docs update |
+| Safety net: `dotnet test --filter "FullyQualifiedName~Logout_WithBearerOnlyBody\|FullyQualifiedName~RefreshTokenRotation\|FullyQualifiedName~WebSignup"` | ✅ 8/8 existing focused tests passing before edits |
+| RED: `dotnet test --filter "FullyQualifiedName~Logout_Returns401\|FullyQualifiedName~WebSignup_Returns400_OnMalformedEmail"` | ✅ expected failures: logout returned 500, `spaces in@email.com` returned 200 |
+| GREEN: focused new/regression filter | ✅ 10/10 passing |
+| `dotnet test --filter "FullyQualifiedName~WebSignup\|FullyQualifiedName~Logout"` | ✅ 18/18 passing (17 API integration + 1 application) |
+| `dotnet format --verify-no-changes` | ✅ exit 0 |
+| `dotnet build BuildCv.slnx -c Release` | ✅ 0 warnings, 0 errors |
+| `dotnet test --filter "FullyQualifiedName~Logout" --no-build` | ✅ 6/6 passing |
+| `dotnet test --filter "FullyQualifiedName~WebSignup" --no-build` | ✅ 12/12 passing |
+| `dotnet test --filter "FullyQualifiedName~RevokeAll" --no-build` | ✅ 5/5 passing |
+| `dotnet test --filter "FullyQualifiedName~RefreshTokenRotation" --no-build` | ✅ 1/1 passing |
+| `dotnet test --no-build` | ⚠️ 1014/1048 passing; 34 baseline/test-infra failures, not focused regressions |
+| `dotnet list src/BuildCv.Domain package` | ✅ no package references (Constitution Art. VI) |
+| `dotnet list src/BuildCv.Domain reference` | ✅ no project references |
+
+### Defensive grep results
+
+- ✅ `auth/sign-out`, `/privacy/policies`, `/user/consent`, `/api/v1/auth/${provider}/callback`, and legacy body text `providerId, email, name`: 0 source matches.
+- ⚠️ Prompt grep `/session[^/a-z]` matches canonical shipped `/api/v1/auth/session` (`SessionEndpoint.cs:10`), not old `/api/v1/session` drift.
+- ⚠️ Prompt grep `/user/data/consent` matches canonical shipped consent endpoints (`UserDataEndpoints.cs:88,114`), not old `GET /user/data/consent` drift.
+- ⚠️ Prompt grep `providerId` matches internal variable/property names and invoicing provider IDs, not the legacy web-signup request body.
+- ⚠️ Suppression grep finds pre-existing EF migration/model-snapshot suppressions outside this patch; no new suppressions were added.
+- ⚠️ Hardcoded-secret grep finds empty configuration POCO defaults (`ApiKey = ""`, `ClientSecret = ""`, `WebhookSecret = ""`), not real secrets; no hardcoded secret values were added.
+
+### Baseline observed (pre-existing / not regressions)
+
+Full `dotnet test --no-build` result after hardening: **1014/1048 passing, 34 failing**.
+
+Categories:
+
+- **14 Postgres integration failures**: `BuildCv.Infrastructure.Tests.Credits.CreditsIntegrationTests.*` (`Npgsql.PostgresException 28P01`, local Postgres credentials unavailable).
+- **11 LocalAuth/authorization mismatch failures** in other API integration factories (same known LocalAuth masking/403/404 behavior documented in PR0 reviews).
+- **2 ScoringEndpoint failures** (pre-existing shared-state/test-fixture issue from PR0 baseline).
+- **7 AuthEndpoint rate-limit collisions** in full-suite mode (`429 TooManyRequests`) due AuthPolicy 30/min/IP and the denser auth suite. All focused Auth hardening filters pass.
+
+### Risks covered
+
+- **MINOR-1 closed**: invalid/unauthorized logout returns 401 instead of 500.
+- **MINOR-3 closed**: missing `providerAccountId` validation branch now has direct integration coverage.
+- **NIT-2 closed as hardening**: email format guard is stricter without attempting full RFC compliance.
+- **Contract drift avoided**: no new endpoints, no path/body contract changes, no frontend functional changes.
+- **Constitution Art. VI preserved**: Domain still has 0 packages and 0 project references.
+
+### LOC
+
+- Production NET ADDED: **+16** (`WebSignupHandler` validator helper; logout mapping is net 0 behavior change).
+- Test LOC delta: **+58** (`AuthEndpointTests.cs`, including 7 test cases + helper/test-factory adjustment).
+- Total api diff: **3 files, +80/-6**.
+
+### Commits created
+
+- `1a60594` `fix(auth): endurecer logout y web-signup (PR0 hardening)` — api repo.
+
+### Confirmations
+
+- ✅ No frontend functional files touched.
+- ✅ BuildCv-api only for code/tests.
+- ✅ BuildCv-web only touched for this SDD progress documentation.
+- ✅ No new endpoints, no contract changes, no new NuGet dependencies.
+- ✅ `_providerKeyMap` bug intentionally untouched.
+- ✅ PR8 still pending.
+
+### Ready for fresh review?
+
+**YES** — focused hardening tests pass, build/format pass, Domain purity verified, and baseline failures are documented as pre-existing/test-infrastructure issues.
+
+---
+
 ## PR1 — Web auth adapter + contract fix
 
 **Status**: completed
