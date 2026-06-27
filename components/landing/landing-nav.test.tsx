@@ -24,8 +24,20 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const useUserMenuMock = vi.hoisted(() => ({
+  state: {
+    status: "unauthenticated" as "loading" | "authenticated" | "unauthenticated",
+    user: null as { email: string; name: string } | null,
+  },
+}));
+
+vi.mock("@/lib/use-user-menu", () => ({
+  useUserMenu: () => useUserMenuMock.state,
+}));
+
 beforeEach(() => {
   mockPathname.mockReset();
+  useUserMenuMock.state = { status: "unauthenticated", user: null };
 });
 
 afterEach(() => {
@@ -104,11 +116,25 @@ describe("LandingNav", () => {
     }
   });
 
-  it("Suscripciones e Iniciar sesión son siempre visibles en PR1 (sin filtro auth todavía)", () => {
+  it("Suscripciones e Iniciar sesión son visibles para usuarios no autenticados", () => {
     mockPathname.mockReturnValue("/");
     render(<LandingNav />);
     expect(screen.getByRole("link", { name: /^suscripciones$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /^iniciar sesión$/i })).toBeInTheDocument();
+  });
+
+  it("oculta Iniciar sesión cuando el usuario está autenticado", () => {
+    mockPathname.mockReturnValue("/");
+    useUserMenuMock.state = {
+      status: "authenticated",
+      user: { email: "ada@example.com", name: "Ada" },
+    };
+
+    render(<LandingNav />);
+
+    expect(screen.getAllByRole("link")).toHaveLength(4);
+    expect(screen.queryByRole("link", { name: /^iniciar sesión$/i })).toBeNull();
+    expect(screen.getByRole("link", { name: /^suscripciones$/i })).toBeInTheDocument();
   });
 
   it("expone el flag requiresAuth en el shape NavItem (sin uso todavía — reservado para 009-auth-web)", () => {

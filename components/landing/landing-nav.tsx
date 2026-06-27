@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { copy } from "@/lib/copy/es";
+import { useUserMenu } from "@/lib/use-user-menu";
 
 export interface NavItem {
   readonly href: string;
@@ -29,10 +30,11 @@ function isActive(pathname: string, href: string): boolean {
 
 export function LandingNav() {
   const pathname = usePathname();
+  const { status } = useUserMenu();
 
   return (
     <nav aria-label="Navegación principal" className="flex items-center gap-2 sm:gap-4">
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.filter((item) => status !== "authenticated" || item.href !== "/auth/signin").map((item) => {
         const active = isActive(pathname ?? "/", item.href);
         return (
           <Link
