@@ -3,7 +3,7 @@
 > **Entry point oficial al estado del frontend BuildCv.**
 > Cualquier agente o humano que necesite saber "qué UI está hecha, qué UI está en curso, qué UI falta" debe leer esto primero.
 
-**Última actualización:** 2026-06-26 (v0.5.3: **021-structured-cv-import-and-job-input** ✅ **SHIPPED + ARCHIVED** — Engine bump MAYOR `1.0.0 → 2.0.0` (Constitution Art. II SemVer seal, nota agregada en `constitution.md`); JSON Resume `CvDocument` + `ConfidenceMarker` en parsers; `JobSpec` mandatory con Zod; editor open-resume-inspired (`BasicsForm`/`WorkList`/`EducationList`/`SkillsByCategory`); `promoteConfidence` solo en editor on blur (Constitution Art. I); `engineVersion: "2.0.0"` (Art. II seal, response observation tagging via `engineVersion` en `lib/observability`); feature flag `NEXT_PUBLIC_STRUCTURED_INPUT=true` (default en `.env.example` + `.env.local`); 6 chained PRs + 1 followup (PR1 foundation → PR2 parser restructure → PR3 scoring v2 → PR4 web editor → PR5 web analyzer + observability → PR6 tests/a11y/e2e/docs → followups-1 fixing 8 e2e tests + AnalizarScreen bug + typo fix); 23 work-unit commits web (`30672b4` → `b75c5b1` + `55985f3` + typo fix `82a400b`) + 11 work-unit commits api (`5f3982a` → `6f0456f`) all merged to `main` + pushed to `origin` in BOTH repos; HEAD web `82a400b`, HEAD api `5d40a53`; delta specs synced into main `BuildCv-web/specs/{006-web-cv-editor,008-observability-web}/spec.md` + `BuildCv-api/specs/{002-score-engine,005-cv-pdf-docx-import}/spec.md`; see [archive report](./021-structured-cv-import-and-job-input/archive-report.md))
+**Última actualización:** 2026-06-26 (v1: **009-auth-web** 🚧 **EN CURSO** — api PR0 MERGED ✅ a `api/main` con `POST /api/v1/auth/web-signup` (body `{provider, providerAccountId, email, name}`) + BFF auth via `BffCredentialFilter` (X-BFF-Key + `Auth:BffApiKey` + FixedTimeEquals + fail-closed) + `IRefreshTokenStore.RevokeAllForUserAsync` + bearer-only logout; PR0 verdict APPROVE_WITH_MINOR_NOTES (0 BLOCKER, 0 MAJOR post-patch, 5 MINOR + 2 NIT accepted para follow-up); web PR1-PR8 pending. PR1 requires env `BFF_API_KEY` (web) matching api `Auth__BffApiKey`. · v0.5.3: **021-structured-cv-import-and-job-input** ✅ **SHIPPED + ARCHIVED** — Engine bump MAYOR `1.0.0 → 2.0.0` (Constitution Art. II SemVer seal, nota agregada en `constitution.md`); JSON Resume `CvDocument` + `ConfidenceMarker` en parsers; `JobSpec` mandatory con Zod; editor open-resume-inspired (`BasicsForm`/`WorkList`/`EducationList`/`SkillsByCategory`); `promoteConfidence` solo en editor on blur (Constitution Art. I); `engineVersion: "2.0.0"` (Art. II seal, response observation tagging via `engineVersion` en `lib/observability`); feature flag `NEXT_PUBLIC_STRUCTURED_INPUT=true` (default en `.env.example` + `.env.local`); 6 chained PRs + 1 followup (PR1 foundation → PR2 parser restructure → PR3 scoring v2 → PR4 web editor → PR5 web analyzer + observability → PR6 tests/a11y/e2e/docs → followups-1 fixing 8 e2e tests + AnalizarScreen bug + typo fix); 23 work-unit commits web (`30672b4` → `b75c5b1` + `55985f3` + typo fix `82a400b`) + 11 work-unit commits api (`5f3982a` → `6f0456f`) all merged to `main` + pushed to `origin` in BOTH repos; HEAD web `82a400b`, HEAD api `5d40a53`; delta specs synced into main `BuildCv-web/specs/{006-web-cv-editor,008-observability-web}/spec.md` + `BuildCv-api/specs/{002-score-engine,005-cv-pdf-docx-import}/spec.md`; see [archive report](./021-structured-cv-import-and-job-input/archive-report.md))
 
 ## Relación con el backend
 
@@ -41,7 +41,7 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 | 007 | `landing-ui` | v0.5.1 | ✅ SHIPPED | (n/a) |
 | 008 | `observability-web` | v0.5.1 | ✅ SHIPPED | (n/a) |
 | 019 | `navigation-onboarding` | v0.5.2 | ✅ SHIPPED | (n/a) |
-| 009 | `auth-web` | v1 | 📋 PLANEADO | (n/a) |
+| 009 | `auth-web` | v1 | 🚧 **EN CURSO** (api PR0 MERGED ✅; web PR1-PR8 pending) | (n/a) |
 | 010 | `payments-web` | v1 | 📋 PLANEADO | (n/a) |
 | 020 | `a11y-automated-audit` | v0.5.3 | 📋 PLANEADO | (n/a) |
 | 021 | `structured-cv-import-and-job-input` (cross-repo: web frontend + api backend) | v0.5.3 | ✅ **SHIPPED + ARCHIVED** — JSON Resume `CvDocument` + `ConfidenceMarker` en parsers; `JobSpec` mandatory con Zod (web) + FluentValidation (api); `engineVersion` bump MAYOR `1.0.0 → 2.0.0` (Art. II SemVer seal); `perSection: {experience, education, skills, certifications, contact}` + `redFlags[]` (employment gaps + job-hopping); discriminated-union `ScoreCvCommand` con backward-compat shim v1; editor open-resume-inspired; `promoteConfidence` solo en editor on blur (Art. I); feature flag `NEXT_PUBLIC_STRUCTURED_INPUT=true` (default); determinism property test (1000 iter + parallel byte-identical); 6 chained PRs + 1 followup; tag `021-structured-cv-import-and-job-input-v1.0` at HEAD `82a400b` (web) / `5d40a53` (api). See [archive report](./021-structured-cv-import-and-job-input/archive-report.md) | (n/a, wires via `/api/{score,import}`) |
@@ -195,10 +195,19 @@ Misma que el backend: `../BuildCv-api/.specify/memory/constitution.md` v1.1.0.
 
 ## Features PLANEADAS (v1 backlog)
 
-### 009-auth-web (v1)
+### 009-auth-web (v1) — 🚧 EN CURSO
 
-- **Estado:** 📋 PLANEADO. Spec aún no escrita.
-- **Bloqueado por:** gate Habeas Data (Art. IX) — consentimiento expreso del usuario.
+- **Proposal:** [specs/009-auth-web/proposal.md](./009-auth-web/proposal.md) (508 líneas, 9-PR breakdown locked cross-repo `feature-branch-chain`)
+- **Spec:** [specs/009-auth-web/spec.md](./009-auth-web/spec.md) (517 líneas, 21 REQs Given/When/Then + 8 NFRs + 6 Compliance + traceability matrix)
+- **Design:** [specs/009-auth-web/design.md](./009-auth-web/design.md) (1,572 líneas, 15 secciones, 8 endpoint discrepancies resueltas vs shipped backend)
+- **Tasks:** [specs/009-auth-web/tasks.md](./009-auth-web/tasks.md) (2,019 líneas, 83 tasks across 9 PRs: PR0=7, PR1=10, PR2=8, PR3=9, PR4=8, PR5=12, PR6=12, PR7=8, PR8=9)
+- **Apply progress:** [specs/009-auth-web/apply-progress.md](./009-auth-web/apply-progress.md) (290 líneas)
+- **Reviews:** [specs/009-auth-web/reviews/pr0-fresh-review.md](./009-auth-web/reviews/pr0-fresh-review.md) (484 líneas con addendum) + [pr0-patch-a-rereview.md](./009-auth-web/reviews/pr0-patch-a-rereview.md) (372 líneas)
+- **Estado:** 🚧 **EN CURSO** (api PR0 MERGED ✅). SDD planning completo (explore + propose + spec + design + tasks). sdd-apply PR0 ejecutado en api backend con `POST /api/v1/auth/web-signup` + `IRefreshTokenStore.RevokeAllForUserAsync` + bearer-only logout + `BffCredentialFilter` (BFF auth). PR0 verdict: APPROVE_WITH_MINOR_NOTES (0 BLOCKER, 0 MAJOR post-patch, 5 MINOR + 2 NIT accepted para follow-up: logout 500 vs 401; missing OpenAPI `.Accepts/.Produces`; no test for missing providerAccountId; pre-existing `_providerKeyMap` bug; T-PR0-007 tracking gap; permissive email regex; X-BFF-Key no documentado en OpenAPI).
+- **PR0 api commits (3, merged to `api/main`):** `e902c54` (feat auth endpoint web-signup) → `6ee083c` (feat auth revoke-all + bearer-only logout) → `df0ec06` (fix auth BFF credential filter, cierre MAJOR-1). **Merged to `api/main` via `--no-ff`** preserving branch history.
+- **Required env vars for PR1:** web BFF must include `X-BFF-Key: process.env.BFF_API_KEY` header in every POST to `BACKEND_URL/api/v1/auth/web-signup`. `BFF_API_KEY` (web env) must match `Auth__BffApiKey` (api env).
+- **Web PR1-PR8 pending:** PR1 auth adapter + contract fix (~180 LOC, 10 tests); PR2 session refresh + sign-out helpers (~125 LOC, 8 tests); PR3 `/privacidad` + version selector (~175 LOC, 9 tests); PR4 `/cuenta` skeleton + GET user-data BFF (~175 LOC, 8 tests); PR5 consent management (~300 LOC, 12 tests); PR6 ARCO request flow (~300 LOC, 12 tests); PR7 `<UserMenu>` (~175 LOC, 8 tests); PR8 e2e + a11y hardening (~250 LOC, 15 tests). Total web PRs: ~1780 LOC, ~88 tests.
+- **Backend counterpart:** [../BuildCv-api/specs/000-INDEX.md#0092-auth-web-v1-cross-repo-web-frontend-integration-of-009-auth--🚧-en-curso](../BuildCv-api/specs/000-INDEX.md) (🚧 EN CURSO).
 
 ### 010-payments-web (v1)
 
