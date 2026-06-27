@@ -28,6 +28,7 @@ const nextServerModuleMock = {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
   notFound: vi.fn(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 };
 
 const sessionModuleMock = { getServerSession: vi.fn() };
