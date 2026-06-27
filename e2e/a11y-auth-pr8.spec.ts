@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { MOCK_USER, openUserMenu, resetMockBackend, setNextAuthSession } from "./auth-web-fixtures";
+import { openUserMenu, resetMockBackend, setNextAuthSession } from "./auth-web-fixtures";
 
 async function expectBaseA11y(page: Page, route: string): Promise<void> {
   const lang = await page.evaluate(() => document.documentElement.lang);
