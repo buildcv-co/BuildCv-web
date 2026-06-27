@@ -174,4 +174,53 @@ describe("events.signIn hook (PR1 — adapter wiring)", () => {
 
     expect(warnSpy).toHaveBeenCalled();
   });
+
+  // MINOR-1 (fresh review PR1): el profile OAuth puede llegar SIN `name`
+  // (p.ej. cuentas de Google sin display name público). El adapter POSTearía
+  // `{name: ""}` al backend, que responde 400 (`name` required per
+  // `WebSignupHandler.cs:30-33`), y el hook se lo traga silenciosamente.
+  // Consecuencia: el usuario queda signed-in en NextAuth pero sin registro
+  // en backend → 401 en `/cuenta` en el primer GET protegido.
+  //
+  // Fix: el hook valida `name` no-vacío (igual que provider/email/etc.).
+  // Si falta, NO se invoca el adapter (sería un 400 garantizado) y se emite
+  // un `console.warn` explícito (Art. III honest-signal, sin PII). El
+  // best-effort de sign-in se preserva (R1-A): no lanzamos, no bloqueamos.
+  it("`events.signIn` NO llama `registerWithBackend` cuando `name` está vacío (perfil OAuth sin display name) y emite `console.warn` explícito", async () => {
+    const { authOptions } = await loadAuth();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.mocked(global.fetch);
+
+    await authOptions.events!.signIn!({
+      user: { email: "anon@example.com", name: "" } as never,
+      account: { provider: "google", providerAccountId: "google-anon-1" } as never,
+    } as never);
+
+    expect(adapterMock.registerWithBackend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    // El warning NO debe llevar el email del usuario (Art. III no-PII).
+    const warnMessage = String(warnSpy.mock.calls[0]?.[0] ?? "");
+    expect(warnMessage).not.toContain("anon@example.com");
+    expect(warnMessage.toLowerCase()).toContain("name");
+  });
+
+  // Triangulación: el caso real más común (NextAuth pasa `name: undefined`
+  // cuando el profile OAuth no incluye el claim). Debe disparar el mismo
+  // gate que `name: ""` — son semánticamente equivalentes para la
+  // validación, pero cubren dos puntos del flujo de NextAuth.
+  it("`events.signIn` NO llama `registerWithBackend` cuando `name` es `undefined` (claim ausente en el profile OAuth)", async () => {
+    const { authOptions } = await loadAuth();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.mocked(global.fetch);
+
+    await authOptions.events!.signIn!({
+      user: { email: "u@example.com", name: undefined } as never,
+      account: { provider: "linkedin", providerAccountId: "li-no-name-1" } as never,
+    } as never);
+
+    expect(adapterMock.registerWithBackend).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
 });

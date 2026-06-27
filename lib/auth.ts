@@ -36,6 +36,18 @@ type SignInEventParams = {
  * sesión (R1-A) — logueamos `console.warn` (Art. III, sin PII) y dejamos
  * que NextAuth proceda. El usuario verá `/cuenta` y un eventual 401 al
  * primer GET protegido se resolverá reintentando vía PR2.
+ *
+ * MINOR-1 (fresh review PR1): si el profile OAuth viene SIN `name` (p.ej.
+ * cuentas de Google sin display name público), el adapter POSTearía
+ * `{name: ""}` al backend, que responde 400 (`name` required per
+ * `WebSignupHandler.cs:30-33`), y el hook se lo traga silenciosamente.
+ * Constitution Art. I (cero invención) prohíbe inventar el nombre desde
+ * el local-part del email; Constitution Art. III (privacidad) prefiere
+ * NO enviar PII derivada. Por tanto: si `name` está vacío, NO llamamos
+ * al adapter (sería un 400 garantizado), emitimos `console.warn`
+ * explícito (Art. III honest-signal, sin PII), y dejamos que NextAuth
+ * proceda (R1-A best-effort). El siguiente GET protegido en `/cuenta`
+ * resolverá vía PR2.
  */
 export async function handleSignInEvent(params: SignInEventParams): Promise<void> {
   const provider = params.account?.provider;
@@ -46,6 +58,13 @@ export async function handleSignInEvent(params: SignInEventParams): Promise<void
   if (!provider || !providerAccountId || !email) return;
 
   if (provider !== "google" && provider !== "linkedin") return;
+
+  if (!name) {
+    console.warn(
+      "[auth/events.signIn] skipping web-signup: provider profile missing required `name` field (MINOR-1 fix; per Constitution Art. I we do NOT invent the name from email local-part)",
+    );
+    return;
+  }
 
   try {
     await registerWithBackend({
