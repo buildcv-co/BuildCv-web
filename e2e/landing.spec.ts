@@ -160,7 +160,7 @@ test.describe("SEO — trust signals, FAQ, nav, 404", () => {
     await page.goto("/");
     await expect(page.getByText("Código abierto")).toBeVisible();
     await expect(page.getByText(/constitution v1\.1\.0 ratificada/i)).toBeVisible();
-    await expect(page.getByText(/540 tests/i)).toBeVisible();
+    await expect(page.getByText(/1150 tests/i)).toBeVisible();
   });
 
   test("el link 'Código abierto' apunta al repo de GitHub con rel y target correctos", async ({ page }) => {

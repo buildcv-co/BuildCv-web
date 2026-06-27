@@ -505,8 +505,8 @@ landing: {
         href: "/constitution",
       },
       tests: {
-        label: "540 tests automatizados · 0 supresiones",
-        count: 540,
+        label: "1150 tests automatizados · 0 supresiones",
+        count: 1150,
       },
     },
     notFound: {

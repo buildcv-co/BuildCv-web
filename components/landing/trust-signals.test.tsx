@@ -15,8 +15,8 @@ vi.mock("@/lib/copy/es", () => ({
           href: "/constitution",
         },
         tests: {
-          label: "540 tests automatizados · 0 supresiones",
-          count: 540,
+          label: "1150 tests automatizados · 0 supresiones",
+          count: 1150,
         },
       },
     },
@@ -44,7 +44,7 @@ describe("TrustSignals", () => {
     render(<TrustSignals />);
     expect(screen.getByText("Código abierto")).toBeInTheDocument();
     expect(screen.getByText("Constitution v1.1.0 ratificada")).toBeInTheDocument();
-    expect(screen.getByText("540 tests automatizados · 0 supresiones")).toBeInTheDocument();
+    expect(screen.getByText("1150 tests automatizados · 0 supresiones")).toBeInTheDocument();
   });
 
   it("el badge 'Código abierto' es un link externo al repo de GitHub", () => {
@@ -76,7 +76,7 @@ describe("TrustSignals", () => {
     // No debe haber un link que apunte a algo de 'tests'
     const allLinks = screen.queryAllByRole("link");
     for (const link of allLinks) {
-      expect(link.textContent).not.toMatch(/540 tests/i);
+      expect(link.textContent).not.toMatch(/1150 tests/i);
     }
   });
 });
