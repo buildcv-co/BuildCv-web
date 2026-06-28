@@ -179,6 +179,25 @@ describe("Analyzer", () => {
     ).toBeInTheDocument();
   });
 
+  it("Analyzer_Renders_LlmFeedbackPanel_Outside_Deterministic_FixList", async () => {
+    requestScoreMock.mockResolvedValueOnce(V2_RESPONSE);
+    const user = userEvent.setup();
+    render(
+      <Analyzer
+        cvText={VALID_CV}
+        job={VALID_JOB}
+        onCv={() => undefined}
+        onJob={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByTestId("analyzer-submit"));
+
+    expect(await screen.findByRole("region", { name: "AI Feedback" })).toBeInTheDocument();
+    expect(screen.getByText("Sugerencias IA complementarias, no reemplazan análisis determinista.")).toBeInTheDocument();
+    expect(screen.queryByText("Qué arreglar")).not.toBeInTheDocument();
+  });
+
   it("Analyzer_Handles_UnknownEngineVersion_With_Unsupported_Score_Engine_Version_Error", async () => {
     const scoreError: ScoreError = {
       status: 400,

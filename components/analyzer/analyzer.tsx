@@ -16,6 +16,7 @@ import { FixList } from "./fix-list";
 import { HonestyNote } from "./honesty-note";
 import { InputPanel } from "./input-panel";
 import { KeywordCloud } from "./keyword-cloud";
+import { LlmFeedbackPanel } from "./llm-feedback-panel";
 import { ScoreGauge } from "./score-gauge";
 import { SectionBreakdown } from "./section-breakdown";
 
@@ -210,10 +211,25 @@ export function Analyzer({ cvText, job, onCv, onJob }: AnalyzerProps) {
               )}
 
               {v2 && (
-                <SectionBreakdown
-                  perSection={v2.perSection}
-                  redFlags={v2.redFlags}
-                />
+                <>
+                  <SectionBreakdown
+                    perSection={v2.perSection}
+                    redFlags={v2.redFlags}
+                  />
+                  {job && (
+                    <LlmFeedbackPanel
+                      request={{
+                        cv: createEmptyWireCvDocument(),
+                        job,
+                        scoreContext: {
+                          score: v2.overallScore,
+                          components: [],
+                          version: "2.0.0",
+                        },
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
