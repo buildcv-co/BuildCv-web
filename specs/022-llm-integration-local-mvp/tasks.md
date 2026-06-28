@@ -226,42 +226,42 @@ Chain strategy: feature-branch-chain
 
 ### Phase 3.1: Adapter (RED → GREEN → REFACTOR)
 
-- [ ] **T-PR3-001 RED**: Test `fetchLlmFeedback` returns success state.
-- [ ] **T-PR3-001 GREEN**: Create `BuildCv-web/lib/api/llm.ts` with types + fetch.
-- [ ] **T-PR3-002 RED**: Test error normalization: 5xx → `unavailable`, 429 → `rate_limited`, 504 → `timeout`.
-- [ ] **T-PR3-002 GREEN**: Implement error mapper.
-- [ ] **T-PR3-003 RED**: Test `LlmFeedbackState` discriminated union covers all states.
-- [ ] **T-PR3-003 GREEN**: Add exported type definitions.
-- [ ] **T-PR3-004 RED**: Test request body matches API request (`cv`, `job`, `scoreContext`, markers).
-- [ ] **T-PR3-004 GREEN**: Implement body builder.
+- [x] **T-PR3-001 RED**: Test `fetchLlmFeedback` returns success state.
+- [x] **T-PR3-001 GREEN**: Create `BuildCv-web/lib/api/llm.ts` with types + fetch.
+- [x] **T-PR3-002 RED**: Test error normalization: 5xx → `unavailable`, 429 → `rate_limited`, 504 → `timeout`.
+- [x] **T-PR3-002 GREEN**: Implement error mapper.
+- [x] **T-PR3-003 RED**: Test `LlmFeedbackState` discriminated union covers all states.
+- [x] **T-PR3-003 GREEN**: Add exported type definitions.
+- [x] **T-PR3-004 RED**: Test request body matches API request (`cv`, `job`, `scoreContext`, markers).
+- [x] **T-PR3-004 GREEN**: Implement body builder.
 
 ### Phase 3.2: BFF Route
 
-- [ ] **T-PR3-005 RED**: Test `POST /api/llm/feedback` BFF route exists.
-- [ ] **T-PR3-005 GREEN**: Create `BuildCv-web/app/api/llm/feedback/route.ts` with `runtime='nodejs'`.
-- [ ] **T-PR3-006 RED**: Test BFF forwards CV/job/markers to backend `/api/v1/llm/feedback`.
-- [ ] **T-PR3-006 GREEN**: Implement proxy handler using `BACKEND_URL`.
-- [ ] **T-PR3-007 RED**: Test BFF returns 200 + normalized state on success.
-- [ ] **T-PR3-008 RED**: Test BFF returns 502 + state `unavailable` on backend error.
-- [ ] **T-PR3-008 GREEN**: Implement error passthrough/normalization.
-- [ ] **T-PR3-009 RED**: Test BFF never exposes `BFF_API_KEY` or any secret in response.
-- [ ] **T-PR3-009 GREEN**: Strip sensitive headers/body fields.
-- [ ] **T-PR3-010 RED**: Test `NEXT_PUBLIC_LLM_*` does not exist in BFF code.
-- [ ] **T-PR3-010 GREEN**: Add defensive grep verification.
+- [x] **T-PR3-005 RED**: Test `POST /api/llm/feedback` BFF route exists.
+- [x] **T-PR3-005 GREEN**: Create `BuildCv-web/app/api/llm/feedback/route.ts` with `runtime='nodejs'`.
+- [x] **T-PR3-006 RED**: Test BFF forwards CV/job/markers to backend `/api/v1/llm/feedback`.
+- [x] **T-PR3-006 GREEN**: Implement proxy handler using `BACKEND_URL`.
+- [x] **T-PR3-007 RED**: Test BFF returns 200 + normalized state on success.
+- [x] **T-PR3-008 RED**: Test BFF returns 502 + state `unavailable` on backend error.
+- [x] **T-PR3-008 GREEN**: Implement error passthrough/normalization.
+- [x] **T-PR3-009 RED**: Test BFF never exposes `BFF_API_KEY` or any secret in response.
+- [x] **T-PR3-009 GREEN**: Strip sensitive headers/body fields.
+- [x] **T-PR3-010 RED**: Test `NEXT_PUBLIC_LLM_*` does not exist in BFF code.
+- [x] **T-PR3-010 GREEN**: Add defensive grep verification.
 
 ### Phase 3.3: Endpoint drift gate
 
-- [ ] **T-PR3-011**: Update `scripts/check-endpoint-drift.mjs` if needed to include `/api/llm/feedback`.
-- [ ] **T-PR3-012**: Verify `node scripts/check-endpoint-drift.mjs` → PASS.
+- [x] **T-PR3-011**: Update `scripts/check-endpoint-drift.mjs` if needed to include `/api/llm/feedback`.
+- [x] **T-PR3-012**: Verify `node scripts/check-endpoint-drift.mjs` → PASS.
 
 ### Phase 3.4: Docs + commit
 
-- [ ] **T-PR3-013**: Update `BuildCv-web/specs/000-INDEX.md` row 022 PR3 status.
-- [ ] **T-PR3-014**: Commit `test(llm): cubrir bff y adapter feedback`.
-- [ ] **T-PR3-015**: Commit `feat(llm): agregar bff de feedback`.
-- [ ] **T-PR3-016**: Commit `docs(022-llm): registrar avance PR3`.
-- [ ] **T-PR3-017**: Fresh review before merge.
-- [ ] **T-PR3-018**: Merge web PR3 → web/main.
+- [x] **T-PR3-013**: Update `BuildCv-web/specs/000-INDEX.md` row 022 PR3 status.
+- [x] **T-PR3-014**: Commit `test(llm): cubrir bff y adapter feedback`.
+- [x] **T-PR3-015**: Commit `feat(llm): agregar bff de feedback`.
+- [x] **T-PR3-016**: Commit `docs(022-llm): registrar avance PR3`.
+- [x] **T-PR3-017**: Fresh review before merge.
+- [x] **T-PR3-018**: Merge web PR3 → web/main.
 
 ### PR3 verification
 

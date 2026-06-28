@@ -292,3 +292,102 @@ Status: **applied + reviewed + merged + pushed**
 - No tag created.
 - No archive performed.
 - No PR3 started.
+
+---
+
+# Apply Progress — 022 LLM Integration Local MVP PR3
+
+Date: 2026-06-28
+Branch: `feature/022-llm-local-pr3-web-bff`
+Status: **applied + reviewed (APPROVE), merge pending**
+
+## Scope completed
+
+- T-PR3-001..018 completed in the PR3 branch artifact state.
+- Created typed adapter `lib/api/llm.ts` for same-origin `POST /api/llm/feedback`.
+- Created BFF route `app/api/llm/feedback/route.ts` with `runtime = "nodejs"` and `dynamic = "force-dynamic"`.
+- BFF proxies to backend `POST /api/v1/llm/feedback` via `BACKEND_URL` and optional server-side `X-BFF-Key`.
+- Updated endpoint drift gate with web `/api/llm/feedback` and backend `/api/v1/llm/feedback` canonical paths.
+- No UI, no backend source, no `FixList`, no `/api/auth/*`, no real provider, no Ollama.
+
+## TDD Cycle Evidence
+
+| Task | RED (test written, fails) | GREEN (impl, passes) | REFACTOR (cleanup) |
+|---|---|---|---|
+| T-PR3-001 | 2026-06-28 23:28 `lib/api/llm.test.ts` failed: missing `./llm` import | 2026-06-28 23:30 adapter success test passed | Result union narrowed for typecheck |
+| T-PR3-002 | 2026-06-28 23:28 HTTP status normalization tests failed with missing adapter | 2026-06-28 23:30 status mapping passed for 403/429/504/502/500/400 | Extracted `errorKindFromStatus`, `stateFromError`, Retry-After preservation |
+| T-PR3-003 | 2026-06-28 23:28 state union test failed with missing exported type | 2026-06-28 23:30 `LlmFeedbackState` union test passed | Type-only; no behavior refactor needed |
+| T-PR3-004 | 2026-06-28 23:28 body-shape test failed with missing builder | 2026-06-28 23:30 `buildLlmFeedbackRequestBody` test passed | Body builder kept pure |
+| T-PR3-005 | 2026-06-28 23:31 BFF route test failed: missing `./route` import | 2026-06-28 23:32 route exports `runtime='nodejs'` + `dynamic='force-dynamic'` | Structural route constants extracted |
+| T-PR3-006 | 2026-06-28 23:31 backend forwarding test failed with missing route | 2026-06-28 23:32 forward to `${BACKEND_URL}/api/v1/llm/feedback` passed | Header builder extracted; `X-BFF-Key` server-side only |
+| T-PR3-007 | 2026-06-28 23:31 success response test failed with missing route | 2026-06-28 23:32 200 + 10-field response passthrough passed | No behavior refactor needed |
+| T-PR3-008 | 2026-06-28 23:31 backend 5xx/429 tests failed with missing route | 2026-06-28 23:32 5xx→502 unavailable and 429 Retry-After passed | Status/state/kind helpers extracted |
+| T-PR3-009 | 2026-06-28 23:31 secret/header leak test failed with missing route | 2026-06-28 23:32 sensitive headers/body stripped | Sanitized response helper added |
+| T-PR3-010 | 2026-06-28 23:31 `NEXT_PUBLIC_LLM` route source test failed with missing route | 2026-06-28 23:32 route module has no `NEXT_PUBLIC_LLM` exports/env | Final defensive grep scheduled |
+| T-PR3-011 | Gate/update task | `scripts/check-endpoint-drift.mjs` updated with LLM paths | Minimal canonical path additions |
+| T-PR3-012 | Gate task | 2026-06-28 `node scripts/check-endpoint-drift.mjs` → PASS | — |
+| T-PR3-013 | Docs task | `specs/000-INDEX.md` updated to PR3 applied | Final merged status pending post-merge |
+| T-PR3-014 | Commit task | `7f71448 test(llm): cubrir bff y adapter feedback` | — |
+| T-PR3-015 | Commit task | `f7853a1 feat(llm): agregar bff de feedback` | — |
+| T-PR3-016 | Commit task | pending docs commit | — |
+| T-PR3-017 | Review task | `reviews/pr3-fresh-review.md` created | Verdict APPROVE |
+| T-PR3-018 | Merge task | pending conditional merge after review | — |
+
+## Tests added
+
+- `lib/api/llm.test.ts`: 10 unit tests.
+- `app/api/llm/feedback/route.test.ts`: 7 BFF route tests.
+- Total PR3 new tests: 17.
+
+## Commands executed
+
+| Command | Result |
+|---|---:|
+| `git status --short && git branch --show-current && git log --oneline -10 && git rev-parse HEAD && git fetch origin && git rev-parse origin/main` | 0 |
+| `git checkout -b feature/022-llm-local-pr3-web-bff` | 0 |
+| `pnpm exec vitest run lib/api/llm.test.ts` RED | non-zero expected: missing `./llm` |
+| `pnpm exec vitest run lib/api/llm.test.ts` GREEN | 0 (10 passing) |
+| `pnpm exec vitest run app/api/llm/feedback/route.test.ts` RED | non-zero expected: missing `./route` |
+| `pnpm exec vitest run app/api/llm/feedback/route.test.ts` GREEN | 0 (7 passing) |
+| `pnpm exec vitest run lib/api/llm app/api/llm` | 0 (17 passing) |
+| `pnpm lint` | 0 |
+| `pnpm test` | 0 (1151 passing) |
+| `pnpm build` | initial 1 due TypeScript state narrowing, then 0 after refactor |
+| `pnpm typecheck` | 0 |
+| `node scripts/check-endpoint-drift.mjs` | 0 |
+
+## LOC breakdown
+
+| Category | Insertions | Deletions | Files |
+|---|---:|---:|---:|
+| Production (`app/api/llm`, `lib/api/llm.ts`, drift script) | **264** | 0 | 3 |
+| Tests | 315 | 0 | 2 |
+| Docs (pre-review) | 28 | 28 | 2 |
+| **Total pre-review** | **607** | **28** | **7** |
+
+- **Production LOC = 264** → under 400 cap ✓.
+- Total diff >150 because strict TDD tests are intentionally verbose; production remains within budget.
+
+## Risks covered
+
+- Browser uses same-origin BFF only; no direct backend calls from adapter.
+- Backend target is `/api/v1/llm/feedback`, not `/api/v1/adapt` or `/api/v1/score`.
+- 403/429/504/5xx/400 states normalized; 429 `Retry-After` preserved.
+- Backend internals, `Authorization`, `X-BFF-Key`, and backend-only headers are stripped from BFF responses.
+- No client-side `NEXT_PUBLIC_LLM_*` or `LLM_API_KEY` added.
+
+## Deviations
+
+- PR3 added 17 tests rather than the forecast ~12 because route-level secret stripping and Retry-After preservation were covered explicitly.
+- BFF maps backend 500/502/503 to client 502 + `state='unavailable'`; backend 504 remains 504 + `state='timeout'`.
+
+## Confirmations
+
+- No UI created.
+- No backend files modified.
+- No provider real, no Ollama, no external provider call.
+- No `NEXT_PUBLIC_LLM_*`, no client-side `LLM_API_KEY`.
+- No raw CV/job/prompt logs.
+- No `/api/auth/*` touched.
+- `components/analyzer/fix-list.tsx` untouched.
+- No tag created.
