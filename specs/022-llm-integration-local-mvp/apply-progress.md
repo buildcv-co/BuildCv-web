@@ -299,7 +299,7 @@ Status: **applied + reviewed + merged + pushed**
 
 Date: 2026-06-28
 Branch: `feature/022-llm-local-pr3-web-bff`
-Status: **applied + reviewed (APPROVE), merge pending**
+Status: **applied + reviewed + merged + pushed**
 
 ## Scope completed
 
@@ -327,11 +327,11 @@ Status: **applied + reviewed (APPROVE), merge pending**
 | T-PR3-011 | Gate/update task | `scripts/check-endpoint-drift.mjs` updated with LLM paths | Minimal canonical path additions |
 | T-PR3-012 | Gate task | 2026-06-28 `node scripts/check-endpoint-drift.mjs` → PASS | — |
 | T-PR3-013 | Docs task | `specs/000-INDEX.md` updated to PR3 applied | Final merged status pending post-merge |
-| T-PR3-014 | Commit task | `7f71448 test(llm): cubrir bff y adapter feedback` | — |
-| T-PR3-015 | Commit task | `f7853a1 feat(llm): agregar bff de feedback` | — |
-| T-PR3-016 | Commit task | pending docs commit | — |
+| T-PR3-014 | Commit task | `3f08c75 test(llm): cubrir bff y adapter feedback` | — |
+| T-PR3-015 | Commit task | `230fa00 feat(llm): agregar bff de feedback` | — |
+| T-PR3-016 | Commit task | `4c4905e docs(022-llm): registrar avance PR3` | — |
 | T-PR3-017 | Review task | `reviews/pr3-fresh-review.md` created | Verdict APPROVE |
-| T-PR3-018 | Merge task | pending conditional merge after review | — |
+| T-PR3-018 | Merge task | `7009fdf merge: integrar PR3 de 022-llm-local en web` + push | — |
 
 ## Tests added
 
@@ -355,6 +355,9 @@ Status: **applied + reviewed (APPROVE), merge pending**
 | `pnpm build` | initial 1 due TypeScript state narrowing, then 0 after refactor |
 | `pnpm typecheck` | 0 |
 | `node scripts/check-endpoint-drift.mjs` | 0 |
+| `git merge --no-ff feature/022-llm-local-pr3-web-bff -m "merge: integrar PR3 de 022-llm-local en web"` | 0 |
+| Post-merge verification (`lint`, `test`, `build`, `typecheck`, endpoint drift) | 0 |
+| `git push origin main` | 0 |
 
 ## LOC breakdown
 
@@ -391,3 +394,10 @@ Status: **applied + reviewed (APPROVE), merge pending**
 - No `/api/auth/*` touched.
 - `components/analyzer/fix-list.tsx` untouched.
 - No tag created.
+
+## Post-merge actions
+
+- Merged `feature/022-llm-local-pr3-web-bff` → `BuildCv-web/main` with `--no-ff`.
+- Pushed `BuildCv-web/main` to `origin/main` at merge commit `7009fdf`.
+- Post-merge gates passed: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, `node scripts/check-endpoint-drift.mjs`.
+- Post-merge INDEX updated to mark PR3 WEB MERGED.
