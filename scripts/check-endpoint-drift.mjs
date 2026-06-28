@@ -11,6 +11,7 @@ const backendFiles = [
   "src/BuildCv.Api/Endpoints/SessionEndpoint.cs",
   "src/BuildCv.Api/Endpoints/PrivacyEndpoints.cs",
   "src/BuildCv.Api/Endpoints/UserDataEndpoints.cs",
+  "src/BuildCv.Api/Endpoints/LlmFeedbackEndpoint.cs",
 ];
 
 const forbiddenWeb = [
@@ -32,6 +33,8 @@ const requiredWeb = [
   "/api/v1/auth/session",
   "/api/v1/auth/logout",
   "/api/v1/user/data",
+  "/api/llm/feedback",
+  "/api/v1/llm/feedback",
 ];
 
 const requiredBackend = [
@@ -42,6 +45,7 @@ const requiredBackend = [
   "/api/v1/user/data",
   "/api/v1/user/data/consent",
   "/api/v1/user/data/consent/revoke",
+  "/api/v1/llm/feedback",
 ];
 
 function collectFiles(dir) {
