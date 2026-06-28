@@ -401,3 +401,120 @@ Status: **applied + reviewed + merged + pushed**
 - Pushed `BuildCv-web/main` to `origin/main` at merge commit `7009fdf`.
 - Post-merge gates passed: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, `node scripts/check-endpoint-drift.mjs`.
 - Post-merge INDEX updated to mark PR3 WEB MERGED.
+
+---
+
+# Apply Progress — 022 LLM Integration Local MVP PR4
+
+Date: 2026-06-28
+Branch: `feature/022-llm-local-pr4-feedback-panel`
+Status: **applied + reviewed** (merge pending at this artifact checkpoint)
+
+## Scope completed
+
+- T-PR4-001..027 completed.
+- Created `lib/use-session-toggle.ts` with session-level `sessionStorage` key `buildcv.llmFeedback.enabled`, default enabled, no `localStorage` and no backend persistence.
+- Created `components/analyzer/llm-feedback-panel.tsx` with 9 states: disabled, idle, loading, success, degraded, unavailable, rate_limited, timeout, error.
+- Added centralized copy under `copy.analyze.llmFeedback.*`, including the required disclaimer: “Sugerencias IA complementarias, no reemplazan análisis determinista.”
+- Integrated the panel beside deterministic v2 analyzer output, outside `<FixList>`.
+- Created `e2e/llm-feedback-pr4.spec.ts` with fake-provider success, session toggle/no-fetch, and backend unavailable paths.
+- No backend, no `/cuenta`, no `/api/auth/*`, no provider real, no Ollama, no `NEXT_PUBLIC_LLM_*`, no secret/PII logging, no semantic `FixList` changes.
+
+## TDD Cycle Evidence
+
+| Task | RED (test written, fails) | GREEN (impl, passes) | REFACTOR (cleanup) |
+|---|---|---|---|
+| T-PR4-001 | 2026-06-28 `lib/use-session-toggle.test.ts` failed: missing `./use-session-toggle` import | 2026-06-28 passed after hook creation | Refactored initial read into `readSessionToggle` to satisfy React lint |
+| T-PR4-002 | 2026-06-28 session persistence/reset tests failed with missing hook | 2026-06-28 passed with `sessionStorage` read/write and no `localStorage` | No unmount reset needed; sessionStorage semantics cover tab close |
+| T-PR4-003 | 2026-06-28 panel tests failed: missing `./llm-feedback-panel` import | 2026-06-28 disabled state passed after skeleton/discriminator | State union made explicit |
+| T-PR4-004 | 2026-06-28 idle CTA assertion failed before panel existed | 2026-06-28 CTA passed with native button | Copy centralized |
+| T-PR4-005 | 2026-06-28 loading aria assertions failed before panel existed | 2026-06-28 loading passed with `aria-busy=true` + `role=status` | Dynamic content under `aria-live` |
+| T-PR4-006 | 2026-06-28 success 10-field render test failed before panel existed | 2026-06-28 success render passed for summary/arrays/provider/model/generatedAt/degraded=false | Group renderer extracted |
+| T-PR4-007 | 2026-06-28 degraded banner/empty-array test failed before panel existed | 2026-06-28 degraded render passed with `role=alert` and empty copy | Shared feedback renderer |
+| T-PR4-008 | 2026-06-28 unavailable/rate_limited/timeout/error state tests failed before panel existed | 2026-06-28 error states passed with Spanish copy + retry-after | `panelStateFromResult` extracted |
+| T-PR4-009 | 2026-06-28 region/label test failed before panel existed | 2026-06-28 passed with `role="region"` and `aria-label="AI Feedback"` | — |
+| T-PR4-010 | 2026-06-28 keyboard toggle/CTA test failed before panel existed | 2026-06-28 passed with native buttons and Tab/Space/Enter flow | — |
+| T-PR4-011 | 2026-06-28 SR loading announcement failed before panel existed | 2026-06-28 passed with `aria-live="polite"` + `role=status` | — |
+| T-PR4-012 | Component tests referenced `copy.analyze.llmFeedback.*` before keys existed | 2026-06-28 copy keys added and tests passed | Copy kept centralized |
+| T-PR4-013 | Disclaimer assertion failed before copy existed | 2026-06-28 required disclaimer rendered | — |
+| T-PR4-014 | Copy review | 2026-06-28 no exactness/ATS-official/employment guarantee copy added | — |
+| T-PR4-015 | 2026-06-28 analyzer integration test failed: no `AI Feedback` region after analysis | 2026-06-28 passed after rendering panel beside `SectionBreakdown` | Kept `<FixList>` untouched |
+| T-PR4-016 | Gate | 2026-06-28 `git diff components/analyzer/fix-list.tsx` → 0 changes | — |
+| T-PR4-017 | 2026-06-28 e2e toggle persistence test initially failed until helper dismissed dev overlay | 2026-06-28 passed: disabled state persists across navigation; LLM fetch count 0 | Added self-contained overlay dismiss helper |
+| T-PR4-018 | 2026-06-28 e2e fake success spec failed before helper stabilization | 2026-06-28 passed with fake same-origin `/api/llm/feedback` route fulfill | No real provider |
+| T-PR4-019 | 2026-06-28 toggle-off e2e failed before overlay helper | 2026-06-28 passed with session disabled state and no fetch | — |
+| T-PR4-020 | 2026-06-28 backend error e2e failed before overlay helper | 2026-06-28 passed with unavailable state | — |
+| T-PR4-021 | Gate | 2026-06-28 auth-web regression suite: 11 passed, 5 skipped | — |
+| T-PR4-022 | Gate | 2026-06-28 landing regression: 25 passed after rerun (first parallel run had webServer port conflict) | — |
+| T-PR4-023 | Docs task | `specs/000-INDEX.md` updated to PR4 applied + reviewed | — |
+| T-PR4-024 | Commit task | `45468c3 test(llm): cubrir panel feedback ia` | — |
+| T-PR4-025 | Commit task | `0555d4a feat(llm): agregar panel feedback ia` | — |
+| T-PR4-026 | Docs task | Pending commit `docs(022-llm): registrar avance PR4` | — |
+| T-PR4-027 | Review task | `reviews/pr4-fresh-review.md` created | Verdict APPROVE |
+
+## Tests added
+
+- `lib/use-session-toggle.test.ts`: 3 tests.
+- `components/analyzer/llm-feedback-panel.test.tsx`: 7 tests.
+- `__tests__/components/analyzer/analyzer.test.tsx`: 1 integration regression test.
+- `e2e/llm-feedback-pr4.spec.ts`: 3 Playwright tests.
+- Total PR4 new tests: 14 automated tests (11 Vitest + 3 Playwright).
+
+## Commands executed
+
+| Command | Result |
+|---|---:|
+| Preflight git status/branch/log/head/fetch/origin-main | 0; clean main at `66757f4`, synced |
+| `git checkout -b feature/022-llm-local-pr4-feedback-panel` | 0 |
+| `pnpm exec vitest run lib/use-session-toggle.test.ts components/analyzer/llm-feedback-panel.test.tsx` RED | non-zero expected: missing hook/panel imports |
+| `pnpm exec vitest run lib/use-session-toggle.test.ts components/analyzer/llm-feedback-panel.test.tsx` GREEN | 0 (10 passing) |
+| `pnpm exec vitest run __tests__/components/analyzer/analyzer.test.tsx` RED | non-zero expected: missing `AI Feedback` region |
+| `pnpm exec vitest run __tests__/components/analyzer/analyzer.test.tsx lib/use-session-toggle.test.ts components/analyzer/llm-feedback-panel.test.tsx` GREEN | 0 (14 passing) |
+| `pnpm exec playwright test e2e/llm-feedback-pr4.spec.ts` RED | 1 initially due dev overlay intercepting form submit |
+| `pnpm exec playwright test e2e/llm-feedback-pr4.spec.ts` GREEN | 0 (3 passing) |
+| `pnpm lint` | initial 1 (`react-hooks/set-state-in-effect`), then 0 after hook refactor |
+| `pnpm typecheck` | 0 |
+| `pnpm exec vitest run components/analyzer/llm-feedback-panel lib/use-session-toggle lib/api/llm app/api/llm __tests__/components/analyzer/analyzer.test.tsx` | 0 (31 passing) |
+| `pnpm test` | 0 (1162 passing) |
+| `pnpm build` | 0 |
+| `node scripts/check-endpoint-drift.mjs` | 0 |
+| `pnpm exec playwright test e2e/account-flow.spec.ts e2e/user-menu-pr8.spec.ts e2e/a11y-auth-pr8.spec.ts e2e/endpoint-drift.spec.ts` | 0 (11 passed, 5 skipped) |
+| `pnpm exec playwright test e2e/landing.spec.ts` | initial 1 due parallel webServer port conflict, rerun 0 (25 passed) |
+| Focused defensive greps over PR4 source/e2e paths | 0 forbidden hits |
+
+## LOC breakdown
+
+| Category | Insertions | Deletions | Files |
+|---|---:|---:|---:|
+| Production (`components/analyzer`, `lib/use-session-toggle.ts`, `lib/copy/es.ts`) | **218** | 5 | 4 |
+| Tests (`*.test.tsx`, `*.test.ts`, `e2e/llm-feedback-pr4.spec.ts`) | 311 | 0 | 4 |
+| Docs (`specs/`) | pending | pending | 4 |
+
+- **Production LOC = 218** → under 400 cap ✓.
+- Total diff >350 due strict TDD tests and SDD docs overhead; production remains within budget.
+
+## Risks covered
+
+- UI confusion: panel is separate from deterministic `FixList` and includes disclaimer.
+- Preference persistence: session-level only via `sessionStorage`.
+- Provider/cost risk: e2e uses fake route fulfill only; no real provider.
+- Resilience: unavailable, rate limit, timeout, degraded, and generic error states rendered.
+- A11y: region label, busy state, live announcement, native keyboard buttons.
+- Regression: 009 auth-web and 021 landing/structured path regressions green.
+
+## Deviations
+
+- The prompt asked to integrate in `app/analizar/page.tsx`; current data needed for `LlmFeedbackRequest` lives inside `components/analyzer/analyzer.tsx`, so the panel is integrated there beside deterministic results. `app/analizar/page.tsx` remains untouched and `<FixList>` is unchanged.
+- The analyzer still uses the existing transitional empty `CvDocument` builder from 021 because the structured CV editor is not fully wired into `/analizar`; PR4 does not change that architecture.
+
+## Confirmations
+
+- Panel separado de FixList: yes.
+- `components/analyzer/fix-list.tsx` unchanged: yes.
+- No backend touched: yes.
+- No `/cuenta` touched: yes.
+- No `/api/auth/*` touched: yes.
+- No real provider/Ollama: yes.
+- No `NEXT_PUBLIC_LLM_*` or client-side `LLM_API_KEY`: yes.
+- No raw CV/job/prompt logs: yes.
+- No tag, no deploy, no archive: yes.

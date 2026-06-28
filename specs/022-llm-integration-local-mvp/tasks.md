@@ -285,62 +285,62 @@ Chain strategy: feature-branch-chain
 
 ### Phase 4.1: Toggle Hook (RED → GREEN → REFACTOR)
 
-- [ ] **T-PR4-001 RED**: Test `useSessionToggle` reads/writes `sessionStorage`.
-- [ ] **T-PR4-001 GREEN**: Create `BuildCv-web/lib/use-session-toggle.ts`.
-- [ ] **T-PR4-002 RED**: Test toggle persists within session and resets on tab close.
-- [ ] **T-PR4-002 GREEN**: Implement `sessionStorage` logic.
+- [x] **T-PR4-001 RED**: Test `useSessionToggle` reads/writes `sessionStorage`.
+- [x] **T-PR4-001 GREEN**: Create `BuildCv-web/lib/use-session-toggle.ts`.
+- [x] **T-PR4-002 RED**: Test toggle persists within session and resets on tab close.
+- [x] **T-PR4-002 GREEN**: Implement `sessionStorage` logic.
 
 ### Phase 4.2: Panel Component
 
-- [ ] **T-PR4-003 RED**: Test `<LlmFeedbackPanel>` renders disabled state copy.
-- [ ] **T-PR4-003 GREEN**: Create component skeleton and state discriminator.
-- [ ] **T-PR4-004 RED**: Test idle state shows CTA button.
-- [ ] **T-PR4-005 RED**: Test loading state shows spinner and `aria-busy=true`.
-- [ ] **T-PR4-005 GREEN**: Implement loading UI.
-- [ ] **T-PR4-006 RED**: Test success renders summary, strengths, risks, suggestions.
-- [ ] **T-PR4-006 GREEN**: Implement success render.
-- [ ] **T-PR4-007 RED**: Test degraded state shows banner + reason.
-- [ ] **T-PR4-007 GREEN**: Implement degraded banner.
-- [ ] **T-PR4-008 RED**: Test `unavailable`, `rate_limited`, `timeout`, and `error` states.
-- [ ] **T-PR4-008 GREEN**: Implement error state renderers.
+- [x] **T-PR4-003 RED**: Test `<LlmFeedbackPanel>` renders disabled state copy.
+- [x] **T-PR4-003 GREEN**: Create component skeleton and state discriminator.
+- [x] **T-PR4-004 RED**: Test idle state shows CTA button.
+- [x] **T-PR4-005 RED**: Test loading state shows spinner and `aria-busy=true`.
+- [x] **T-PR4-005 GREEN**: Implement loading UI.
+- [x] **T-PR4-006 RED**: Test success renders summary, strengths, risks, suggestions.
+- [x] **T-PR4-006 GREEN**: Implement success render.
+- [x] **T-PR4-007 RED**: Test degraded state shows banner + reason.
+- [x] **T-PR4-007 GREEN**: Implement degraded banner.
+- [x] **T-PR4-008 RED**: Test `unavailable`, `rate_limited`, `timeout`, and `error` states.
+- [x] **T-PR4-008 GREEN**: Implement error state renderers.
 
 ### Phase 4.3: A11y
 
-- [ ] **T-PR4-009 RED**: Test `role="region"` and `aria-label="AI Feedback"`.
-- [ ] **T-PR4-009 GREEN**: Add ARIA attributes.
-- [ ] **T-PR4-010 RED**: Test keyboard toggle works with Tab + Space/Enter.
-- [ ] **T-PR4-010 GREEN**: Use native button and focus management.
-- [ ] **T-PR4-011 RED**: Test screen reader announces loading state.
-- [ ] **T-PR4-011 GREEN**: Add `aria-live="polite"` to dynamic content.
+- [x] **T-PR4-009 RED**: Test `role="region"` and `aria-label="AI Feedback"`.
+- [x] **T-PR4-009 GREEN**: Add ARIA attributes.
+- [x] **T-PR4-010 RED**: Test keyboard toggle works with Tab + Space/Enter.
+- [x] **T-PR4-010 GREEN**: Use native button and focus management.
+- [x] **T-PR4-011 RED**: Test screen reader announces loading state.
+- [x] **T-PR4-011 GREEN**: Add `aria-live="polite"` to dynamic content.
 
 ### Phase 4.4: Copy
 
-- [ ] **T-PR4-012**: Add `copy.analyzer.llmFeedback.*` keys to `BuildCv-web/lib/copy/es.ts`.
-- [ ] **T-PR4-013**: Copy includes disclaimer: “Sugerencias IA complementarias, no reemplazan análisis determinista.”
-- [ ] **T-PR4-014**: Copy avoids promising exactness, ATS official status, or employment guarantees.
+- [x] **T-PR4-012**: Add `copy.analyzer.llmFeedback.*` keys to `BuildCv-web/lib/copy/es.ts`.
+- [x] **T-PR4-013**: Copy includes disclaimer: “Sugerencias IA complementarias, no reemplazan análisis determinista.”
+- [x] **T-PR4-014**: Copy avoids promising exactness, ATS official status, or employment guarantees.
 
 ### Phase 4.5: Integration
 
-- [ ] **T-PR4-015**: Integrate panel in `BuildCv-web/app/analizar/page.tsx` beside deterministic results / `<FixList>`.
-- [ ] **T-PR4-016**: Verify `<FixList>` unchanged: `git diff components/analyzer/fix-list.tsx` has no semantic changes.
-- [ ] **T-PR4-017**: Verify toggle persists across navigation within the session.
+- [x] **T-PR4-015**: Integrate panel in `BuildCv-web/app/analizar/page.tsx` beside deterministic results / `<FixList>`.
+- [x] **T-PR4-016**: Verify `<FixList>` unchanged: `git diff components/analyzer/fix-list.tsx` has no semantic changes.
+- [x] **T-PR4-017**: Verify toggle persists across navigation within the session.
 
 ### Phase 4.6: E2E + regression
 
-- [ ] **T-PR4-018 RED**: E2E fake provider → panel shows success state.
-- [ ] **T-PR4-018 GREEN**: Create `BuildCv-web/e2e/llm-feedback-pr4.spec.ts`.
-- [ ] **T-PR4-019**: E2E toggle off → panel disabled.
-- [ ] **T-PR4-020**: E2E backend error → panel unavailable.
-- [ ] **T-PR4-021**: Regression: 009 auth-web e2e suite remains green.
-- [ ] **T-PR4-022**: Regression: 021 structured input e2e suite remains green.
+- [x] **T-PR4-018 RED**: E2E fake provider → panel shows success state.
+- [x] **T-PR4-018 GREEN**: Create `BuildCv-web/e2e/llm-feedback-pr4.spec.ts`.
+- [x] **T-PR4-019**: E2E toggle off → panel disabled.
+- [x] **T-PR4-020**: E2E backend error → panel unavailable.
+- [x] **T-PR4-021**: Regression: 009 auth-web e2e suite remains green.
+- [x] **T-PR4-022**: Regression: 021 structured input e2e suite remains green.
 
 ### Phase 4.7: Docs + commit + review
 
-- [ ] **T-PR4-023**: Update `BuildCv-web/specs/000-INDEX.md` and API index cross-reference.
-- [ ] **T-PR4-024**: Commit `test(llm): cubrir panel feedback ia`.
-- [ ] **T-PR4-025**: Commit `feat(llm): agregar panel feedback ia`.
-- [ ] **T-PR4-026**: Commit `docs(022-llm): registrar avance PR4`.
-- [ ] **T-PR4-027**: Fresh review before merge.
+- [x] **T-PR4-023**: Update `BuildCv-web/specs/000-INDEX.md` and API index cross-reference.
+- [x] **T-PR4-024**: Commit `test(llm): cubrir panel feedback ia`.
+- [x] **T-PR4-025**: Commit `feat(llm): agregar panel feedback ia`.
+- [x] **T-PR4-026**: Commit `docs(022-llm): registrar avance PR4`.
+- [x] **T-PR4-027**: Fresh review before merge.
 - [ ] **T-PR4-028**: Merge web PR4 → web/main.
 
 ### PR4 verification
