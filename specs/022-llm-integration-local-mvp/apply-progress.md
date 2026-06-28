@@ -408,11 +408,11 @@ Status: **applied + reviewed + merged + pushed**
 
 Date: 2026-06-28
 Branch: `feature/022-llm-local-pr4-feedback-panel`
-Status: **applied + reviewed** (merge pending at this artifact checkpoint)
+Status: **applied + reviewed + merged + pushed**
 
 ## Scope completed
 
-- T-PR4-001..027 completed.
+- T-PR4-001..028 completed.
 - Created `lib/use-session-toggle.ts` with session-level `sessionStorage` key `buildcv.llmFeedback.enabled`, default enabled, no `localStorage` and no backend persistence.
 - Created `components/analyzer/llm-feedback-panel.tsx` with 9 states: disabled, idle, loading, success, degraded, unavailable, rate_limited, timeout, error.
 - Added centralized copy under `copy.analyze.llmFeedback.*`, including the required disclaimer: “Sugerencias IA complementarias, no reemplazan análisis determinista.”
@@ -451,6 +451,7 @@ Status: **applied + reviewed** (merge pending at this artifact checkpoint)
 | T-PR4-025 | Commit task | `0555d4a feat(llm): agregar panel feedback ia` | — |
 | T-PR4-026 | Docs task | Pending commit `docs(022-llm): registrar avance PR4` | — |
 | T-PR4-027 | Review task | `reviews/pr4-fresh-review.md` created | Verdict APPROVE |
+| T-PR4-028 | Merge task | `bb81e02 merge: integrar PR4 de 022-llm-local en web` + push | — |
 
 ## Tests added
 
@@ -481,6 +482,9 @@ Status: **applied + reviewed** (merge pending at this artifact checkpoint)
 | `pnpm exec playwright test e2e/account-flow.spec.ts e2e/user-menu-pr8.spec.ts e2e/a11y-auth-pr8.spec.ts e2e/endpoint-drift.spec.ts` | 0 (11 passed, 5 skipped) |
 | `pnpm exec playwright test e2e/landing.spec.ts` | initial 1 due parallel webServer port conflict, rerun 0 (25 passed) |
 | Focused defensive greps over PR4 source/e2e paths | 0 forbidden hits |
+| `git merge --no-ff feature/022-llm-local-pr4-feedback-panel -m "merge: integrar PR4 de 022-llm-local en web"` | 0 (`bb81e02`) |
+| Post-merge verification: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, endpoint drift, PR4 e2e | 0 |
+| `git push origin main` | 0 |
 
 ## LOC breakdown
 
@@ -518,3 +522,10 @@ Status: **applied + reviewed** (merge pending at this artifact checkpoint)
 - No `NEXT_PUBLIC_LLM_*` or client-side `LLM_API_KEY`: yes.
 - No raw CV/job/prompt logs: yes.
 - No tag, no deploy, no archive: yes.
+
+## Post-merge actions
+
+- Merged `feature/022-llm-local-pr4-feedback-panel` → `BuildCv-web/main` with `--no-ff`.
+- Pushed `BuildCv-web/main` to `origin/main` at merge commit `bb81e02`.
+- Post-merge gates passed: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm typecheck`, `node scripts/check-endpoint-drift.mjs`, and `pnpm exec playwright test e2e/llm-feedback-pr4.spec.ts`.
+- PR4 is ready for `sdd-verify 022`.

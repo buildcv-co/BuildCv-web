@@ -341,7 +341,7 @@ Chain strategy: feature-branch-chain
 - [x] **T-PR4-025**: Commit `feat(llm): agregar panel feedback ia`.
 - [x] **T-PR4-026**: Commit `docs(022-llm): registrar avance PR4`.
 - [x] **T-PR4-027**: Fresh review before merge.
-- [ ] **T-PR4-028**: Merge web PR4 → web/main.
+- [x] **T-PR4-028**: Merge web PR4 → web/main.
 
 ### PR4 verification
 
