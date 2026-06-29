@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildLlmFeedbackRequestBody,
   fetchLlmFeedback,
+  type LlmFeedbackResponse,
   type LlmFeedbackRequest,
   type LlmFeedbackState,
 } from "./llm";
@@ -58,18 +59,24 @@ const baseRequest: LlmFeedbackRequest = {
   sessionToggleState: true,
 };
 
-const successPayload = {
-  summary: "Strong deterministic fit with optional feedback.",
-  strengths: ["C# experience"],
-  risks: ["Some inferred fields"],
-  suggestions: [{ category: "skills", text: "Add .NET evidence", severity: "medium" }],
-  missingKeywords: ["Kubernetes"],
-  questions: ["Can you quantify impact?"],
-  provider: "fake",
-  model: "fake-local-v1",
-  generatedAt: "2026-06-28T00:00:00.000Z",
-  degraded: false,
-} as const;
+function feedbackPayload(overrides?: Partial<LlmFeedbackResponse>): LlmFeedbackResponse {
+  return {
+    summary: "Strong deterministic fit with optional feedback.",
+    strengths: ["C# experience"],
+    risks: ["Some inferred fields"],
+    suggestions: [{ category: "skills", text: "Add .NET evidence", severity: "medium" }],
+    missingKeywords: ["Kubernetes"],
+    questions: ["Can you quantify impact?"],
+    provider: "fake",
+    model: "fake-local-v1",
+    generatedAt: "2026-06-28T00:00:00.000Z",
+    degraded: false,
+    ...overrides,
+  };
+}
+
+const successPayload = feedbackPayload();
+const minimaxSuccessPayload = feedbackPayload({ provider: "minimax", model: "MiniMax-M2.7" });
 
 function jsonResponse(body: unknown, status = 200, headers?: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
@@ -102,6 +109,23 @@ describe("fetchLlmFeedback", () => {
     expect(result).toEqual({ state: "success", data: successPayload });
     if (result.state !== "success") throw new Error("Expected success state");
     expect(Object.keys(result.data)).toHaveLength(10);
+  });
+
+  it("normalizes MiniMax provider metadata from the backend response", async () => {
+    captureFetch(jsonResponse(minimaxSuccessPayload));
+    const result = await fetchLlmFeedback(baseRequest);
+    expect(result).toEqual({ state: "success", data: minimaxSuccessPayload });
+    if (result.state !== "success") throw new Error("Expected success state");
+    expect(result.data.provider).toBe("minimax");
+    expect(result.data.model).toBe("MiniMax-M2.7");
+  });
+
+  it("keeps fake provider metadata compatible with the 022 contract", async () => {
+    captureFetch(jsonResponse(successPayload));
+    const result = await fetchLlmFeedback(baseRequest);
+    if (result.state !== "success") throw new Error("Expected success state");
+    expect(result.data.provider).toBe("fake");
+    expect(result.data.model).toBe("fake-local-v1");
   });
 
   it("maps degraded=true success responses to degraded state", async () => {

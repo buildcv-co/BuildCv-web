@@ -250,3 +250,96 @@ Status: **applied + reviewed + merged + pushed**
 ## Next step
 
 Recommended: evaluate optional PR3 web drift, or proceed directly to `sdd-verify 024` if no web contract drift is found.
+
+---
+
+# Apply Progress — 024 MiniMax Real Provider PR3
+
+Date: 2026-06-29  
+Branch: `feature/024-minimax-pr3-web-type-fix`  
+Base commit: `BuildCv-web/main @ 0ea8822`  
+Status: **applied + reviewed; merge pending at time of branch docs commit**
+
+## Scope completed
+
+- T-PR3-000..010 completed for the web drift branch.
+- Fixed the web LLM feedback response contract drift in `lib/api/llm.ts`.
+- `provider` now accepts the closed union `"fake" | "minimax"`.
+- `model` now accepts `string` so configured backend model names such as `MiniMax-M2.7` pass through.
+- Added MiniMax provider metadata coverage and kept the 022 fake metadata regression.
+- BFF route, analyzer panel, backend, `/api/auth/*`, `/cuenta`, and `FixList` are unchanged.
+- No real MiniMax calls, no secrets, no `NEXT_PUBLIC_*` provider keys, no tags.
+
+## TDD Cycle Evidence
+
+| Task | RED (test written, fails) | GREEN (impl, passes) | REFACTOR (cleanup) |
+|---|---|---|---|
+| T-PR3-001 | 2026-06-29 04:11 `minimaxSuccessPayload` typed as `LlmFeedbackResponse` failed `pnpm typecheck`: `"minimax"` not assignable to `"fake"`; `"MiniMax-M2.7"` not assignable to `"fake-local-v1"` | 2026-06-29 04:11 `pnpm exec vitest run lib/api/llm.test.ts` → 12 passed; `pnpm typecheck` → 0 | — |
+| T-PR3-002 | 2026-06-29 04:11 fake metadata regression test added before implementation; it remained green after type widening | 2026-06-29 04:11 fake provider/model assertions passed | — |
+| T-PR3-003 | 2026-06-29 existing error-normalization matrix already covered 403/429/504/502/500/400 and degraded success; preserved as regression safety net | 2026-06-29 04:11 focused Vitest suite passed | — |
+| T-PR3-004 | Type-level RED from T-PR3-001 proved production contract rejected MiniMax | `provider: "fake" | "minimax"` implemented and typecheck passed | — |
+| T-PR3-005 | MiniMax fixture introduced before type fix | `minimaxSuccessPayload` normalizes successfully through `fetchLlmFeedback` | — |
+| T-PR3-006 | Refactor after green | Extracted `feedbackPayload()` fixture builder to avoid fake/minimax duplication; focused tests and typecheck stayed green | Fixture cleanup complete |
+| T-PR3-007 | Docs task | INDEX update deferred to post-merge main commit per PR3 workflow | — |
+| T-PR3-008 | Commit task | `07b8d8a fix(llm): permitir provider minimax en contrato web` | — |
+| T-PR3-009 | Docs task | apply-progress, tasks, and fresh review updated in branch docs commit | — |
+| T-PR3-010 | Review task | `reviews/pr3-fresh-review.md` created | Verdict `APPROVE` |
+| T-PR3-011 | Merge task | Pending at branch docs commit; to be completed by merge to web/main and post-merge gates | — |
+
+## Tests added/modified
+
+- `lib/api/llm.test.ts`: +2 tests.
+  - MiniMax provider/model success metadata normalization.
+  - 022 fake provider/model regression.
+- Existing error normalization matrix retained: disabled, rate-limited with `Retry-After`, timeout, unavailable, server error, validation error, plus degraded success.
+
+## Commands executed before branch docs commit
+
+| Command | Result |
+|---|---:|
+| Web preflight: status/branch/log/head/fetch/origin/tags | 0; clean main at `0ea8822`; origin/main synced; no `024-minimax-real-provider-v*` tags |
+| `git checkout -b feature/024-minimax-pr3-web-type-fix` | 0 |
+| Safety net `pnpm exec vitest run lib/api/llm.test.ts` | 0 (10 passed) |
+| RED `pnpm typecheck` after MiniMax fixture | 2 expected type errors on hardcoded provider/model literals |
+| GREEN `pnpm exec vitest run lib/api/llm.test.ts && pnpm typecheck` | 0 (12 passed + typecheck clean) |
+| REFACTOR `pnpm exec vitest run lib/api/llm.test.ts && pnpm typecheck` | 0 (12 passed + typecheck clean) |
+
+## LOC breakdown before docs/review
+
+| Category | Insertions | Deletions | Files |
+|---|---:|---:|---:|
+| Production (`lib/api/llm.ts`) | **2** | 2 | 1 |
+| Tests (`lib/api/llm.test.ts`) | 36 | 12 | 1 |
+
+- Production LOC = 2 changed lines → under PR3 cap 100 ✓.
+- Functional diff remains below hard cap; tests/docs overhead documented honestly.
+
+## Risks covered
+
+- Web contract no longer rejects real MiniMax provider metadata at type level.
+- Fake 022 response metadata remains accepted.
+- BFF and panel remain data-driven and unchanged.
+- Endpoint drift script is unchanged and scheduled in full gate.
+
+## Deviations
+
+- T-PR3-002 and T-PR3-003 are regression/safety-net tasks; they do not fail independently because the existing fake and error-normalization behavior was already correct. The strict RED for the actual drift is captured by T-PR3-001 typecheck failure.
+- Existing `tasks.md` PR3 section used older optional task names; it was marked complete for the executed drift path while this apply-progress records the locked PR3 task table requested by the orchestrator.
+
+## Confirmations
+
+- Provider fake|minimax type fixed: yes.
+- Model string type fixed: yes.
+- BFF unchanged: yes.
+- Panel unchanged: yes.
+- Backend untouched: yes.
+- No provider real: yes.
+- No API key real: yes.
+- No secrets tracked: yes.
+- No `NEXT_PUBLIC_*` provider secrets: yes.
+- No `/api/auth/*`, `/cuenta`, or `FixList` changes: yes.
+- No tag created: yes.
+
+## Next step
+
+Merge PR3 into `BuildCv-web/main`, run post-merge gates, push, update INDEX/apply-progress final status, then run `sdd-verify 024-minimax-real-provider`.
