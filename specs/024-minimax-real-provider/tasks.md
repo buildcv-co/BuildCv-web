@@ -214,20 +214,20 @@ dotnet test --filter "FullyQualifiedName~PiiRedactor"
 ## 6. PR3 Web Tasks — Optional type/display drift or skip
 
 ### Default: SKIPPED unless drift is found
-- [ ] **T-PR3-000 INSPECT**: Inspect BFF, `lib/api/llm.ts`, and `<LlmFeedbackPanel>` for provider/model literal drift.
-- [ ] **T-PR3-001 DECISION**: If web already accepts provider/model, mark PR3 SKIPPED.
-- [ ] **T-PR3-002 DOCS**: If skipped, commit `docs(024-minimax): registrar PR3 omitido por contrato web intacto`.
-- [ ] **T-PR3-003 ALTERNATE**: If drift exists, run conditional tasks.
+- [x] **T-PR3-000 INSPECT**: Inspect BFF, `lib/api/llm.ts`, and `<LlmFeedbackPanel>` for provider/model literal drift.
+- [x] **T-PR3-001 DECISION**: Drift found; PR3 executed instead of skipped.
+- [x] **T-PR3-002 DOCS**: Document PR3 executed path in apply-progress and fresh review.
+- [x] **T-PR3-003 ALTERNATE**: If drift exists, run conditional tasks.
 
 ### Conditional tasks only if drift detected
-- [ ] **T-PR3-003 RED**: Test `LlmFeedbackResponse.provider` accepts `minimax` or string union.
-- [ ] **T-PR3-004 RED**: Test panel displays provider/model from backend without assuming fake.
-- [ ] **T-PR3-005 GREEN**: Widen `BuildCv-web/lib/api/llm.ts` provider/model types.
-- [ ] **T-PR3-006 GREEN**: Optional UI label for MiniMax, preserving copy honesty.
-- [ ] **T-PR3-007 REFACTOR**: Remove duplication.
-- [ ] **T-PR3-008**: Commit `test(llm): cubrir contrato minimax en web` if needed.
-- [ ] **T-PR3-009**: Commit `feat(llm): ajustar contrato web para minimax` if needed.
-- [ ] **T-PR3-010**: Fresh review + merge web PR3 → web/main with `--no-ff`.
+- [x] **T-PR3-003 RED**: Test `LlmFeedbackResponse.provider` accepts `minimax` or string union.
+- [x] **T-PR3-004 RED**: Test panel displays provider/model from backend without assuming fake.
+- [x] **T-PR3-005 GREEN**: Widen `BuildCv-web/lib/api/llm.ts` provider/model types.
+- [x] **T-PR3-006 GREEN**: Optional UI label for MiniMax not needed; BFF/panel remain data-driven.
+- [x] **T-PR3-007 REFACTOR**: Remove duplication.
+- [x] **T-PR3-008**: Commit `test(llm): cubrir contrato minimax en web` if needed.
+- [x] **T-PR3-009**: Commit `feat(llm): ajustar contrato web para minimax` if needed.
+- [x] **T-PR3-010**: Fresh review + merge web PR3 → web/main with `--no-ff`.
 
 ### PR3 verification if executed
 ```bash
