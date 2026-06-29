@@ -258,7 +258,7 @@ Recommended: evaluate optional PR3 web drift, or proceed directly to `sdd-verify
 Date: 2026-06-29  
 Branch: `feature/024-minimax-pr3-web-type-fix`  
 Base commit: `BuildCv-web/main @ 0ea8822`  
-Status: **applied + reviewed; merge pending at time of branch docs commit**
+Status: **applied + reviewed + merged + pushed**
 
 ## Scope completed
 
@@ -303,6 +303,13 @@ Status: **applied + reviewed; merge pending at time of branch docs commit**
 | RED `pnpm typecheck` after MiniMax fixture | 2 expected type errors on hardcoded provider/model literals |
 | GREEN `pnpm exec vitest run lib/api/llm.test.ts && pnpm typecheck` | 0 (12 passed + typecheck clean) |
 | REFACTOR `pnpm exec vitest run lib/api/llm.test.ts && pnpm typecheck` | 0 (12 passed + typecheck clean) |
+| Pre-merge full gate `pnpm lint && pnpm test && pnpm build && pnpm typecheck && pnpm exec vitest run lib/api/llm && node scripts/check-endpoint-drift.mjs` | 0 (1164 tests passed; build/typecheck/drift clean) |
+| Broad defensive grep script | 1 — false positives in unrelated existing files/docs (`lib/api/types.ts`, PR3 docs confirmations); focused PR3 functional files clean |
+| Focused PR3 functional defensive grep script | 0 forbidden hits in `lib/api/llm.ts` and `lib/api/llm.test.ts` |
+| `git merge --no-ff feature/024-minimax-pr3-web-type-fix -m "merge: integrar PR3 de 024-minimax en web"` | 0 |
+| Post-merge `pnpm lint && pnpm test && pnpm build && pnpm typecheck && node scripts/check-endpoint-drift.mjs && pnpm exec vitest run lib/api/llm` | 0 (1164 tests passed; build/typecheck/drift clean; llm 12 passed) |
+| Post-merge INDEX/apply-progress final status commit | 0 |
+| `git push origin main` | 0 |
 
 ## LOC breakdown before docs/review
 
@@ -342,4 +349,4 @@ Status: **applied + reviewed; merge pending at time of branch docs commit**
 
 ## Next step
 
-Merge PR3 into `BuildCv-web/main`, run post-merge gates, push, update INDEX/apply-progress final status, then run `sdd-verify 024-minimax-real-provider`.
+Run `sdd-verify 024-minimax-real-provider`.
