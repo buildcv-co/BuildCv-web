@@ -134,67 +134,67 @@ dotnet list src/BuildCv.Domain package references
 ## 5. PR2 API Tasks — Handler dispatch/max input/error mapping/integration tests
 
 ### Phase 2.1: Handler Dispatch
-- [ ] **T-PR2-001 RED**: Test `GenerateLlmFeedbackHandler` invokes fake when `Provider=fake` (022 regression).
-- [ ] **T-PR2-001 GREEN**: Preserve fake path unchanged.
-- [ ] **T-PR2-002 RED**: Test handler/DI invokes MiniMax when `Provider=minimax`.
-- [ ] **T-PR2-002 GREEN**: Add provider dispatch/factory as needed.
-- [ ] **T-PR2-003 RED**: Test invalid provider fails startup or controlled config validation.
-- [ ] **T-PR2-003 GREEN**: Enforce provider validation.
-- [ ] **T-PR2-004 RED**: Test `Provider=minimax` + `Enabled=false` returns 403 `disabled` without provider call.
-- [ ] **T-PR2-004 GREEN**: Keep enabled check first.
-- [ ] **T-PR2-005 RED**: Test missing key maps to sanitized 502/unavailable.
-- [ ] **T-PR2-005 GREEN**: Validate key before provider invocation.
+- [x] **T-PR2-001 RED**: Test `GenerateLlmFeedbackHandler` invokes fake when `Provider=fake` (022 regression).
+- [x] **T-PR2-001 GREEN**: Preserve fake path unchanged.
+- [x] **T-PR2-002 RED**: Test handler/DI invokes MiniMax when `Provider=minimax`.
+- [x] **T-PR2-002 GREEN**: Add provider dispatch/factory as needed.
+- [x] **T-PR2-003 RED**: Test invalid provider fails startup or controlled config validation.
+- [x] **T-PR2-003 GREEN**: Enforce provider validation.
+- [x] **T-PR2-004 RED**: Test `Provider=minimax` + `Enabled=false` returns 403 `disabled` without provider call.
+- [x] **T-PR2-004 GREEN**: Keep enabled check first.
+- [x] **T-PR2-005 RED**: Test missing key maps to sanitized 502/unavailable.
+- [x] **T-PR2-005 GREEN**: Validate key before provider invocation.
 
 ### Phase 2.2: Input Validation
-- [ ] **T-PR2-006 RED**: Test over `MaxInputLength` redacted CV+job returns 400 or documented truncation.
-- [ ] **T-PR2-006 GREEN**: Add handler validation using `LlmFeedbackOptions.MaxInputLength`.
-- [ ] **T-PR2-007 RED**: Integration test proves `MaxOutputTokens=1024` reaches provider request.
-- [ ] **T-PR2-007 GREEN**: Pass option through provider context/request.
-- [ ] **T-PR2-008 RED**: Test `RedactionEnabled=false` skips redaction only by config.
-- [ ] **T-PR2-008 GREEN**: Keep 022 redaction toggle behavior explicit.
+- [x] **T-PR2-006 RED**: Test over `MaxInputLength` redacted CV+job returns 400 or documented truncation.
+- [x] **T-PR2-006 GREEN**: Add handler validation using `LlmFeedbackOptions.MaxInputLength`.
+- [x] **T-PR2-007 RED**: Integration test proves `MaxOutputTokens=1024` reaches provider request.
+- [x] **T-PR2-007 GREEN**: Pass option through provider context/request.
+- [x] **T-PR2-008 RED**: Test `RedactionEnabled=false` skips redaction only by config.
+- [x] **T-PR2-008 GREEN**: Keep 022 redaction toggle behavior explicit.
 
 ### Phase 2.3: Error Mapping Integration
-- [ ] **T-PR2-009 RED**: Endpoint success with MiniMax fake handler returns HTTP 200 + v2 response.
-- [ ] **T-PR2-009 GREEN**: Wire success path through endpoint unchanged.
-- [ ] **T-PR2-010 RED**: Malformed MiniMax response returns recommended 200 degraded.
-- [ ] **T-PR2-010 GREEN**: Map malformed to degraded fallback.
-- [ ] **T-PR2-011 RED**: 401 from provider returns 502 or degraded with no `ApiKey` in body/logs.
-- [ ] **T-PR2-011 GREEN**: Add auth error mapping.
-- [ ] **T-PR2-012 RED**: 403 from provider returns sanitized 502/degraded.
-- [ ] **T-PR2-012 GREEN**: Add forbidden mapping.
-- [ ] **T-PR2-013 RED**: 429 with `Retry-After` returns HTTP 429 and preserves header.
-- [ ] **T-PR2-013 GREEN**: Preserve provider retry metadata.
-- [ ] **T-PR2-014 RED**: 429 without `Retry-After` returns 429 without header.
-- [ ] **T-PR2-014 GREEN**: Gracefully omit header.
-- [ ] **T-PR2-015 RED**: 500-504 returns 502 or degraded per design without raw provider body.
-- [ ] **T-PR2-015 GREEN**: Add server error mapping.
+- [x] **T-PR2-009 RED**: Endpoint success with MiniMax fake handler returns HTTP 200 + v2 response.
+- [x] **T-PR2-009 GREEN**: Wire success path through endpoint unchanged.
+- [x] **T-PR2-010 RED**: Malformed MiniMax response returns recommended 200 degraded.
+- [x] **T-PR2-010 GREEN**: Map malformed to degraded fallback.
+- [x] **T-PR2-011 RED**: 401 from provider returns 502 or degraded with no `ApiKey` in body/logs.
+- [x] **T-PR2-011 GREEN**: Add auth error mapping.
+- [x] **T-PR2-012 RED**: 403 from provider returns sanitized 502/degraded.
+- [x] **T-PR2-012 GREEN**: Add forbidden mapping.
+- [x] **T-PR2-013 RED**: 429 with `Retry-After` returns HTTP 429 and preserves header.
+- [x] **T-PR2-013 GREEN**: Preserve provider retry metadata.
+- [x] **T-PR2-014 RED**: 429 without `Retry-After` returns 429 without header.
+- [x] **T-PR2-014 GREEN**: Gracefully omit header.
+- [x] **T-PR2-015 RED**: 500-504 returns 502 or degraded per design without raw provider body.
+- [x] **T-PR2-015 GREEN**: Add server error mapping.
 
 ### Phase 2.4: Cross-Repo Regression
-- [ ] **T-PR2-016 RED**: Re-run fake provider endpoint contract tests unchanged.
-- [ ] **T-PR2-016 GREEN**: Fix only if 024 regressed fake behavior.
-- [ ] **T-PR2-017 RED**: Run `dotnet test --filter ScoringEngine`; Art. II must stay green.
-- [ ] **T-PR2-017 GREEN**: Do not touch scoring logic.
-- [ ] **T-PR2-018 RED**: Run `/adapt` tests; accepted baseline failures only.
-- [ ] **T-PR2-018 GREEN**: No `/adapt` source coupling.
-- [ ] **T-PR2-019 RED**: Snapshot/contract test: 022 response shape unchanged for fake.
-- [ ] **T-PR2-019 GREEN**: Keep v2 response contract stable.
-- [ ] **T-PR2-020 RED**: Run 009 auth-web e2e regression.
-- [ ] **T-PR2-020 GREEN**: No auth-web changes.
-- [ ] **T-PR2-021 RED**: Run 021 structured input regression.
-- [ ] **T-PR2-021 GREEN**: No structured input regression.
-- [ ] **T-PR2-022 REFACTOR**: Remove duplicate error mapping after tests are green.
+- [x] **T-PR2-016 RED**: Re-run fake provider endpoint contract tests unchanged.
+- [x] **T-PR2-016 GREEN**: Fix only if 024 regressed fake behavior.
+- [x] **T-PR2-017 RED**: Run `dotnet test --filter ScoringEngine`; Art. II must stay green.
+- [x] **T-PR2-017 GREEN**: Do not touch scoring logic.
+- [x] **T-PR2-018 RED**: Run `/adapt` tests; accepted baseline failures only.
+- [x] **T-PR2-018 GREEN**: No `/adapt` source coupling.
+- [x] **T-PR2-019 RED**: Snapshot/contract test: 022 response shape unchanged for fake.
+- [x] **T-PR2-019 GREEN**: Keep v2 response contract stable.
+- [x] **T-PR2-020 RED**: Run 009 auth-web e2e regression.
+- [x] **T-PR2-020 GREEN**: No auth-web changes.
+- [x] **T-PR2-021 RED**: Run 021 structured input regression.
+- [x] **T-PR2-021 GREEN**: No structured input regression.
+- [x] **T-PR2-022 REFACTOR**: Remove duplicate error mapping after tests are green.
 
 ### Phase 2.5: Quality Gates + Docs + Commit
-- [ ] **T-PR2-023**: Defensive grep `NEXT_PUBLIC_MINIMAX*` → 0 new hits.
-- [ ] **T-PR2-024**: Defensive grep `LLM_API_KEY` tracked source → 0 new hits.
-- [ ] **T-PR2-025**: Defensive grep logged `Authorization`/`x-api-key` → 0 new hits.
-- [ ] **T-PR2-026**: Defensive grep `tool_use|thinking` in `MinimaxLlmFeedbackClient.cs` → 0 hits.
-- [ ] **T-PR2-027**: Defensive grep `stream=true` → 0 hits.
-- [ ] **T-PR2-028**: Defensive grep OpenAI chat format in feedback provider → 0 hits.
-- [ ] **T-PR2-029**: Update `BuildCv-api/specs/000-INDEX.md` row 024 PR2 status.
-- [ ] **T-PR2-030**: Commit `test(llm): cubrir dispatch minimax y errores provider`.
-- [ ] **T-PR2-031**: Commit `feat(llm): integrar provider minimax en feedback`.
-- [ ] **T-PR2-032**: Fresh review + merge api PR2 → api/main with `--no-ff`.
+- [x] **T-PR2-023**: Defensive grep `NEXT_PUBLIC_MINIMAX*` → 0 new hits.
+- [x] **T-PR2-024**: Defensive grep `LLM_API_KEY` tracked source → 0 new hits.
+- [x] **T-PR2-025**: Defensive grep logged `Authorization`/`x-api-key` → 0 new hits.
+- [x] **T-PR2-026**: Defensive grep `tool_use|thinking` in `MinimaxLlmFeedbackClient.cs` → 0 hits.
+- [x] **T-PR2-027**: Defensive grep `stream=true` → 0 hits.
+- [x] **T-PR2-028**: Defensive grep OpenAI chat format in feedback provider → 0 hits.
+- [x] **T-PR2-029**: Update `BuildCv-api/specs/000-INDEX.md` row 024 PR2 status.
+- [x] **T-PR2-030**: Commit `test(llm): cubrir dispatch minimax y errores provider`.
+- [x] **T-PR2-031**: Commit `feat(llm): integrar provider minimax en feedback`.
+- [x] **T-PR2-032**: Fresh review + merge api PR2 → api/main with `--no-ff`.
 
 ### PR2 verification commands
 ```bash
