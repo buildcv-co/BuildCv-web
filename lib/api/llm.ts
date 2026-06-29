@@ -26,8 +26,8 @@ export interface LlmFeedbackResponse {
   suggestions: LlmFeedbackSuggestion[];
   missingKeywords: string[];
   questions: string[];
-  provider: "fake";
-  model: "fake-local-v1";
+  provider: "fake" | "minimax";
+  model: string;
   generatedAt: string;
   degraded: boolean;
 }
